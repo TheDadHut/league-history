@@ -1572,13 +1572,15 @@ function renderOwnerStats(ownerKey) {
     else if (myScore < oppScore) h2h[opp].losses++;
   });
 
-  // Nemesis = opponent with the lowest win % against
-  const h2hRows = Object.entries(h2h).map(([k, r]) => ({
+  // Build full h2h rows (all opponents faced, no filter) for the table display
+  const allH2hRows = Object.entries(h2h).map(([k, r]) => ({
     key: k, ...r, pct: r.games > 0 ? r.wins / r.games : 0
-  })).filter(r => r.games >= 2); // at least 2 games to count as nemesis-worthy
+  }));
 
-  const nemesis = h2hRows.length ? [...h2hRows].sort((a, b) => a.pct - b.pct)[0] : null;
-  const favoriteMatchup = h2hRows.length ? [...h2hRows].sort((a, b) => b.pct - a.pct)[0] : null;
+  // For nemesis / favorite labels, require at least 2 games to avoid single-game noise
+  const qualifyingRows = allH2hRows.filter(r => r.games >= 2);
+  const nemesis = qualifyingRows.length ? [...qualifyingRows].sort((a, b) => a.pct - b.pct)[0] : null;
+  const favoriteMatchup = qualifyingRows.length ? [...qualifyingRows].sort((a, b) => b.pct - a.pct)[0] : null;
 
   // Playoff stats: count from winnersBracket entries where this roster appears
   let playoffAppearances = 0;
@@ -1665,8 +1667,8 @@ function renderOwnerStats(ownerKey) {
   html += `</div>`;
 
   // Head-to-head table against everyone
-  if (h2hRows.length > 0) {
-    const sorted = [...h2hRows].sort((a, b) => b.pct - a.pct);
+  if (allH2hRows.length > 0) {
+    const sorted = [...allH2hRows].sort((a, b) => b.pct - a.pct);
     html += `<div class="section-header"><div class="section-bar"></div><h2>Head-to-Head Records</h2></div>
       <div class="card"><div class="table-scroll"><table>
         <thead><tr><th>Opponent</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Games</th></tr></thead>

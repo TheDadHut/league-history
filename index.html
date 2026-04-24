@@ -770,8 +770,10 @@ function buildToiletBowlWinners() {
 // Sleeper's player DB is huge (~5MB) — fetch once, cache aggressively.
 // Stored in sessionStorage so a page refresh doesn't re-download.
 async function loadPlayerDB() {
-  const CACHE_KEY = 'sleeper_players_v1';
-  const CACHE_TIME_KEY = 'sleeper_players_v1_time';
+  // v2 — previous version didn't handle defenses properly. Bump this if the
+  // trimming logic ever changes so old caches are automatically invalidated.
+  const CACHE_KEY = 'sleeper_players_v2';
+  const CACHE_TIME_KEY = 'sleeper_players_v2_time';
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
   try {
@@ -780,6 +782,9 @@ async function loadPlayerDB() {
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < ONE_DAY)) {
       return JSON.parse(cached);
     }
+    // Clean up old v1 cache if present
+    sessionStorage.removeItem('sleeper_players_v1');
+    sessionStorage.removeItem('sleeper_players_v1_time');
   } catch (e) { /* sessionStorage might be unavailable */ }
 
   const players = await fetchJSON(`${API}/players/nfl`);
@@ -788,9 +793,21 @@ async function loadPlayerDB() {
   Object.keys(players).forEach(id => {
     const p = players[id];
     if (!p) return;
+
+    // Build display name. Defenses in Sleeper already come with nice full_names
+    // like "Los Angeles Rams", so we just use that. Fallbacks handle rare missing entries.
+    const position = p.position || '';
+    let name = p.full_name
+      || `${p.first_name || ''} ${p.last_name || ''}`.trim()
+      || p.last_name
+      || p.first_name
+      || null;
+    // Last-resort fallback: show position instead of raw ID so we never surface "4046"
+    if (!name) name = position ? `Unknown ${position}` : 'Unknown Player';
+
     trimmed[id] = {
-      name: p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.last_name || id,
-      position: p.position || '',
+      name,
+      position,
       team: p.team || ''
     };
   });
@@ -802,8 +819,13 @@ async function loadPlayerDB() {
 }
 
 function playerInfo(id) {
-  if (!state.players) return { name: id, position: '', team: '' };
-  return state.players[id] || { name: id, position: '', team: '' };
+  if (!state.players) return { name: id || 'Unknown', position: '', team: '' };
+  if (state.players[id]) return state.players[id];
+  // Edge case: if ID looks like a team abbreviation and wasn't in the DB, it's a defense
+  if (id && /^[A-Z]{2,3}$/.test(id)) {
+    return { name: id, position: 'DEF', team: id };
+  }
+  return { name: 'Unknown', position: '', team: '' };
 }
 
 // Build: every single-week player performance across all seasons

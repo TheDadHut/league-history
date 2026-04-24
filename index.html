@@ -1577,6 +1577,155 @@ function buildDraftGrades() {
   });
 }
 
+// ========== WAIVER GRADES ==========
+// Three metrics per owner per season:
+//   1) WCE (Waiver Capital Efficiency) — avg points-per-week from pickups while they were on roster
+//   2) RPA (Raw Points Added) — total points from pickups while on roster
+//   3) HR  (Hit Rate) — % of pickups that had at least one week scoring 5+ points
+//
+// Plus: list of all individual pickups for the "best pickups" leaderboard.
+function buildWaiverGrades() {
+  state.waiverGrades = {};     // season → { ownerKey → { wce, rpa, hr, pickupCount, ...grades } }
+  state.bestPickups = [];      // { playerId, ownerKey, season, claimedWeek, pointsWhileRostered, weeksRostered }
+
+  state.leagues.forEach(league => {
+    if (!league.transactions) return;
+    const season = league.season;
+
+    const rosterToOwner = {};
+    league.rosters.forEach(r => {
+      const user = league.users.find(u => u.user_id === r.owner_id);
+      if (user) rosterToOwner[r.roster_id] = ownerKey(user);
+    });
+
+    // Build player-week points + ownership lookup (same structure as trades)
+    const playerWeeklyPoints = {}; // playerId → { week: points }
+    const playerWeeklyOwner = {};  // playerId → { week: rosterId }
+    state.allMatchups.forEach(m => {
+      if (m.season !== season) return;
+      const sides = [
+        { players: m.playersA, pts: m.playersPointsA, roster: m.rosterA },
+        { players: m.playersB, pts: m.playersPointsB, roster: m.rosterB }
+      ];
+      sides.forEach(side => {
+        const pts = (side.pts && typeof side.pts === 'object' && !Array.isArray(side.pts)) ? side.pts : {};
+        (side.players || []).forEach(pid => {
+          if (!pid || pid === '0') return;
+          if (!playerWeeklyPoints[pid]) playerWeeklyPoints[pid] = {};
+          if (!playerWeeklyOwner[pid]) playerWeeklyOwner[pid] = {};
+          playerWeeklyPoints[pid][m.week] = pts[pid] || 0;
+          playerWeeklyOwner[pid][m.week] = side.roster;
+        });
+      });
+    });
+
+    // Collect all pickups — waiver and free agent adds (type != 'trade')
+    // Each pickup: { playerId, rosterId, ownerKey, week }
+    const pickups = [];
+    const allTx = (league.transactions || []).flat().filter(t => t.status === 'complete' && t.type !== 'trade');
+    allTx.forEach(tx => {
+      const week = tx.leg || 1;
+      const adds = tx.adds || {};
+      Object.entries(adds).forEach(([pid, rosterId]) => {
+        const ownerK = rosterToOwner[rosterId];
+        if (!ownerK) return;
+        pickups.push({ playerId: pid, rosterId, ownerKey: ownerK, week });
+      });
+    });
+
+    // For each pickup, compute their points-while-rostered from that week forward
+    // until they were either dropped OR the season ended. We use playerWeeklyOwner
+    // to determine when the player left this roster.
+    const byOwner = {};
+    league.users.forEach(u => { byOwner[ownerKey(u)] = { wce: 0, rpa: 0, hits: 0, pickupCount: 0, totalWeeksRostered: 0 }; });
+
+    pickups.forEach(p => {
+      if (!byOwner[p.ownerKey]) return;
+      byOwner[p.ownerKey].pickupCount++;
+
+      // Walk forward from pickup week; count points while still on this roster
+      let totalPts = 0;
+      let weeksRostered = 0;
+      let hadHit = false; // any week scoring 5+ pts
+      for (let w = p.week; w <= 18; w++) {
+        const owner = playerWeeklyOwner[p.playerId]?.[w];
+        if (owner !== p.rosterId) {
+          // Player not on this roster in week w. If this is after pickup, they were dropped/traded.
+          // Stop counting — we only care about this specific tenure.
+          // But guard: sometimes a player doesn't appear in matchup data until 1-2 weeks after
+          // being claimed (e.g., claim Tuesday for Sunday's game but bye week). We should
+          // tolerate a 1-week gap.
+          if (w > p.week) break; // they were here and are now gone
+          continue; // first week might not have data yet
+        }
+        const pts = playerWeeklyPoints[p.playerId]?.[w] || 0;
+        totalPts += pts;
+        weeksRostered++;
+        if (pts >= 5) hadHit = true;
+      }
+
+      byOwner[p.ownerKey].rpa += totalPts;
+      byOwner[p.ownerKey].totalWeeksRostered += weeksRostered;
+      if (hadHit) byOwner[p.ownerKey].hits++;
+
+      // Track individual pickup for league-wide leaderboard
+      if (weeksRostered > 0) {
+        state.bestPickups.push({
+          playerId: p.playerId,
+          ownerKey: p.ownerKey,
+          season,
+          claimedWeek: p.week,
+          pointsWhileRostered: totalPts,
+          weeksRostered,
+          avgPerWeek: totalPts / weeksRostered
+        });
+      }
+    });
+
+    // Compute WCE (avg pts per roster-week) and HR (hit rate) per owner
+    Object.values(byOwner).forEach(o => {
+      o.wce = o.totalWeeksRostered > 0 ? o.rpa / o.totalWeeksRostered : 0;
+      o.hr = o.pickupCount > 0 ? o.hits / o.pickupCount : 0;
+    });
+
+    // Assign letter grades on a curve
+    function assignGrades(metricKey) {
+      const sorted = Object.entries(byOwner)
+        .filter(([_, v]) => v.pickupCount > 0)
+        .sort((a, b) => b[1][metricKey] - a[1][metricKey]);
+      const n = sorted.length;
+      if (n === 0) return;
+      sorted.forEach(([key, _], i) => {
+        const pct = n === 1 ? 0 : i / (n - 1);
+        let grade;
+        if (pct <= 0.10) grade = 'A+';
+        else if (pct <= 0.25) grade = 'A';
+        else if (pct <= 0.50) grade = 'B';
+        else if (pct <= 0.75) grade = 'C';
+        else if (pct <= 0.90) grade = 'D';
+        else grade = 'F';
+        byOwner[key][metricKey + 'Grade'] = grade;
+      });
+    }
+    assignGrades('wce');
+    assignGrades('rpa');
+    assignGrades('hr');
+
+    // Overall grade
+    const gradeToNum = { 'A+': 4.3, 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
+    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
+    Object.keys(byOwner).forEach(key => {
+      const o = byOwner[key];
+      if (!o.wceGrade) return;
+      const gpa = (gradeToNum[o.wceGrade] + gradeToNum[o.rpaGrade] + gradeToNum[o.hrGrade]) / 3;
+      o.overallGrade = numToGrade(gpa);
+      o.gpa = gpa;
+    });
+
+    state.waiverGrades[season] = byOwner;
+  });
+}
+
 // ========== RENDER ==========
 function teamChip(key, season) {
   const o = state.ownerIndex[key];
@@ -2535,6 +2684,55 @@ function renderOwnerStats(ownerKey) {
       </div>`;
   }
 
+  // ===== WAIVER HISTORY =====
+  const ownerWaiverBySeason = [];
+  Object.keys(state.waiverGrades || {}).sort().forEach(season => {
+    const g = state.waiverGrades[season][ownerKey];
+    if (g && g.overallGrade) ownerWaiverBySeason.push({ season, ...g });
+  });
+
+  if (ownerWaiverBySeason.length > 0) {
+    const avgGPA = ownerWaiverBySeason.reduce((sum, g) => sum + (g.gpa || 0), 0) / ownerWaiverBySeason.length;
+    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
+    const avgLetter = numToGrade(avgGPA);
+    const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
+
+    html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>Waiver History</h2></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>All-Time Waiver Grade</h3>
+          <span class="hint">Average across ${ownerWaiverBySeason.length} season${ownerWaiverBySeason.length === 1 ? '' : 's'}</span>
+        </div>
+        <div style="padding: 24px; text-align: center; border-bottom: 1px solid var(--border);">
+          <span class="grade-pill large ${cls(avgLetter)}" style="font-size: 32px; padding: 12px 20px;">${avgLetter}</span>
+          <div style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size: 12px; margin-top: 8px; letter-spacing: 2px;">GPA ${avgGPA.toFixed(2)}</div>
+        </div>
+        <div class="table-scroll"><table>
+          <thead><tr>
+            <th>Season</th>
+            <th class="num">Overall</th>
+            <th class="num">WCE</th>
+            <th class="num">RPA</th>
+            <th class="num">HR</th>
+            <th class="num">Pickups</th>
+          </tr></thead>
+          <tbody>
+            ${ownerWaiverBySeason.reverse().map(g => {
+              const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
+              return `<tr>
+                <td style="font-family:'Oswald',sans-serif; font-weight:600;">${escapeHtml(g.season)}</td>
+                <td class="num"><span class="grade-pill ${cls(g.overallGrade)}">${g.overallGrade}</span></td>
+                <td class="num"><div>${gradePill(g.wceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.wce.toFixed(2)}/wk</div></td>
+                <td class="num"><div>${gradePill(g.rpaGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rpa.toFixed(0)}</div></td>
+                <td class="num"><div>${gradePill(g.hrGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.hr * 100).toFixed(0)}%</div></td>
+                <td class="num" style="color: var(--text-dim);">${g.pickupCount}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+  }
+
   // Head-to-head table against everyone
   if (allH2hRows.length > 0) {
     const sorted = [...allH2hRows].sort((a, b) => b.pct - a.pct);
@@ -2990,6 +3188,85 @@ function renderSeason(season) {
           </div>`;
       }
     }
+
+    // ===== WAIVER GRADES =====
+    const waiverGrades = state.waiverGrades[season];
+    if (waiverGrades) {
+      const waiverRows = Object.entries(waiverGrades)
+        .filter(([_, v]) => v.pickupCount > 0)
+        .sort((a, b) => (b[1].gpa || 0) - (a[1].gpa || 0));
+
+      if (waiverRows.length > 0) {
+        const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
+        const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
+
+        html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>📻 Waiver Wire Grades</h2></div>
+          <div class="card">
+            <div class="card-header">
+              <h3>In-Season Acquisition Report Card</h3>
+              <span class="hint">Graded on a curve within this season</span>
+            </div>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Rank</th>
+                <th>Owner</th>
+                <th class="num" title="Overall grade combining all three metrics">Overall</th>
+                <th class="num" title="Waiver Capital Efficiency: points-per-week from pickups">WCE</th>
+                <th class="num" title="Raw Points Added: total points scored by your pickups while on your roster">RPA</th>
+                <th class="num" title="Hit Rate: % of pickups that had a productive week (5+ pts)">HR</th>
+                <th class="num">Pickups</th>
+              </tr></thead>
+              <tbody>
+                ${waiverRows.map(([key, g], i) => `<tr>
+                  <td class="${rankClass(i)}">${i + 1}</td>
+                  <td>${teamChip(key, season)}</td>
+                  <td class="num">${g.overallGrade ? `<span class="grade-pill large ${cls(g.overallGrade)}">${g.overallGrade}</span>` : '—'}</td>
+                  <td class="num"><div>${gradePill(g.wceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.wce.toFixed(2)}/wk</div></td>
+                  <td class="num"><div>${gradePill(g.rpaGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rpa.toFixed(0)}</div></td>
+                  <td class="num"><div>${gradePill(g.hrGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.hr * 100).toFixed(0)}%</div></td>
+                  <td class="num" style="color: var(--text-dim);">${g.pickupCount}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table></div>
+            <div style="padding: 12px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--border); background: var(--panel);">
+              <strong style="color: var(--text-dim);">WCE</strong> — Waiver Capital Efficiency: avg points-per-week your pickups scored while on your roster. Rewards finding consistent producers.<br>
+              <strong style="color: var(--text-dim);">RPA</strong> — Raw Points Added: total points from pickups while rostered. Rewards volume + quality.<br>
+              <strong style="color: var(--text-dim);">HR</strong> — Hit Rate: % of pickups that had at least one game with 5+ points. Rewards pickup instincts vs random churn.
+            </div>
+          </div>`;
+      }
+
+      // Best Pickups leaderboard for this season
+      const seasonPickups = state.bestPickups
+        .filter(p => p.season === season)
+        .sort((a, b) => b.pointsWhileRostered - a.pointsWhileRostered)
+        .slice(0, 10);
+
+      if (seasonPickups.length > 0) {
+        html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>🎯 Best Pickups</h2><span class="count-pill">TOP 10</span></div>
+          <div class="card">
+            <div class="card-header"><h3>Highest-Producing Waiver Claims</h3><span class="hint">Points scored while on the claiming roster</span></div>
+            <div class="table-scroll"><table>
+              <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Claimed By</th><th class="num">Week</th><th class="num">Pts While Rostered</th><th class="num">Weeks</th><th class="num">Per Week</th></tr></thead>
+              <tbody>
+                ${seasonPickups.map((p, i) => {
+                  const info = playerInfo(p.playerId);
+                  return `<tr>
+                    <td class="${rankClass(i)}">${i + 1}</td>
+                    <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(info.name)}</td>
+                    <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(info.position)}</td>
+                    <td>${teamChipCompact(p.ownerKey, p.season)}</td>
+                    <td class="num" style="color: var(--text-dim);">W${p.claimedWeek}</td>
+                    <td class="num" style="color: var(--accent); font-weight:700;">${p.pointsWhileRostered.toFixed(2)}</td>
+                    <td class="num">${p.weeksRostered}</td>
+                    <td class="num">${p.avgPerWeek.toFixed(2)}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table></div>
+          </div>`;
+      }
+    }
   }
 
   const hl = HIGHLIGHTS[season];
@@ -3080,6 +3357,7 @@ async function init() {
     buildBenchStats();
     buildTrades();
     buildDraftGrades();
+    buildWaiverGrades();
 
     updateLoader('Rendering...', 99);
     renderHeader(); renderTicker(); renderChampions(); renderPulse();

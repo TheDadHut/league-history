@@ -258,15 +258,27 @@
   </section>
 
   <section id="records" class="panel">
-    <div class="section-header"><div class="section-bar"></div><h2>Weekly High Scores</h2><span class="count-pill">TOP 10</span></div>
+    <div class="section-header"><div class="section-bar"></div><h2>Team Scores · Weekly Highs</h2><span class="count-pill">TOP 10</span></div>
     <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>#</th><th>Team</th><th class="num">Points</th><th>Year</th><th>Week</th></tr></thead>
       <tbody id="weekly-highs-body"></tbody>
     </table></div></div>
-    <div class="section-header"><div class="section-bar"></div><h2>Lowest Weekly Scores</h2><span class="count-pill">BOTTOM 10</span></div>
+    <div class="section-header"><div class="section-bar"></div><h2>Team Scores · Weekly Lows</h2><span class="count-pill">BOTTOM 10</span></div>
     <div class="card"><div class="table-scroll"><table>
       <thead><tr><th>#</th><th>Team</th><th class="num">Points</th><th>Year</th><th>Week</th></tr></thead>
       <tbody id="weekly-lows-body"></tbody>
+    </table></div></div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>Player High Scores · Single Week</h2><span class="count-pill">TOP 10</span></div>
+    <div class="card"><div class="table-scroll"><table>
+      <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th class="num">Points</th><th>When</th></tr></thead>
+      <tbody id="player-week-body"></tbody>
+    </table></div></div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>Player High Scores · Full Season</h2><span class="count-pill">TOP 10</span></div>
+    <div class="card"><div class="table-scroll"><table>
+      <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th class="num">Points</th><th>Year</th></tr></thead>
+      <tbody id="player-season-body"></tbody>
     </table></div></div>
   </section>
 
@@ -482,9 +494,15 @@ function buildAllMatchups() {
           season: league.season, week: weekNum,
           isPlayoff: weekNum >= playoffStart,
           ownerAKey: oa.key, ownerBKey: ob.key,
+          rosterA: a.roster_id, rosterB: b.roster_id,
           scoreA: a.points || 0, scoreB: b.points || 0,
+          // Player-level data — only starters count toward the team total
+          startersA: a.starters || [], starterPointsA: a.starters_points || [],
+          startersB: b.starters || [], starterPointsB: b.starters_points || [],
           winnerKey: (a.points || 0) > (b.points || 0) ? oa.key :
-                     (b.points || 0) > (a.points || 0) ? ob.key : null
+                     (b.points || 0) > (a.points || 0) ? ob.key : null,
+          winnerRoster: (a.points || 0) > (b.points || 0) ? a.roster_id :
+                        (b.points || 0) > (a.points || 0) ? b.roster_id : null
         });
       });
     });
@@ -519,12 +537,119 @@ function buildChampions() {
     if (!champGame.w) return;
     const owner = ownerByRosterId(league, champGame.w);
     if (!owner) return;
+    // Find the actual week the championship game was played in (highest r = final round)
+    const finalRound = Math.max(...league.winnersBracket.map(m => m.r || 0));
+    const playoffStart = (league.settings && league.settings.playoff_week_start) || 15;
+    const champWeek = playoffStart + finalRound - 1;
     state.champions.push({
       season: league.season,
       ownerKey: owner.key,
-      teamName: owner.teamNames[league.season] || owner.displayName
+      teamName: owner.teamNames[league.season] || owner.displayName,
+      winnerRoster: champGame.w,
+      loserRoster: champGame.l,
+      champWeek
     });
     state.allTimeStats[owner.key].titles++;
+  });
+}
+
+function buildToiletBowlWinners() {
+  state.toiletBowls = [];
+  state.leagues.forEach(league => {
+    if (!league.losersBracket || league.status !== 'complete' || league.losersBracket.length === 0) return;
+    // The losers_bracket winner is typically the best of the bottom half ("toilet bowl champion")
+    // Find the final round's match where p=1 (the consolation final)
+    const finalMatches = league.losersBracket.filter(m => m.p === 1);
+    const finalGame = finalMatches[finalMatches.length - 1] || league.losersBracket[league.losersBracket.length - 1];
+    if (!finalGame || !finalGame.w) return;
+    const winner = ownerByRosterId(league, finalGame.w);
+    if (!winner) return;
+    state.toiletBowls.push({
+      season: league.season,
+      ownerKey: winner.key,
+      teamName: winner.teamNames[league.season] || winner.displayName
+    });
+  });
+}
+
+// ========== PLAYER DATA ==========
+// Sleeper's player DB is huge (~5MB) — fetch once, cache aggressively.
+// Stored in sessionStorage so a page refresh doesn't re-download.
+async function loadPlayerDB() {
+  const CACHE_KEY = 'sleeper_players_v1';
+  const CACHE_TIME_KEY = 'sleeper_players_v1_time';
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+
+  try {
+    const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached && cachedTime && (Date.now() - parseInt(cachedTime) < ONE_DAY)) {
+      return JSON.parse(cached);
+    }
+  } catch (e) { /* sessionStorage might be unavailable */ }
+
+  const players = await fetchJSON(`${API}/players/nfl`);
+  // Trim to just what we need to keep cache small
+  const trimmed = {};
+  Object.keys(players).forEach(id => {
+    const p = players[id];
+    if (!p) return;
+    trimmed[id] = {
+      name: p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.last_name || id,
+      position: p.position || '',
+      team: p.team || ''
+    };
+  });
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(trimmed));
+    sessionStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+  } catch (e) { /* cache too big or unavailable, just skip */ }
+  return trimmed;
+}
+
+function playerInfo(id) {
+  if (!state.players) return { name: id, position: '', team: '' };
+  return state.players[id] || { name: id, position: '', team: '' };
+}
+
+// Build: every single-week player performance across all seasons
+// Also build: season totals per player, and per-roster contributions
+function buildPlayerStats() {
+  state.playerWeekPerformances = []; // { playerId, pts, season, week, ownerKey }
+  state.playerSeasonTotals = {};     // key: `${season}|${playerId}|${ownerKey}` -> { pts, playerId, season, ownerKey }
+  state.rosterWeekContributions = {}; // key: `${season}|W${week}|R${rosterId}` -> [{ playerId, pts }]
+  state.rosterSeasonContributions = {}; // key: `${season}|R${rosterId}` -> { playerId: totalPts }
+
+  state.allMatchups.forEach(m => {
+    const sides = [
+      { starters: m.startersA, pts: m.starterPointsA, ownerKey: m.ownerAKey, roster: m.rosterA },
+      { starters: m.startersB, pts: m.starterPointsB, ownerKey: m.ownerBKey, roster: m.rosterB }
+    ];
+    sides.forEach(side => {
+      if (!Array.isArray(side.starters) || !Array.isArray(side.pts)) return;
+      side.starters.forEach((pid, i) => {
+        const pts = side.pts[i] || 0;
+        if (!pid || pid === '0') return;
+        // Single-week performance (regular season only for cleanliness)
+        if (!m.isPlayoff) {
+          state.playerWeekPerformances.push({
+            playerId: pid, pts, season: m.season, week: m.week, ownerKey: side.ownerKey
+          });
+          const seasonKey = `${m.season}|${pid}|${side.ownerKey}`;
+          if (!state.playerSeasonTotals[seasonKey]) {
+            state.playerSeasonTotals[seasonKey] = { pts: 0, playerId: pid, season: m.season, ownerKey: side.ownerKey };
+          }
+          state.playerSeasonTotals[seasonKey].pts += pts;
+          const rsKey = `${m.season}|R${side.roster}`;
+          if (!state.rosterSeasonContributions[rsKey]) state.rosterSeasonContributions[rsKey] = {};
+          state.rosterSeasonContributions[rsKey][pid] = (state.rosterSeasonContributions[rsKey][pid] || 0) + pts;
+        }
+        // Per-week per-roster — includes playoff weeks (for Finals MVP)
+        const rwKey = `${m.season}|W${m.week}|R${side.roster}`;
+        if (!state.rosterWeekContributions[rwKey]) state.rosterWeekContributions[rwKey] = [];
+        state.rosterWeekContributions[rwKey].push({ playerId: pid, pts });
+      });
+    });
   });
 }
 
@@ -641,6 +766,21 @@ function renderPulse() {
   }
   tiles.push({ label: 'Total Regular Season Games', value: state.allMatchups.filter(m => !m.isPlayoff).length.toString(), sub: `Across ${state.leagues.length} season${state.leagues.length === 1 ? '' : 's'}` });
   tiles.push({ label: 'Active Owners', value: Object.keys(state.ownerIndex).length.toString(), sub: 'All-time' });
+
+  // All-time top player week
+  if (state.playerWeekPerformances && state.playerWeekPerformances.length) {
+    const topWk = [...state.playerWeekPerformances].sort((a, b) => b.pts - a.pts)[0];
+    const p = playerInfo(topWk.playerId);
+    tiles.push({ label: 'Top Player · Single Week', value: p.name.toUpperCase(), sub: `${topWk.pts.toFixed(2)} · ${topWk.season} W${topWk.week}` });
+  }
+  // All-time top player season
+  if (state.playerSeasonTotals) {
+    const topSeason = Object.values(state.playerSeasonTotals).sort((a, b) => b.pts - a.pts)[0];
+    if (topSeason) {
+      const p = playerInfo(topSeason.playerId);
+      tiles.push({ label: 'Top Player · Full Season', value: p.name.toUpperCase(), sub: `${topSeason.pts.toFixed(1)} · ${topSeason.season}` });
+    }
+  }
   $('#pulse-grid').innerHTML = tiles.map(t => `
     <div class="stat-tile">
       <div class="stat-label">${escapeHtml(t.label)}</div>
@@ -716,6 +856,35 @@ function renderRecords() {
     <tr><td class="${rankClass(i)}">${i + 1}</td><td>${teamChip(r.key, r.season)}</td>
     <td class="num" style="color: var(--accent-red); font-weight:700;">${r.pts.toFixed(2)}</td>
     <td>${escapeHtml(r.season)}</td><td>Week ${r.week}</td></tr>`).join('');
+
+  // Player single-week high scores
+  const topWeeks = [...state.playerWeekPerformances].sort((a, b) => b.pts - a.pts).slice(0, 10);
+  $('#player-week-body').innerHTML = topWeeks.map((r, i) => {
+    const p = playerInfo(r.playerId);
+    return `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(p.name)}</td>
+      <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(p.position)}</td>
+      <td>${teamChipCompact(r.ownerKey, r.season)}</td>
+      <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(2)}</td>
+      <td>${escapeHtml(r.season)} W${r.week}</td>
+    </tr>`;
+  }).join('');
+
+  // Player full-season totals
+  const seasonTotals = Object.values(state.playerSeasonTotals)
+    .sort((a, b) => b.pts - a.pts).slice(0, 10);
+  $('#player-season-body').innerHTML = seasonTotals.map((r, i) => {
+    const p = playerInfo(r.playerId);
+    return `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(p.name)}</td>
+      <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(p.position)}</td>
+      <td>${teamChipCompact(r.ownerKey, r.season)}</td>
+      <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(1)}</td>
+      <td>${escapeHtml(r.season)}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderFunStats() {
@@ -851,25 +1020,82 @@ function renderSeason(season) {
   let html = '';
   if (league.status === 'complete') {
     const champ = state.champions.find(c => c.season === season);
+    const toilet = state.toiletBowls.find(t => t.season === season);
     const topPF = standings.slice().sort((a, b) => b.pf - a.pf)[0];
     const topPA = standings.slice().sort((a, b) => b.pa - a.pa)[0];
-    const toilet = standings[standings.length - 1];
+
+    // Season MVP: highest-scoring player across all rosters for this season
+    let seasonMVP = null;
+    Object.values(state.playerSeasonTotals).forEach(p => {
+      if (p.season !== season) return;
+      if (!seasonMVP || p.pts > seasonMVP.pts) seasonMVP = p;
+    });
+
+    // Finals MVP: highest-scoring starter on the champion's roster in the championship week
+    let finalsMVP = null;
+    if (champ && champ.champWeek && champ.winnerRoster) {
+      const rwKey = `${season}|W${champ.champWeek}|R${champ.winnerRoster}`;
+      const starters = state.rosterWeekContributions[rwKey] || [];
+      starters.forEach(s => {
+        if (!finalsMVP || s.pts > finalsMVP.pts) finalsMVP = s;
+      });
+    }
+
+    // Champion's Best Player: highest-scoring player on champ's roster over regular season
+    let champBest = null;
+    if (champ) {
+      const rsKey = `${season}|R${champ.winnerRoster}`;
+      const contribs = state.rosterSeasonContributions[rsKey] || {};
+      Object.entries(contribs).forEach(([pid, pts]) => {
+        if (!champBest || pts > champBest.pts) champBest = { playerId: pid, pts };
+      });
+    }
+
     if (champ) {
       const o = state.ownerIndex[champ.ownerKey];
       html += `<div class="awards">
         <div class="award gold"><span class="award-label">🏆 Champion</span>
           <span class="award-winner" style="color:${o.color}">${escapeHtml(o.teamNames[season] || o.displayName)}</span>
-          <span class="award-detail">${escapeHtml(o.displayName)}</span></div>
-        ${topPF ? `<div class="award blue"><span class="award-label">Highest Points For</span>
-          <span class="award-winner" style="color:${state.ownerIndex[topPF.key].color}">${escapeHtml(state.ownerIndex[topPF.key].displayName)}</span>
-          <span class="award-detail">${topPF.pf.toFixed(2)}</span></div>` : ''}
-        ${topPA ? `<div class="award brown"><span class="award-label">Most Points Against</span>
-          <span class="award-winner" style="color:${state.ownerIndex[topPA.key].color}">${escapeHtml(state.ownerIndex[topPA.key].displayName)}</span>
-          <span class="award-detail">${topPA.pa.toFixed(2)} allowed</span></div>` : ''}
-        ${toilet ? `<div class="award green"><span class="award-label">🚽 Last Place</span>
-          <span class="award-winner" style="color:${state.ownerIndex[toilet.key].color}">${escapeHtml(state.ownerIndex[toilet.key].displayName)}</span>
-          <span class="award-detail">${toilet.wins}-${toilet.losses}</span></div>` : ''}
-      </div>`;
+          <span class="award-detail">${escapeHtml(o.displayName)}</span></div>`;
+
+      if (finalsMVP) {
+        const p = playerInfo(finalsMVP.playerId);
+        html += `<div class="award gold"><span class="award-label">👑 Finals MVP</span>
+          <span class="award-winner">${escapeHtml(p.name)}</span>
+          <span class="award-detail">${finalsMVP.pts.toFixed(2)} · ${escapeHtml(p.position)} · ${escapeHtml(o.displayName)}</span></div>`;
+      }
+
+      if (seasonMVP) {
+        const p = playerInfo(seasonMVP.playerId);
+        const mvpOwner = state.ownerIndex[seasonMVP.ownerKey];
+        html += `<div class="award blue"><span class="award-label">⭐ Season MVP</span>
+          <span class="award-winner">${escapeHtml(p.name)}</span>
+          <span class="award-detail">${seasonMVP.pts.toFixed(1)} · ${escapeHtml(p.position)} · ${escapeHtml(mvpOwner.displayName)}</span></div>`;
+      }
+
+      if (champBest && (!finalsMVP || champBest.playerId !== finalsMVP.playerId)) {
+        const p = playerInfo(champBest.playerId);
+        html += `<div class="award gold"><span class="award-label">Champion's Best Player</span>
+          <span class="award-winner">${escapeHtml(p.name)}</span>
+          <span class="award-detail">${champBest.pts.toFixed(1)} · ${escapeHtml(p.position)} · ${escapeHtml(o.displayName)}</span></div>`;
+      }
+
+      if (topPF) html += `<div class="award blue"><span class="award-label">Highest Points For</span>
+        <span class="award-winner" style="color:${state.ownerIndex[topPF.key].color}">${escapeHtml(state.ownerIndex[topPF.key].displayName)}</span>
+        <span class="award-detail">${topPF.pf.toFixed(2)}</span></div>`;
+
+      if (topPA) html += `<div class="award brown"><span class="award-label">Most Points Against</span>
+        <span class="award-winner" style="color:${state.ownerIndex[topPA.key].color}">${escapeHtml(state.ownerIndex[topPA.key].displayName)}</span>
+        <span class="award-detail">${topPA.pa.toFixed(2)} allowed</span></div>`;
+
+      if (toilet) {
+        const to = state.ownerIndex[toilet.ownerKey];
+        html += `<div class="award green"><span class="award-label">🚽 Toilet Bowl Winner</span>
+          <span class="award-winner" style="color:${to.color}">${escapeHtml(to.teamName)}</span>
+          <span class="award-detail">${escapeHtml(to.displayName)}</span></div>`;
+      }
+
+      html += `</div>`;
     }
   }
 
@@ -939,15 +1165,22 @@ async function init() {
     const leagues = await loadAllSeasons();
     const details = [];
     for (let i = 0; i < leagues.length; i++) {
-      updateLoader(`Loading ${leagues[i].season} season...`, 20 + (i / leagues.length) * 70);
+      updateLoader(`Loading ${leagues[i].season} season...`, 15 + (i / leagues.length) * 55);
       details.push(await loadSeasonDetails(leagues[i]));
     }
     state.leagues = details;
-    updateLoader('Processing data...', 95);
+
+    updateLoader('Loading player database...', 75);
+    state.players = await loadPlayerDB();
+
+    updateLoader('Processing data...', 92);
     buildOwnerIndex();
     buildAllMatchups();
     buildAllTimeStats();
     buildChampions();
+    buildToiletBowlWinners();
+    buildPlayerStats();
+
     updateLoader('Rendering...', 99);
     renderHeader(); renderTicker(); renderChampions(); renderPulse();
     renderAllTimeTable(); initAllTimeSort(); renderRecords(); renderFunStats(); renderFounders();
@@ -964,7 +1197,5 @@ async function init() {
 }
 init();
 </script>
-</body>
-</html>
 </body>
 </html>

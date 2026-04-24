@@ -458,6 +458,24 @@
         <tbody id="blowout-record-body"></tbody>
       </table></div>
     </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🪑 Bench Points Left</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Points Left on the Bench</h3><span class="hint">Who needs to set their lineup better</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Total Bench Pts</th><th class="num">Per Game</th><th class="num">Games</th></tr></thead>
+        <tbody id="bench-total-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🤦 Shoulda Started Him</h2><span class="count-pill">TOP 10</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Highest-Scoring Benched Players</h3><span class="hint">Single-week performances riding the pine</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Points</th><th>When</th></tr></thead>
+        <tbody id="bench-shoulda-body"></tbody>
+      </table></div>
+    </div>
   </section>
 
   <!-- ===== LUCK & STREAKS TAB ===== -->
@@ -776,9 +794,12 @@ function buildAllMatchups() {
           ownerAKey: oa.key, ownerBKey: ob.key,
           rosterA: a.roster_id, rosterB: b.roster_id,
           scoreA: a.points || 0, scoreB: b.points || 0,
-          // Player-level data — only starters count toward the team total
+          // Starters — what counted toward the score
           startersA: a.starters || [], starterPointsA: a.starters_points || [],
           startersB: b.starters || [], starterPointsB: b.starters_points || [],
+          // Full roster — used for bench calculations (Shoulda Started Him, Bench Points Left)
+          playersA: a.players || [], playersPointsA: a.players_points || {},
+          playersB: b.players || [], playersPointsB: b.players_points || {},
           winnerKey: (a.points || 0) > (b.points || 0) ? oa.key :
                      (b.points || 0) > (a.points || 0) ? ob.key : null,
           winnerRoster: (a.points || 0) > (b.points || 0) ? a.roster_id :
@@ -950,6 +971,47 @@ function buildPlayerStats() {
         const rwKey = `${m.season}|W${m.week}|R${side.roster}`;
         if (!state.rosterWeekContributions[rwKey]) state.rosterWeekContributions[rwKey] = [];
         state.rosterWeekContributions[rwKey].push({ playerId: pid, pts });
+      });
+    });
+  });
+}
+
+// ========== BENCH STATS ==========
+// "Shoulda Started Him" — highest-scoring benched player in a single week.
+// "Bench Points Left" — total bench points per owner across all regular season games.
+//
+// A bench player = any player on the roster (`players` array) who was NOT in `starters`.
+// We exclude IR/taxi players since those can't be started anyway — Sleeper signals these
+// via the `reserve` and `taxi` arrays on the matchup, but those aren't always populated.
+// A safer proxy: if a player was rostered but scored 0 points AND wasn't started, they
+// were likely benched on purpose (so we still count them). The edge cases we're willing
+// to miss are IR designees, which Sleeper often doesn't put in `players` anyway.
+function buildBenchStats() {
+  state.benchPerformances = []; // { playerId, pts, season, week, ownerKey, rosterId }
+  state.benchTotalsByOwner = {}; // ownerKey → total bench points across regular season
+
+  Object.keys(state.ownerIndex).forEach(k => { state.benchTotalsByOwner[k] = 0; });
+
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return; // regular season only
+    const sides = [
+      { players: m.playersA, pts: m.playersPointsA, starters: m.startersA, ownerKey: m.ownerAKey, roster: m.rosterA },
+      { players: m.playersB, pts: m.playersPointsB, starters: m.startersB, ownerKey: m.ownerBKey, roster: m.rosterB }
+    ];
+    sides.forEach(side => {
+      if (!Array.isArray(side.players)) return;
+      // players_points is an object like { "4046": 18.2, "6797": 0 } on Sleeper's API
+      const pointsMap = (side.pts && typeof side.pts === 'object' && !Array.isArray(side.pts)) ? side.pts : {};
+      const starterSet = new Set(side.starters || []);
+      side.players.forEach(pid => {
+        if (!pid || pid === '0') return;
+        if (starterSet.has(pid)) return; // skip starters
+        const pts = pointsMap[pid] || 0;
+        state.benchPerformances.push({
+          playerId: pid, pts, season: m.season, week: m.week,
+          ownerKey: side.ownerKey, rosterId: side.roster
+        });
+        state.benchTotalsByOwner[side.ownerKey] += pts;
       });
     });
   });
@@ -1244,6 +1306,7 @@ function renderExtendedStats() {
   renderRivalry();
   renderConsistencyAndVolatility();
   renderClutchAndBlowoutRecord();
+  renderBenchStats();
   renderLuckRating();
   renderCurrentStreaks();
   renderAllTimeStreaks();
@@ -1386,6 +1449,49 @@ function renderClutchAndBlowoutRecord() {
     <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
     <td class="num">${r.games}</td></tr>`).join('')
     : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No blowouts yet.</td></tr>';
+}
+
+// ---- Bench Points Left / Shoulda Started Him ----
+function renderBenchStats() {
+  // Bench Points Left: total bench points per owner, with per-game average
+  const gamesByOwner = {};
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    gamesByOwner[m.ownerAKey] = (gamesByOwner[m.ownerAKey] || 0) + 1;
+    gamesByOwner[m.ownerBKey] = (gamesByOwner[m.ownerBKey] || 0) + 1;
+  });
+  const benchRows = Object.entries(state.benchTotalsByOwner)
+    .map(([key, total]) => {
+      const games = gamesByOwner[key] || 0;
+      return { key, total, games, perGame: games > 0 ? total / games : 0 };
+    })
+    .filter(r => r.games > 0)
+    .sort((a, b) => b.total - a.total);
+
+  $('#bench-total-body').innerHTML = benchRows.length ? benchRows.map((r, i) => `
+    <tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td>${teamChip(r.key)}</td>
+      <td class="num" style="color: var(--accent-red); font-weight:700;">${r.total.toFixed(2)}</td>
+      <td class="num">${r.perGame.toFixed(2)}</td>
+      <td class="num">${r.games}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No bench data available.</td></tr>';
+
+  // Shoulda Started Him: top 10 single-week bench performances
+  const topBench = [...state.benchPerformances].sort((a, b) => b.pts - a.pts).slice(0, 10);
+  $('#bench-shoulda-body').innerHTML = topBench.length ? topBench.map((r, i) => {
+    const info = playerInfo(r.playerId);
+    return `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(info.name)}</td>
+      <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(info.position)}</td>
+      <td>${teamChipCompact(r.ownerKey, r.season)}</td>
+      <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(2)}</td>
+      <td>${escapeHtml(r.season)} W${r.week}</td>
+    </tr>`;
+  }).join('')
+    : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No bench data available.</td></tr>';
 }
 
 // ---- Luck Rating / Would-Be Record ----
@@ -2180,6 +2286,7 @@ async function init() {
     buildChampions();
     buildToiletBowlWinners();
     buildPlayerStats();
+    buildBenchStats();
 
     updateLoader('Rendering...', 99);
     renderHeader(); renderTicker(); renderChampions(); renderPulse();

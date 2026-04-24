@@ -1647,6 +1647,11 @@ function renderOwnerStats(ownerKey) {
         <div class="stat-sub">.${regPct.toFixed(3).split('.')[1] || '000'} across ${totalSeasons} season${totalSeasons === 1 ? '' : 's'}</div>
       </div>
       <div class="stat-tile" style="border-top-color:${o.color}">
+        <div class="stat-label">Playoff Record</div>
+        <div class="stat-value">${playoffWins}-${playoffLosses}</div>
+        <div class="stat-sub">${(playoffWins + playoffLosses) === 0 ? 'No playoff games yet' : `.${playoffPct.toFixed(3).split('.')[1] || '000'} across ${playoffAppearances} appearance${playoffAppearances === 1 ? '' : 's'}`}</div>
+      </div>
+      <div class="stat-tile" style="border-top-color:${o.color}">
         <div class="stat-label">Playoff Appearances</div>
         <div class="stat-value">${playoffAppearances}${totalSeasons > 0 ? ` <span style="font-size:14px; color:var(--text-dim); font-weight:400;">/ ${totalSeasons}</span>` : ''}</div>
         <div class="stat-sub">${playoffAppearances === totalSeasons && totalSeasons > 0 ? 'Never missed' : totalSeasons > 0 ? `${Math.round(playoffAppearances/totalSeasons*100)}% rate` : '—'}</div>

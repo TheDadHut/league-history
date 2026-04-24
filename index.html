@@ -1578,17 +1578,18 @@ function buildDraftGrades() {
 }
 
 // ========== WAIVER GRADES ==========
-// Three metrics per owner per season:
-//   1) WCE (Waiver Capital Efficiency) — avg points-per-week from pickups while they were on roster
-//   2) RPA (Raw Points Added) — total points from pickups while on roster
-//   3) VOB (Value Over Baseline) — sum of points above ~3/wk baseline across all roster-weeks.
-//      Captures how impactful pickups were when they did produce, rewarding big weeks
-//      proportionally more than baseline ones.
+// Six single-dimension metrics per owner per season, plus an archetype label:
+//   1) Volume       — raw pickup count
+//   2) Selection    — avg pts/week per pickup while rostered (= former WCE)
+//   3) Impact       — Value Over Baseline (sum of pts above 3/wk floor)
+//   4) Timing       — % of pickups whose post-pickup avg > pre-pickup avg (caught a breakout)
+//   5) Integration  — % of pickup roster-weeks where the player was in the starting lineup
+//   6) Persistence  — avg weeks held when player was productive (5+ pts/wk avg)
 //
-// Plus: list of all individual pickups for the "best pickups" leaderboard.
+// No more "Overall" grade — instead derive an archetype from Volume × Selection axes.
 function buildWaiverGrades() {
-  state.waiverGrades = {};     // season → { ownerKey → { wce, rpa, hr, pickupCount, ...grades } }
-  state.bestPickups = [];      // { playerId, ownerKey, season, claimedWeek, pointsWhileRostered, weeksRostered }
+  state.waiverGrades = {};
+  state.bestPickups = [];
 
   state.leagues.forEach(league => {
     if (!league.transactions) return;
@@ -1600,31 +1601,36 @@ function buildWaiverGrades() {
       if (user) rosterToOwner[r.roster_id] = ownerKey(user);
     });
 
-    // Build player-week points + ownership lookup (same structure as trades)
-    const playerWeeklyPoints = {}; // playerId → { week: points }
-    const playerWeeklyOwner = {};  // playerId → { week: rosterId }
+    // Build per-week lookups: points, owner, AND whether started (for Integration metric)
+    const playerWeeklyPoints = {};
+    const playerWeeklyOwner = {};
+    const playerWeeklyStarted = {}; // playerId → { week: bool }
     state.allMatchups.forEach(m => {
       if (m.season !== season) return;
       const sides = [
-        { players: m.playersA, pts: m.playersPointsA, roster: m.rosterA },
-        { players: m.playersB, pts: m.playersPointsB, roster: m.rosterB }
+        { players: m.playersA, starters: m.startersA, pts: m.playersPointsA, roster: m.rosterA },
+        { players: m.playersB, starters: m.startersB, pts: m.playersPointsB, roster: m.rosterB }
       ];
       sides.forEach(side => {
         const pts = (side.pts && typeof side.pts === 'object' && !Array.isArray(side.pts)) ? side.pts : {};
+        const starterSet = new Set(side.starters || []);
         (side.players || []).forEach(pid => {
           if (!pid || pid === '0') return;
           if (!playerWeeklyPoints[pid]) playerWeeklyPoints[pid] = {};
           if (!playerWeeklyOwner[pid]) playerWeeklyOwner[pid] = {};
+          if (!playerWeeklyStarted[pid]) playerWeeklyStarted[pid] = {};
           playerWeeklyPoints[pid][m.week] = pts[pid] || 0;
           playerWeeklyOwner[pid][m.week] = side.roster;
+          playerWeeklyStarted[pid][m.week] = starterSet.has(pid);
         });
       });
     });
 
-    // Collect all pickups — waiver and free agent adds (type != 'trade')
-    // Each pickup: { playerId, rosterId, ownerKey, week }
-    const pickups = [];
+    // Collect all non-trade adds chronologically (so Timing can use pre-pickup averages)
     const allTx = (league.transactions || []).flat().filter(t => t.status === 'complete' && t.type !== 'trade');
+    allTx.sort((a, b) => (a.created || 0) - (b.created || 0));
+
+    const pickups = [];
     allTx.forEach(tx => {
       const week = tx.leg || 1;
       const adds = tx.adds || {};
@@ -1635,25 +1641,35 @@ function buildWaiverGrades() {
       });
     });
 
-    // For each pickup, compute their points-while-rostered from that week forward
-    // until they were either dropped OR the season ended. We use playerWeeklyOwner
-    // to determine when the player left this roster.
     const byOwner = {};
-    league.users.forEach(u => { byOwner[ownerKey(u)] = { wce: 0, rpa: 0, hits: 0, pickupCount: 0, totalWeeksRostered: 0 }; });
+    league.users.forEach(u => {
+      byOwner[ownerKey(u)] = {
+        volume: 0,           // pickup count
+        rpa: 0,              // total pts (kept internal — used to compute selection)
+        totalWeeksRostered: 0,
+        vob: 0,              // value over baseline
+        // Timing
+        timingHits: 0,       // pickups where post avg > pre avg
+        timingEligible: 0,   // pickups where we have data on both sides
+        // Integration
+        startedRosterWeeks: 0,
+        totalPickupRosterWeeks: 0,
+        // Persistence
+        productivePickupTenures: [], // list of weeks-held for productive pickups
+      };
+    });
+
+    const BASELINE = 3;
 
     pickups.forEach(p => {
       if (!byOwner[p.ownerKey]) return;
-      byOwner[p.ownerKey].pickupCount++;
+      const o = byOwner[p.ownerKey];
+      o.volume++;
 
-      // Walk forward from pickup week; count points while still on this roster
-      // Also accumulate Value Over Baseline: for each week rostered, points above
-      // a baseline (~what a replacement-level rostered player would contribute).
-      // Baseline of 3 pts/week roughly represents "any rostered player gets ~3 pts
-      // just by existing on bye weeks, zero performances, etc." — above that is value.
-      const BASELINE_PTS_PER_WEEK = 3;
+      // Walk forward: track weeks rostered, points, started count, VOB
       let totalPts = 0;
       let weeksRostered = 0;
-      let vobContribution = 0;
+      let weeksStarted = 0;
       for (let w = p.week; w <= 18; w++) {
         const owner = playerWeeklyOwner[p.playerId]?.[w];
         if (owner !== p.rosterId) {
@@ -1663,14 +1679,34 @@ function buildWaiverGrades() {
         const pts = playerWeeklyPoints[p.playerId]?.[w] || 0;
         totalPts += pts;
         weeksRostered++;
-        vobContribution += Math.max(0, pts - BASELINE_PTS_PER_WEEK);
+        if (playerWeeklyStarted[p.playerId]?.[w]) weeksStarted++;
+        o.vob += Math.max(0, pts - BASELINE);
       }
 
-      byOwner[p.ownerKey].rpa += totalPts;
-      byOwner[p.ownerKey].totalWeeksRostered += weeksRostered;
-      byOwner[p.ownerKey].vob = (byOwner[p.ownerKey].vob || 0) + vobContribution;
+      o.rpa += totalPts;
+      o.totalWeeksRostered += weeksRostered;
+      o.startedRosterWeeks += weeksStarted;
+      o.totalPickupRosterWeeks += weeksRostered;
 
-      // Track individual pickup for league-wide leaderboard
+      // Timing: compare avg pts per week BEFORE pickup (any prior owner's data) vs AFTER
+      // Pre-pickup window: all weeks before p.week where we have any data on this player
+      const allWeeks = Object.keys(playerWeeklyPoints[p.playerId] || {}).map(Number).sort((a,b) => a-b);
+      const preWeeks = allWeeks.filter(w => w < p.week);
+      const postWeeks = allWeeks.filter(w => w >= p.week && w < (p.week + Math.max(1, weeksRostered)));
+      if (preWeeks.length >= 1 && postWeeks.length >= 1) {
+        const preAvg = preWeeks.reduce((s, w) => s + (playerWeeklyPoints[p.playerId][w] || 0), 0) / preWeeks.length;
+        const postAvg = postWeeks.reduce((s, w) => s + (playerWeeklyPoints[p.playerId][w] || 0), 0) / postWeeks.length;
+        o.timingEligible++;
+        if (postAvg > preAvg) o.timingHits++;
+      }
+
+      // Persistence: only counts pickups that ended up productive (5+ avg/wk)
+      // Patient managers hold productive players longer → higher persistence score
+      if (weeksRostered > 0 && (totalPts / weeksRostered) >= 5) {
+        o.productivePickupTenures.push(weeksRostered);
+      }
+
+      // Track for league leaderboard
       if (weeksRostered > 0) {
         state.bestPickups.push({
           playerId: p.playerId,
@@ -1684,16 +1720,20 @@ function buildWaiverGrades() {
       }
     });
 
-    // Compute WCE (avg pts per roster-week) per owner. VOB already accumulated above.
+    // Derive final per-owner metrics
     Object.values(byOwner).forEach(o => {
-      o.wce = o.totalWeeksRostered > 0 ? o.rpa / o.totalWeeksRostered : 0;
-      if (o.vob == null) o.vob = 0;
+      o.selection = o.totalWeeksRostered > 0 ? o.rpa / o.totalWeeksRostered : 0;
+      o.timing = o.timingEligible > 0 ? o.timingHits / o.timingEligible : 0;
+      o.integration = o.totalPickupRosterWeeks > 0 ? o.startedRosterWeeks / o.totalPickupRosterWeeks : 0;
+      o.persistence = o.productivePickupTenures.length > 0
+        ? o.productivePickupTenures.reduce((s, w) => s + w, 0) / o.productivePickupTenures.length
+        : 0;
     });
 
-    // Assign letter grades on a curve
+    // Letter grades on a curve for each metric
     function assignGrades(metricKey) {
       const sorted = Object.entries(byOwner)
-        .filter(([_, v]) => v.pickupCount > 0)
+        .filter(([_, v]) => v.volume > 0)
         .sort((a, b) => b[1][metricKey] - a[1][metricKey]);
       const n = sorted.length;
       if (n === 0) return;
@@ -1709,20 +1749,52 @@ function buildWaiverGrades() {
         byOwner[key][metricKey + 'Grade'] = grade;
       });
     }
-    assignGrades('wce');
-    assignGrades('rpa');
-    assignGrades('vob');
-
-    // Overall grade
-    const gradeToNum = { 'A+': 4.3, 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
-    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
-    Object.keys(byOwner).forEach(key => {
-      const o = byOwner[key];
-      if (!o.wceGrade) return;
-      const gpa = (gradeToNum[o.wceGrade] + gradeToNum[o.rpaGrade] + gradeToNum[o.vobGrade]) / 3;
-      o.overallGrade = numToGrade(gpa);
-      o.gpa = gpa;
+    ['volume', 'selection', 'impact', 'timing', 'integration', 'persistence'].forEach(metricKey => {
+      // 'impact' is stored as 'vob' on the object — handle that
+      const actualKey = metricKey === 'impact' ? 'vob' : metricKey;
+      assignGrades(actualKey);
+      // Mirror the grade onto the canonical key so render can use either name
+      Object.values(byOwner).forEach(o => {
+        if (o[actualKey + 'Grade']) o[metricKey + 'Grade'] = o[actualKey + 'Grade'];
+      });
     });
+
+    // Archetype: based on Volume × Selection split into rough thirds within the league
+    const sortedByVolume = Object.entries(byOwner).filter(([_,v]) => v.volume > 0).sort((a,b) => b[1].volume - a[1].volume);
+    const sortedBySelection = Object.entries(byOwner).filter(([_,v]) => v.volume > 0).sort((a,b) => b[1].selection - a[1].selection);
+    const n = sortedByVolume.length;
+    if (n > 0) {
+      const volumeRank = {};
+      const selectionRank = {};
+      sortedByVolume.forEach(([key, _], i) => { volumeRank[key] = i / Math.max(1, n - 1); });
+      sortedBySelection.forEach(([key, _], i) => { selectionRank[key] = i / Math.max(1, n - 1); });
+
+      Object.keys(byOwner).forEach(key => {
+        const o = byOwner[key];
+        if (o.volume === 0) { o.archetype = null; return; }
+        // Rank percentile: 0 = best, 1 = worst
+        const vp = volumeRank[key];          // volume percentile (0=top)
+        const sp = selectionRank[key];       // selection percentile (0=top)
+        // High = top third, Mid = middle third, Low = bottom third
+        const vBand = vp <= 0.33 ? 'high' : vp <= 0.66 ? 'mid' : 'low';
+        const sBand = sp <= 0.33 ? 'high' : sp <= 0.66 ? 'mid' : 'low';
+
+        // Map to archetype
+        let archetype, archetypeDesc;
+        if (vBand === 'high' && sBand === 'high')      { archetype = 'The Maven',     archetypeDesc = 'High activity, high accuracy'; }
+        else if (vBand === 'low' && sBand === 'high')  { archetype = 'The Sniper',    archetypeDesc = 'Rare strikes, all hit'; }
+        else if (vBand === 'high' && sBand === 'mid')  { archetype = 'The Grinder',   archetypeDesc = 'Always working, decent results'; }
+        else if (vBand === 'high' && sBand === 'low')  { archetype = 'The Churner',   archetypeDesc = 'Constant motion, little value'; }
+        else if (vBand === 'low' && sBand === 'low')   { archetype = 'The Camper',    archetypeDesc = 'Doesn\'t bother with the wire'; }
+        else if (vBand === 'low' && sBand === 'mid')   { archetype = 'The Conservative', archetypeDesc = 'Picks rarely, gets okay returns'; }
+        else if (vBand === 'mid' && sBand === 'high')  { archetype = 'The Curator',   archetypeDesc = 'Selective and sharp'; }
+        else if (vBand === 'mid' && sBand === 'low')   { archetype = 'The Fumbler',   archetypeDesc = 'Tries enough to miss often'; }
+        else                                            { archetype = 'The Tinkerer',  archetypeDesc = 'Steady, no extremes'; }
+
+        o.archetype = archetype;
+        o.archetypeDesc = archetypeDesc;
+      });
+    }
 
     state.waiverGrades[season] = byOwner;
   });
@@ -2690,46 +2762,53 @@ function renderOwnerStats(ownerKey) {
   const ownerWaiverBySeason = [];
   Object.keys(state.waiverGrades || {}).sort().forEach(season => {
     const g = state.waiverGrades[season][ownerKey];
-    if (g && g.overallGrade) ownerWaiverBySeason.push({ season, ...g });
+    if (g && g.archetype) ownerWaiverBySeason.push({ season, ...g });
   });
 
   if (ownerWaiverBySeason.length > 0) {
-    const avgGPA = ownerWaiverBySeason.reduce((sum, g) => sum + (g.gpa || 0), 0) / ownerWaiverBySeason.length;
-    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
-    const avgLetter = numToGrade(avgGPA);
     const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
+    const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
+
+    // Most-frequent archetype = identity
+    const archetypeCounts = {};
+    ownerWaiverBySeason.forEach(g => {
+      if (g.archetype) archetypeCounts[g.archetype] = (archetypeCounts[g.archetype] || 0) + 1;
+    });
+    const dominantArchetype = Object.entries(archetypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const archetypeDesc = ownerWaiverBySeason.find(g => g.archetype === dominantArchetype)?.archetypeDesc || '';
 
     html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>Waiver History</h2></div>
       <div class="card">
         <div class="card-header">
-          <h3>All-Time Waiver Grade</h3>
-          <span class="hint">Average across ${ownerWaiverBySeason.length} season${ownerWaiverBySeason.length === 1 ? '' : 's'}</span>
+          <h3>Waiver Identity</h3>
+          <span class="hint">Across ${ownerWaiverBySeason.length} season${ownerWaiverBySeason.length === 1 ? '' : 's'}</span>
         </div>
-        <div style="padding: 24px; text-align: center; border-bottom: 1px solid var(--border);">
-          <span class="grade-pill large ${cls(avgLetter)}" style="font-size: 32px; padding: 12px 20px;">${avgLetter}</span>
-          <div style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size: 12px; margin-top: 8px; letter-spacing: 2px;">GPA ${avgGPA.toFixed(2)}</div>
+        <div style="padding: 28px 24px; text-align: center; border-bottom: 1px solid var(--border);">
+          <div style="font-family:'Oswald',sans-serif; font-weight:700; font-size: 32px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent);">${escapeHtml(dominantArchetype || '—')}</div>
+          <div style="color: var(--text-dim); font-size: 14px; margin-top: 6px; font-style: italic;">${escapeHtml(archetypeDesc)}</div>
         </div>
         <div class="table-scroll"><table>
           <thead><tr>
             <th>Season</th>
-            <th class="num">Overall</th>
-            <th class="num">WCE</th>
-            <th class="num">RPA</th>
-            <th class="num">VOB</th>
-            <th class="num">Pickups</th>
+            <th>Archetype</th>
+            <th class="num">VOL</th>
+            <th class="num">SEL</th>
+            <th class="num">IMP</th>
+            <th class="num">TIM</th>
+            <th class="num">INT</th>
+            <th class="num">PER</th>
           </tr></thead>
           <tbody>
-            ${ownerWaiverBySeason.reverse().map(g => {
-              const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
-              return `<tr>
-                <td style="font-family:'Oswald',sans-serif; font-weight:600;">${escapeHtml(g.season)}</td>
-                <td class="num"><span class="grade-pill ${cls(g.overallGrade)}">${g.overallGrade}</span></td>
-                <td class="num"><div>${gradePill(g.wceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.wce.toFixed(2)}/wk</div></td>
-                <td class="num"><div>${gradePill(g.rpaGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rpa.toFixed(0)}</div></td>
-                <td class="num"><div>${gradePill(g.vobGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.vob.toFixed(0)}</div></td>
-                <td class="num" style="color: var(--text-dim);">${g.pickupCount}</td>
-              </tr>`;
-            }).join('')}
+            ${ownerWaiverBySeason.reverse().map(g => `<tr>
+              <td style="font-family:'Oswald',sans-serif; font-weight:600;">${escapeHtml(g.season)}</td>
+              <td style="font-family:'Oswald',sans-serif; font-size: 13px; color: var(--accent);">${escapeHtml(g.archetype || '—')}</td>
+              <td class="num"><div>${gradePill(g.volumeGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.volume}</div></td>
+              <td class="num"><div>${gradePill(g.selectionGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.selection.toFixed(2)}</div></td>
+              <td class="num"><div>${gradePill(g.impactGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.vob.toFixed(0)}</div></td>
+              <td class="num"><div>${gradePill(g.timingGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.timing * 100).toFixed(0)}%</div></td>
+              <td class="num"><div>${gradePill(g.integrationGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.integration * 100).toFixed(0)}%</div></td>
+              <td class="num"><div>${gradePill(g.persistenceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.persistence.toFixed(1)}wk</div></td>
+            </tr>`).join('')}
           </tbody>
         </table></div>
       </div>`;
@@ -3194,46 +3273,57 @@ function renderSeason(season) {
     // ===== WAIVER GRADES =====
     const waiverGrades = state.waiverGrades[season];
     if (waiverGrades) {
+      // Sort by Impact (vob) as the primary "headline" — most impactful waiver managers first.
+      // Without an Overall grade, we need some default sort, and Impact is the most informative.
       const waiverRows = Object.entries(waiverGrades)
-        .filter(([_, v]) => v.pickupCount > 0)
-        .sort((a, b) => (b[1].gpa || 0) - (a[1].gpa || 0));
+        .filter(([_, v]) => v.volume > 0)
+        .sort((a, b) => (b[1].vob || 0) - (a[1].vob || 0));
 
       if (waiverRows.length > 0) {
         const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
         const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
 
-        html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>📻 Waiver Wire Grades</h2></div>
+        html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>📻 Waiver Wire Profile</h2></div>
           <div class="card">
             <div class="card-header">
-              <h3>In-Season Acquisition Report Card</h3>
-              <span class="hint">Graded on a curve within this season</span>
+              <h3>Multi-Dimensional Waiver Performance</h3>
+              <span class="hint">Six metrics + archetype label · graded on a curve</span>
             </div>
             <div class="table-scroll"><table>
               <thead><tr>
-                <th>Rank</th>
                 <th>Owner</th>
-                <th class="num" title="Overall grade combining all three metrics">Overall</th>
-                <th class="num" title="Waiver Capital Efficiency: points-per-week from pickups">WCE</th>
-                <th class="num" title="Raw Points Added: total points scored by your pickups while on your roster">RPA</th>
-                <th class="num" title="Value Over Baseline: sum of points above ~3/wk baseline from all roster-weeks. Rewards high-impact weeks proportionally.">VOB</th>
-                <th class="num">Pickups</th>
+                <th>Archetype</th>
+                <th class="num" title="Volume: number of pickups made">VOL</th>
+                <th class="num" title="Selection: avg points/week per pickup while rostered">SEL</th>
+                <th class="num" title="Impact: Value Over Baseline (sum of pts above 3/wk floor)">IMP</th>
+                <th class="num" title="Timing: % of pickups whose post-pickup avg beat their pre-pickup avg">TIM</th>
+                <th class="num" title="Integration: % of pickup roster-weeks where the player was started">INT</th>
+                <th class="num" title="Persistence: avg weeks held when a pickup proved productive">PER</th>
               </tr></thead>
               <tbody>
-                ${waiverRows.map(([key, g], i) => `<tr>
-                  <td class="${rankClass(i)}">${i + 1}</td>
+                ${waiverRows.map(([key, g]) => `<tr>
                   <td>${teamChip(key, season)}</td>
-                  <td class="num">${g.overallGrade ? `<span class="grade-pill large ${cls(g.overallGrade)}">${g.overallGrade}</span>` : '—'}</td>
-                  <td class="num"><div>${gradePill(g.wceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.wce.toFixed(2)}/wk</div></td>
-                  <td class="num"><div>${gradePill(g.rpaGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rpa.toFixed(0)}</div></td>
-                  <td class="num"><div>${gradePill(g.vobGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.vob.toFixed(0)}</div></td>
-                  <td class="num" style="color: var(--text-dim);">${g.pickupCount}</td>
+                  <td>
+                    <div style="font-family:'Oswald',sans-serif; font-weight:600; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent);">${escapeHtml(g.archetype || '—')}</div>
+                    <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">${escapeHtml(g.archetypeDesc || '')}</div>
+                  </td>
+                  <td class="num"><div>${gradePill(g.volumeGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.volume}</div></td>
+                  <td class="num"><div>${gradePill(g.selectionGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.selection.toFixed(2)}</div></td>
+                  <td class="num"><div>${gradePill(g.impactGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.vob.toFixed(0)}</div></td>
+                  <td class="num"><div>${gradePill(g.timingGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.timing * 100).toFixed(0)}%</div></td>
+                  <td class="num"><div>${gradePill(g.integrationGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${(g.integration * 100).toFixed(0)}%</div></td>
+                  <td class="num"><div>${gradePill(g.persistenceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.persistence.toFixed(1)}wk</div></td>
                 </tr>`).join('')}
               </tbody>
             </table></div>
-            <div style="padding: 12px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--border); background: var(--panel);">
-              <strong style="color: var(--text-dim);">WCE</strong> — Waiver Capital Efficiency: avg points-per-week your pickups scored while on your roster. Rewards finding consistent producers.<br>
-              <strong style="color: var(--text-dim);">RPA</strong> — Raw Points Added: total points from pickups while rostered. Rewards volume + quality.<br>
-              <strong style="color: var(--text-dim);">VOB</strong> — Value Over Baseline: total points scored above a 3-point baseline, summed across all roster-weeks of all pickups. Big weeks count much more than baseline ones, so this rewards impact — a pickup with one 25-pt week adds more VOB than four 5-pt weeks.
+            <div style="padding: 14px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.6; border-top: 1px solid var(--border); background: var(--panel);">
+              <strong style="color: var(--text-dim);">VOL · Volume</strong> — Total pickup count.<br>
+              <strong style="color: var(--text-dim);">SEL · Selection</strong> — Avg points/week per pickup while rostered. Quality per pick.<br>
+              <strong style="color: var(--text-dim);">IMP · Impact</strong> — Sum of points above a 3-pt/week baseline. Rewards big weeks proportionally.<br>
+              <strong style="color: var(--text-dim);">TIM · Timing</strong> — % of pickups whose post-pickup avg beat their pre-pickup avg. Catching breakouts vs chasing them.<br>
+              <strong style="color: var(--text-dim);">INT · Integration</strong> — % of weeks rostered where the pickup was started. Did you actually use them?<br>
+              <strong style="color: var(--text-dim);">PER · Persistence</strong> — Avg weeks held when a pickup ended up productive (5+ pts/wk avg). Patience with hits.<br>
+              <em style="color: var(--text-muted);">No "Overall" grade — the shape of your grades is your identity. Archetype is derived from Volume × Selection.</em>
             </div>
           </div>`;
       }

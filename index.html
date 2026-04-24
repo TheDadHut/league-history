@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gaming Disability League · History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- THEME ---------- */
+  :root {
+    --bg: #0a0e1a;
+    --bg-elev: #111827;
+    --bg-card: #151b2e;
+    --panel: #1a2138;
+    --border: #252d48;
+    --border-bright: #3a4468;
+    --text: #f1f5ff;
+    --text-dim: #9aa5c4;
+    --text-muted: #6b7594;
+    --accent: #ffcc00;      /* ESPN yellow */
+    --accent-red: #e8172b;  /* Broadcast red */
+    --accent-blue: #1877f2;
+    --gold: #ffd700;
+    --silver: #c0c7d4;
+    --bronze: #cd7f32;
+
+    /* Team colors */
+    --alex:    #d32f2f;  /* The Bums - crimson */
+    --henny:   #00838f;  /* POV You Crashed Out - teal */
+    --jason:   #6a1b9a;  /* The Broken 500 - purple */
+    --jose:    #2e7d32;  /* Allahu Akbar - green */
+    --justin:  #1565c0;  /* The Salty Sailors - navy */
+    --liam:    #ef6c00;  /* Deez - orange */
+    --michael: #c2185b;  /* The Goodest Boys - pink/magenta */
+    --nick:    #8d6e63;  /* Cinna-Men Crunchers - cinnamon brown */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Barlow Condensed', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(232, 23, 43, 0.08), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255, 204, 0, 0.06), transparent 40%),
+      linear-gradient(180deg, var(--bg) 0%, #080c17 100%);
+    overflow-x: hidden;
+  }
+
+  /* ---------- TOP BANNER ---------- */
+  .broadcast-bar {
+    background: var(--accent-red);
+    color: #fff;
+    padding: 6px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #000;
+  }
+  .ticker {
+    display: inline-block;
+    animation: scroll 45s linear infinite;
+    padding-left: 100%;
+  }
+  .ticker span { margin: 0 30px; }
+  .ticker .dot { color: var(--accent); }
+  @keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ---------- HEADER ---------- */
+  header {
+    background: linear-gradient(135deg, #000 0%, #1a1f3a 50%, #000 100%);
+    border-bottom: 4px solid var(--accent);
+    padding: 28px 24px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0, transparent 10px, rgba(255,204,0,0.02) 10px, rgba(255,204,0,0.02) 20px);
+    pointer-events: none;
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .logo-mark {
+    width: 64px;
+    height: 64px;
+    background: var(--accent);
+    color: #000;
+    display: grid;
+    place-items: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+    flex-shrink: 0;
+  }
+  .title-stack { flex: 1; min-width: 0; }
+  .kicker {
+    font-family: 'Oswald', sans-serif;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 5vw, 52px);
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+    line-height: 0.95;
+    color: var(--text);
+  }
+  h1 .accent { color: var(--accent); }
+  .subtitle {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ---------- TABS ---------- */
+  .tabs-wrap {
+    background: #000;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .tabs {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 16px 24px;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--accent);
+    background: linear-gradient(180deg, transparent 0%, rgba(255,204,0,0.06) 100%);
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  /* ---------- MAIN LAYOUT ---------- */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .panel {
+    display: none;
+    animation: fadeSlide 0.4s ease-out;
+  }
+  .panel.active { display: block; }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 36px 0 16px;
+  }
+  .section-header:first-child { margin-top: 0; }
+  .section-bar {
+    width: 4px;
+    height: 28px;
+    background: var(--accent);
+  }
+  .section-header h2 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .section-header .count-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--border);
+    color: var(--text-dim);
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- CARDS ---------- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    background: linear-gradient(90deg, #000 0%, var(--panel) 100%);
+    padding: 14px 20px;
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-header h3 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .card-header .hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+  .card-body { padding: 20px; }
+
+  /* ---------- TABLES ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  thead th {
+    background: #000;
+    color: var(--text-dim);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--border-bright);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+  thead th.sortable:hover { color: var(--accent); }
+  thead th .sort-ind {
+    display: inline-block;
+    margin-left: 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+  thead th.sorted .sort-ind { color: var(--accent); }
+  thead th.num, tbody td.num { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255, 204, 0, 0.04); }
+  tbody td {
+    padding: 11px 14px;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .rank {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 36px;
+    font-size: 16px;
+  }
+  .rank-1 { color: var(--gold); }
+  .rank-2 { color: var(--silver); }
+  .rank-3 { color: var(--bronze); }
+
+  /* Team chip */
+  .team-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+  }
+  .team-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
+  }
+  .team-owner {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-left: 6px;
+  }
+
+  .record { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; }
+  .record .wins { color: #4ade80; }
+  .record .losses { color: #f87171; }
+  .record .sep { color: var(--text-muted); }
+
+  /* ---------- HERO / CHAMPIONS ---------- */
+  .champs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .champ-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--panel) 100%);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid var(--gold);
+  }
+  .champ-card::before {
+    content: '🏆';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 120px;
+    opacity: 0.08;
+    transform: rotate(15deg);
+  }
+  .champ-year {
+    font-family: 'Oswald', sans-serif;
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+  }
+  .champ-team {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .champ-owner {
+    color: var(--text-dim);
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ---------- STAT TILES ---------- */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-tile {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 16px 18px;
+    position: relative;
+  }
+  .stat-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .stat-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---------- AWARDS ROW ---------- */
+  .awards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .award {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 18px;
+    border-left: 3px solid var(--accent-red);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .award.gold { border-left-color: var(--gold); }
+  .award.blue { border-left-color: var(--accent-blue); }
+  .award.green { border-left-color: #4ade80; }
+  .award.brown { border-left-color: var(--nick); }
+  .award-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .award-winner {
+    font-family: 'Oswald', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .award-detail {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ---------- HIGHLIGHTS ---------- */
+  .highlights {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .highlight-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+    line-height: 1.5;
+    position: relative;
+    padding-left: 56px;
+  }
+  .highlight-item:last-child { border-bottom: none; }
+  .highlight-item::before {
+    content: counter(highlight, decimal-leading-zero);
+    counter-increment: highlight;
+    position: absolute;
+    left: 20px;
+    top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .highlights { counter-reset: highlight; }
+  .highlight-item .sub {
+    display: block;
+    margin-top: 6px;
+    padding-left: 16px;
+    border-left: 2px solid var(--accent);
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  /* ---------- H2H ---------- */
+  .h2h-controls {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 20px;
+  }
+  .h2h-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+  select {
+    width: 100%;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border-bright);
+    padding: 12px 14px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .vs-badge {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    color: var(--accent-red);
+    font-size: 22px;
+    padding: 12px 4px;
+    text-align: center;
+  }
+  .h2h-result {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .h2h-vs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .h2h-side {
+    text-align: center;
+  }
+  .h2h-side .name {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .h2h-side .wins-big {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 1;
+  }
+  .h2h-side.winner .wins-big { color: #4ade80; }
+  .h2h-side.loser .wins-big { color: #f87171; }
+  .h2h-vs-text {
+    font-family: 'Oswald', sans-serif;
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: 3px;
+  }
+  .h2h-games {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+  .h2h-game {
+    display: grid;
+    grid-template-columns: 80px 1fr auto 1fr;
+    gap: 12px;
+    padding: 10px 0;
+    align-items: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .h2h-game:last-child { border-bottom: none; }
+  .h2h-game .wk {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+  .h2h-game .score {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .h2h-game .win { color: #4ade80; }
+  .h2h-game .lose { color: #f87171; }
+  .h2h-empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ---------- DRAFT BOARD ---------- */
+  .draft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+  }
+  .draft-pick {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid var(--border-bright);
+  }
+  .draft-pick .pick-num {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--accent);
+    min-width: 28px;
+  }
+  .draft-pick .pick-info { flex: 1; }
+  .draft-pick .player-name {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .draft-pick .team-small {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---------- FOUNDERS ---------- */
+  .founders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .founder-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    border-radius: 3px;
+    border-top: 3px solid var(--border-bright);
+    position: relative;
+  }
+  .founder-name {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .founder-team {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Oswald', sans-serif;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 640px) {
+    tbody td, thead th { padding: 8px 10px; font-size: 13px; }
+    .team-owner { display: none; }
+    .h2h-controls { grid-template-columns: 1fr; }
+    .vs-badge { padding: 4px; }
+    .h2h-side .wins-big { font-size: 44px; }
+    .h2h-game { grid-template-columns: 60px 1fr auto 1fr; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Broadcast ticker -->
+<div class="broadcast-bar">
+  <div class="ticker">
+    <span>🏆 2024 CHAMPION: THE BUMS (ALEX)</span><span class="dot">●</span>
+    <span>LEAGUE MVP: LAMAR JACKSON — 411.4 PTS</span><span class="dot">●</span>
+    <span>HIGH SCORE: ALEX 204.92, WEEK 5</span><span class="dot">●</span>
+    <span>FINALS MVP: TEE HIGGINS — 40.10</span><span class="dot">●</span>
+    <span>TOILET BOWL: JUSTIN</span><span class="dot">●</span>
+    <span>🏆 2024 CHAMPION: THE BUMS (ALEX)</span><span class="dot">●</span>
+    <span>LEAGUE MVP: LAMAR JACKSON — 411.4 PTS</span><span class="dot">●</span>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-inner">
+    <div class="logo-mark">GD</div>
+    <div class="title-stack">
+      <div class="kicker">The Official Archive</div>
+      <h1>Gaming Disability <span class="accent">League</span></h1>
+      <div class="subtitle">Est. 2024 · 8 Teams · All-Time History</div>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs-wrap">
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="records">All-Time Records</button>
+    <button class="tab" data-tab="h2h">Head-to-Head</button>
+    <button class="tab" data-tab="s2024">2024 Season</button>
+    <button class="tab" data-tab="s2025">2025 Season</button>
+    <button class="tab" data-tab="founders">Founders</button>
+  </nav>
+</div>
+
+<main>
+
+<!-- ==================== OVERVIEW ==================== -->
+<section id="overview" class="panel active">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Hall of Champs</h2>
+    <span class="count-pill">1 CHAMPION</span>
+  </div>
+
+  <div class="champs-grid">
+    <div class="champ-card" style="border-left-color: var(--alex);">
+      <div class="champ-year">2024 · INAUGURAL</div>
+      <div class="champ-team" style="color: var(--alex);">The Bums</div>
+      <div class="champ-owner">Alex · 9-5 Regular Season</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>League Pulse</h2>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-tile">
+      <div class="stat-label">All-Time Wins Leader</div>
+      <div class="stat-value">MICHAEL</div>
+      <div class="stat-sub">11 wins · The Goodest Boys</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">League-High Single Game</div>
+      <div class="stat-value">204.92</div>
+      <div class="stat-sub">Alex · 2024 Week 5</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Top Scoring Player (Season)</div>
+      <div class="stat-value">LAMAR JACKSON</div>
+      <div class="stat-sub">411.4 pts · 2024 · Alex</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Top Scoring Player (Game)</div>
+      <div class="stat-value">JA'MARR CHASE</div>
+      <div class="stat-sub">55.40 pts · 2024 Wk 10 · Henny</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Most Points For (Season)</div>
+      <div class="stat-value">HENNY</div>
+      <div class="stat-sub">2,137.98 · 2024</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Unluckiest (Most PA)</div>
+      <div class="stat-value">NICK</div>
+      <div class="stat-sub">2,071.50 allowed · 2024</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>All-Time Standings</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Regular Season Wins · All Years</h3>
+      <span class="hint">Click headers to sort</span>
+    </div>
+    <table id="all-time-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th class="sortable" data-sort="team">Team</th>
+          <th class="sortable num sorted" data-sort="wins" data-dir="desc">W <span class="sort-ind">▼</span></th>
+          <th class="sortable num" data-sort="losses">L <span class="sort-ind"></span></th>
+          <th class="sortable num" data-sort="pct">PCT <span class="sort-ind"></span></th>
+          <th class="sortable num" data-sort="titles">TITLES <span class="sort-ind"></span></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</section>
+
+<!-- ==================== RECORDS ==================== -->
+<section id="records" class="panel">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Weekly High Scores</h2>
+    <span class="count-pill">TOP 10</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Team</th>
+          <th class="num">Points</th>
+          <th>Year</th>
+          <th>Week</th>
+        </tr>
+      </thead>
+      <tbody id="weekly-highs-body"></tbody>
+    </table>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Player High Scores · Single Game</h2>
+    <span class="count-pill">TOP 10</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Team</th>
+          <th class="num">Points</th>
+          <th>Week</th>
+        </tr>
+      </thead>
+      <tbody id="player-game-body"></tbody>
+    </table>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Player High Scores · Full Season</h2>
+    <span class="count-pill">TOP 10</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Team</th>
+          <th class="num">Points</th>
+          <th>Year</th>
+        </tr>
+      </thead>
+      <tbody id="player-season-body"></tbody>
+    </table>
+  </div>
+
+</section>
+
+<!-- ==================== H2H ==================== -->
+<section id="h2h" class="panel">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Head-to-Head Lookup</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Select Two Teams</h3>
+      <span class="hint">All-time record</span>
+    </div>
+    <div class="card-body">
+      <div class="h2h-controls">
+        <div>
+          <label class="h2h-label">Team A</label>
+          <select id="h2h-a"></select>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div>
+          <label class="h2h-label">Team B</label>
+          <select id="h2h-b"></select>
+        </div>
+      </div>
+      <div id="h2h-output"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ==================== 2024 SEASON ==================== -->
+<section id="s2024" class="panel">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>2024 Season Awards</h2>
+  </div>
+
+  <div class="awards">
+    <div class="award gold">
+      <span class="award-label">🏆 Champion</span>
+      <span class="award-winner" style="color: var(--alex);">The Bums</span>
+      <span class="award-detail">Alex</span>
+    </div>
+    <div class="award">
+      <span class="award-label">Finals MVP</span>
+      <span class="award-winner">Tee Higgins</span>
+      <span class="award-detail">40.10 pts</span>
+    </div>
+    <div class="award gold">
+      <span class="award-label">Season MVP</span>
+      <span class="award-winner">Lamar Jackson</span>
+      <span class="award-detail">411.4 pts · Alex</span>
+    </div>
+    <div class="award blue">
+      <span class="award-label">Highest Points For</span>
+      <span class="award-winner" style="color: var(--henny);">Henny</span>
+      <span class="award-detail">2,137.98</span>
+    </div>
+    <div class="award brown">
+      <span class="award-label">Most Points Against</span>
+      <span class="award-winner" style="color: var(--nick);">Nick</span>
+      <span class="award-detail">2,071.50 allowed</span>
+    </div>
+    <div class="award green">
+      <span class="award-label">🚽 Toilet Bowl</span>
+      <span class="award-winner" style="color: var(--justin);">Salty Sailors</span>
+      <span class="award-detail">Justin</span>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Regular Season Standings</h2>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Seed</th><th>Team</th><th class="num">W-L</th><th class="num">PCT</th></tr>
+      </thead>
+      <tbody id="s2024-standings"></tbody>
+    </table>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Final Standings (Playoffs)</h2>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Finish</th><th>Team</th><th>Owner</th></tr>
+      </thead>
+      <tbody id="s2024-final"></tbody>
+    </table>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Draft Board</h2>
+    <span class="count-pill">RD 1</span>
+  </div>
+
+  <div class="draft-grid" id="draft-2024"></div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Season Highlights</h2>
+  </div>
+
+  <div class="highlights">
+    <div class="highlight-item">Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again.</div>
+    <div class="highlight-item">Henny flies up the standings by playing the waiver wire exceptionally well.</div>
+    <div class="highlight-item">Jose claims he knows more about football than Jason.<span class="sub">Jose beats Jason.</span></div>
+    <div class="highlight-item">Alex is exposed as a corrupt commissioner.</div>
+    <div class="highlight-item">Jose pumps Jason's team with bad trades.<span class="sub">Gives Jason a 5-win streak.</span></div>
+    <div class="highlight-item">Henny changes team name to <em>"I Let Him Off the Hook"</em> after Alex wins the championship.</div>
+    <div class="highlight-item">Tee Higgins puts up a top-10 league performance in the championship round to help Alex win the league.</div>
+  </div>
+
+</section>
+
+<!-- ==================== 2025 SEASON ==================== -->
+<section id="s2025" class="panel">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>2025 Season · In Progress</h2>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="text-align: center; padding: 40px 20px;">
+      <div style="font-family: 'Oswald', sans-serif; color: var(--accent); letter-spacing: 4px; font-size: 14px; margin-bottom: 8px;">🔴 LIVE</div>
+      <div style="font-family: 'Oswald', sans-serif; font-size: 24px; text-transform: uppercase; margin-bottom: 12px;">Season Underway</div>
+      <div style="color: var(--text-dim); max-width: 500px; margin: 0 auto;">Standings, awards, and the draft board will populate as the season progresses. Current storylines below.</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>Season Highlights</h2>
+  </div>
+
+  <div class="highlights">
+    <div class="highlight-item">Michael threw his team and juiced Nick.</div>
+  </div>
+
+</section>
+
+<!-- ==================== FOUNDERS ==================== -->
+<section id="founders" class="panel">
+
+  <div class="section-header">
+    <div class="section-bar"></div>
+    <h2>The Founding Fathers</h2>
+    <span class="count-pill">EST. 2024</span>
+  </div>
+
+  <div class="founders-grid" id="founders-grid"></div>
+
+</section>
+
+</main>
+
+<footer>
+  Gaming Disability League · All-Time Archive · Updated 2025
+</footer>
+
+<script>
+// ========== DATA ==========
+const teams = {
+  alex:    { team: "The Bums",              owner: "Alex",    color: "var(--alex)" },
+  henny:   { team: "POV You Crashed Out",   owner: "Henny",   color: "var(--henny)" },
+  jason:   { team: "The Broken 500",        owner: "Jason",   color: "var(--jason)" },
+  jose:    { team: "Allahu Akbar",          owner: "Jose",    color: "var(--jose)" },
+  justin:  { team: "The Salty Sailors",     owner: "Justin",  color: "var(--justin)" },
+  liam:    { team: "Deez",                  owner: "Liam",    color: "var(--liam)" },
+  michael: { team: "The Goodest Boys",      owner: "Michael", color: "var(--michael)" },
+  nick:    { team: "Cinna-Men Crunchers",   owner: "Nick",    color: "var(--nick)" }
+};
+
+const allTime = [
+  { key: "michael", wins: 11, losses: 3, titles: 0 },
+  { key: "henny",   wins: 9,  losses: 5, titles: 0 },
+  { key: "alex",    wins: 9,  losses: 5, titles: 1 },
+  { key: "jason",   wins: 8,  losses: 6, titles: 0 },
+  { key: "nick",    wins: 5,  losses: 9, titles: 0 },
+  { key: "jose",    wins: 5,  losses: 9, titles: 0 },
+  { key: "liam",    wins: 5,  losses: 9, titles: 0 },
+  { key: "justin",  wins: 4,  losses: 10, titles: 0 }
+];
+
+const weeklyHighs = [
+  { key: "alex",    pts: 204.92, year: 2024, week: 5 },
+  { key: "michael", pts: 200.24, year: 2024, week: 11 },
+  { key: "henny",   pts: 195.42, year: 2024, week: 10 },
+  { key: "alex",    pts: 194.80, year: 2024, week: 15 },
+  { key: "henny",   pts: 189.20, year: 2024, week: 7 },
+  { key: "michael", pts: 185.38, year: 2024, week: 16 },
+  { key: "justin",  pts: 183.38, year: 2024, week: 3 },
+  { key: "nick",    pts: 180.42, year: 2024, week: 14 },
+  { key: "nick",    pts: 178.84, year: 2024, week: 16 },
+  { key: "jose",    pts: 178.58, year: 2024, week: 14 }
+];
+
+const playerGame = [
+  { player: "Ja'Marr Chase",    key: "henny",   pts: 55.40, week: "2024 W10" },
+  { player: "Josh Allen",       key: "jose",    pts: 51.88, week: "2024 W14" },
+  { player: "Saquon Barkley",   key: "michael", pts: 46.20, week: "2024 W12" },
+  { player: "Ja'Marr Chase",    key: "henny",   pts: 45.10, week: "2024 W14" },
+  { player: "Alvin Kamara",     key: "michael", pts: 44.00, week: "2024 W2" },
+  { player: "Davante Adams",    key: "michael", pts: 42.80, week: "2024 W15" },
+  { player: "Puka Nacua",       key: "michael", pts: 41.80, week: "2024 W14" },
+  { player: "Ja'Marr Chase",    key: "henny",   pts: 41.30, week: "2024 W5" },
+  { player: "Josh Allen",       key: "jose",    pts: 41.28, week: "2024 W15" },
+  { player: "Tee Higgins",      key: "alex",    pts: 40.10, week: "2024 W17" }
+];
+
+const playerSeason = [
+  { player: "Lamar Jackson",   key: "alex",    pts: 411.4, year: 2024 },
+  { player: "Josh Allen",      key: "jose",    pts: 385.0, year: 2024 },
+  { player: "Ja'Marr Chase",   key: "henny",   pts: 377.4, year: 2024 },
+  { player: "Joe Burrow",      key: "henny",   pts: 357.8, year: 2024 },
+  { player: "Jayden Daniels",  key: "michael", pts: 360.6, year: 2024 },
+  { player: "Baker Mayfield",  key: "henny",   pts: 359.2, year: 2024 },
+  { player: "Saquon Barkley",  key: "michael", pts: 355.3, year: 2024 },
+  { player: "Jared Goff",      key: "jason",   pts: 325.2, year: 2024 },
+  { player: "Jalen Hurts",     key: "nick",    pts: 320.1, year: 2024 },
+  { player: "Jahmyr Gibbs",    key: "henny",   pts: 316.9, year: 2024 }
+];
+
+const standings2024 = [
+  { key: "michael", wins: 11, losses: 3 },
+  { key: "henny",   wins: 9,  losses: 5 },
+  { key: "alex",    wins: 9,  losses: 5 },
+  { key: "jason",   wins: 8,  losses: 6 },
+  { key: "nick",    wins: 5,  losses: 9 },
+  { key: "jose",    wins: 5,  losses: 9 },
+  { key: "liam",    wins: 5,  losses: 9 },
+  { key: "justin",  wins: 4,  losses: 10 }
+];
+
+const final2024 = ["alex","michael","henny","nick","jose","jason","liam","justin"];
+
+const draft2024 = [
+  { pick: 1, key: "liam",    player: "Christian McCaffrey" },
+  { pick: 2, key: "jose",    player: "CeeDee Lamb" },
+  { pick: 3, key: "alex",    player: "Tyreek Hill" },
+  { pick: 4, key: "nick",    player: "Jonathan Taylor" },
+  { pick: 5, key: "henny",   player: "Amon-Ra St. Brown" },
+  { pick: 6, key: "jason",   player: "Josh Jacobs" },
+  { pick: 7, key: "michael", player: "Davante Adams" },
+  { pick: 8, key: "justin",  player: "Justin Jefferson" }
+];
+
+// ========== HELPERS ==========
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function rankClass(i) {
+  if (i === 0) return 'rank rank-1';
+  if (i === 1) return 'rank rank-2';
+  if (i === 2) return 'rank rank-3';
+  return 'rank';
+}
+
+function teamChip(key) {
+  const t = teams[key];
+  return `<span class="team-chip">
+    <span class="team-dot" style="background:${t.color}"></span>
+    <span style="color:${t.color}">${t.team}</span>
+    <span class="team-owner">${t.owner}</span>
+  </span>`;
+}
+
+function teamChipCompact(key) {
+  const t = teams[key];
+  return `<span class="team-chip">
+    <span class="team-dot" style="background:${t.color}"></span>
+    <span style="color:${t.color}">${t.team}</span>
+  </span>`;
+}
+
+// ========== TABS ==========
+$$('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab').forEach(b => b.classList.remove('active'));
+    $$('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('#' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ========== ALL-TIME TABLE (sortable) ==========
+let atSort = { key: 'wins', dir: 'desc' };
+function renderAllTime() {
+  const sorted = [...allTime].sort((a, b) => {
+    let av, bv;
+    if (atSort.key === 'team') { av = teams[a.key].team.toLowerCase(); bv = teams[b.key].team.toLowerCase(); }
+    else if (atSort.key === 'pct') { av = a.wins / (a.wins + a.losses); bv = b.wins / (b.wins + b.losses); }
+    else { av = a[atSort.key]; bv = b[atSort.key]; }
+    if (av < bv) return atSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return atSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const tbody = $('#all-time-table tbody');
+  tbody.innerHTML = sorted.map((r, i) => {
+    const pct = (r.wins / (r.wins + r.losses)).toFixed(3).replace(/^0/, '');
+    const titles = r.titles > 0 ? '🏆'.repeat(r.titles) : '—';
+    return `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td>${teamChip(r.key)}</td>
+      <td class="num"><span class="record"><span class="wins">${r.wins}</span></span></td>
+      <td class="num"><span class="record"><span class="losses">${r.losses}</span></span></td>
+      <td class="num">.${pct.split('.')[1] || '000'}</td>
+      <td class="num">${titles}</td>
+    </tr>`;
+  }).join('');
+  // header indicators
+  $$('#all-time-table th.sortable').forEach(th => {
+    th.classList.remove('sorted');
+    const ind = th.querySelector('.sort-ind');
+    if (ind) ind.textContent = '';
+    if (th.dataset.sort === atSort.key) {
+      th.classList.add('sorted');
+      if (ind) ind.textContent = atSort.dir === 'desc' ? '▼' : '▲';
+    }
+  });
+}
+$$('#all-time-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (atSort.key === k) atSort.dir = atSort.dir === 'desc' ? 'asc' : 'desc';
+    else { atSort.key = k; atSort.dir = (k === 'team') ? 'asc' : 'desc'; }
+    renderAllTime();
+  });
+});
+renderAllTime();
+
+// ========== RECORDS ==========
+$('#weekly-highs-body').innerHTML = weeklyHighs.map((r, i) => `
+  <tr>
+    <td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(2)}</td>
+    <td>${r.year}</td>
+    <td>Week ${r.week}</td>
+  </tr>
+`).join('');
+
+$('#player-game-body').innerHTML = playerGame.map((r, i) => `
+  <tr>
+    <td class="${rankClass(i)}">${i + 1}</td>
+    <td style="font-weight:600; text-transform:uppercase; font-family:'Oswald',sans-serif;">${r.player}</td>
+    <td>${teamChipCompact(r.key)}</td>
+    <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(2)}</td>
+    <td>${r.week}</td>
+  </tr>
+`).join('');
+
+$('#player-season-body').innerHTML = playerSeason.map((r, i) => `
+  <tr>
+    <td class="${rankClass(i)}">${i + 1}</td>
+    <td style="font-weight:600; text-transform:uppercase; font-family:'Oswald',sans-serif;">${r.player}</td>
+    <td>${teamChipCompact(r.key)}</td>
+    <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(1)}</td>
+    <td>${r.year}</td>
+  </tr>
+`).join('');
+
+// ========== 2024 STANDINGS ==========
+$('#s2024-standings').innerHTML = standings2024.map((r, i) => {
+  const pct = (r.wins / (r.wins + r.losses)).toFixed(3);
+  return `<tr>
+    <td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num"><span class="record"><span class="wins">${r.wins}</span><span class="sep">-</span><span class="losses">${r.losses}</span></span></td>
+    <td class="num">${pct.replace(/^0/, '')}</td>
+  </tr>`;
+}).join('');
+
+$('#s2024-final').innerHTML = final2024.map((k, i) => `
+  <tr>
+    <td class="${rankClass(i)}">${i + 1}${i === 0 ? ' 🏆' : ''}</td>
+    <td>${teamChipCompact(k)}</td>
+    <td style="color: var(--text-dim); text-transform: uppercase; font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:1px;">${teams[k].owner}</td>
+  </tr>
+`).join('');
+
+// ========== DRAFT ==========
+$('#draft-2024').innerHTML = draft2024.map(p => {
+  const t = teams[p.key];
+  return `<div class="draft-pick" style="border-left-color:${t.color}">
+    <div class="pick-num">${p.pick}</div>
+    <div class="pick-info">
+      <div class="player-name">${p.player}</div>
+      <div class="team-small" style="color:${t.color}">${t.team} · ${t.owner}</div>
+    </div>
+  </div>`;
+}).join('');
+
+// ========== FOUNDERS ==========
+$('#founders-grid').innerHTML = Object.keys(teams).map(k => {
+  const t = teams[k];
+  return `<div class="founder-card" style="border-top-color:${t.color}">
+    <div class="founder-name">${t.owner}</div>
+    <div class="founder-team" style="color:${t.color}">${t.team}</div>
+  </div>`;
+}).join('');
+
+// ========== H2H ==========
+// NOTE: We only have aggregate records, not individual game results.
+// Show this as a "coming soon" with available data. When game-by-game results
+// are added, populate `h2hGames` array below.
+const h2hGames = [
+  // { year: 2024, week: 1, a: "alex", b: "henny", aScore: 120.5, bScore: 115.3 }
+  // Add games here as data becomes available
+];
+
+function populateH2HSelects() {
+  const opts = Object.keys(teams).map(k =>
+    `<option value="${k}">${teams[k].team} (${teams[k].owner})</option>`
+  ).join('');
+  $('#h2h-a').innerHTML = opts;
+  $('#h2h-b').innerHTML = opts;
+  $('#h2h-a').value = 'alex';
+  $('#h2h-b').value = 'henny';
+}
+
+function renderH2H() {
+  const a = $('#h2h-a').value;
+  const b = $('#h2h-b').value;
+  const out = $('#h2h-output');
+
+  if (a === b) {
+    out.innerHTML = `<div class="h2h-empty">Pick two different teams to see the matchup.</div>`;
+    return;
+  }
+
+  const games = h2hGames.filter(g =>
+    (g.a === a && g.b === b) || (g.a === b && g.b === a)
+  );
+
+  let aWins = 0, bWins = 0;
+  games.forEach(g => {
+    const aScore = g.a === a ? g.aScore : g.bScore;
+    const bScore = g.a === a ? g.bScore : g.aScore;
+    if (aScore > bScore) aWins++; else bWins++;
+  });
+
+  const ta = teams[a], tb = teams[b];
+
+  if (games.length === 0) {
+    out.innerHTML = `
+      <div class="h2h-empty">
+        <div style="font-family:'Oswald',sans-serif; font-size:18px; color: var(--text); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px;">
+          No Game Data Yet
+        </div>
+        <div>Individual game results haven't been logged. Add games to the <code style="background: var(--panel); padding: 2px 6px; border-radius: 2px; color: var(--accent);">h2hGames</code> array in the source to enable this feature.</div>
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; gap: 20px;">
+          <div>
+            <div style="font-family:'Oswald',sans-serif; color:${ta.color}; font-size:16px; text-transform:uppercase;">${ta.team}</div>
+            <div style="color: var(--text-dim); margin-top: 4px;">All-time: ${allTime.find(r => r.key === a).wins}-${allTime.find(r => r.key === a).losses}</div>
+          </div>
+          <div style="color: var(--accent-red); font-family:'Oswald',sans-serif; font-size: 20px; align-self: center;">VS</div>
+          <div>
+            <div style="font-family:'Oswald',sans-serif; color:${tb.color}; font-size:16px; text-transform:uppercase;">${tb.team}</div>
+            <div style="color: var(--text-dim); margin-top: 4px;">All-time: ${allTime.find(r => r.key === b).wins}-${allTime.find(r => r.key === b).losses}</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const aWinner = aWins > bWins;
+  out.innerHTML = `
+    <div class="h2h-result">
+      <div class="h2h-vs">
+        <div class="h2h-side ${aWinner ? 'winner' : (aWins < bWins ? 'loser' : '')}">
+          <div class="wins-big">${aWins}</div>
+          <div class="name" style="color:${ta.color}">${ta.team}</div>
+          <div style="color: var(--text-dim); font-size: 12px; letter-spacing:1px; margin-top:4px;">${ta.owner}</div>
+        </div>
+        <div class="h2h-vs-text">SERIES</div>
+        <div class="h2h-side ${!aWinner && bWins > aWins ? 'winner' : (bWins < aWins ? 'loser' : '')}">
+          <div class="wins-big">${bWins}</div>
+          <div class="name" style="color:${tb.color}">${tb.team}</div>
+          <div style="color: var(--text-dim); font-size: 12px; letter-spacing:1px; margin-top:4px;">${tb.owner}</div>
+        </div>
+      </div>
+      <div class="h2h-games">
+        ${games.map(g => {
+          const aScore = g.a === a ? g.aScore : g.bScore;
+          const bScore = g.a === a ? g.bScore : g.aScore;
+          const aW = aScore > bScore;
+          return `<div class="h2h-game">
+            <span class="wk">${g.year} W${g.week}</span>
+            <span class="score ${aW ? 'win' : 'lose'}" style="text-align:right;">${aScore.toFixed(2)}</span>
+            <span style="color: var(--text-muted); font-size: 12px;">—</span>
+            <span class="score ${!aW ? 'win' : 'lose'}">${bScore.toFixed(2)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+populateH2HSelects();
+renderH2H();
+$('#h2h-a').addEventListener('change', renderH2H);
+$('#h2h-b').addEventListener('change', renderH2H);
+</script>
+</body>
+</html>

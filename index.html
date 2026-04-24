@@ -271,6 +271,31 @@
     border-left: 3px solid var(--accent); color: var(--text-dim);
     font-size: 13px; line-height: 1.6;
   }
+
+  /* Draft grade pills */
+  .grade-pill {
+    display: inline-block;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    min-width: 32px;
+    text-align: center;
+    color: #fff;
+  }
+  .grade-pill.large {
+    font-size: 20px;
+    padding: 8px 14px;
+    min-width: 48px;
+  }
+  .grade-A-plus { background: #10b981; }   /* emerald */
+  .grade-A      { background: #22c55e; }   /* green */
+  .grade-B      { background: #3b82f6; }   /* blue */
+  .grade-C      { background: #eab308; color: #000; } /* yellow */
+  .grade-D      { background: #f97316; }   /* orange */
+  .grade-F      { background: #ef4444; }   /* red */
 </style>
 </head>
 <body>
@@ -696,10 +721,17 @@ async function loadSeasonDetails(league) {
       draftPicks = await fetchJSON(`${API}/draft/${drafts[0].draft_id}/picks`);
     }
   } catch (e) {}
+  // Transactions per week (1-18). Used for Points-While-Rostered calculations.
+  // Sleeper organizes transactions by "round" which equals the league week they occurred in.
+  const transactions = await Promise.all(
+    Array.from({ length: 18 }, (_, i) =>
+      fetchJSON(`${API}/league/${league.league_id}/transactions/${i + 1}`).catch(() => [])
+    )
+  );
   return {
     leagueId: league.league_id, season: league.season, status: league.status,
     name: league.name, settings: league.settings,
-    users, rosters, weeklyMatchups, winnersBracket, losersBracket, draftPicks
+    users, rosters, weeklyMatchups, winnersBracket, losersBracket, draftPicks, transactions
   };
 }
 
@@ -1014,6 +1046,203 @@ function buildBenchStats() {
         state.benchTotalsByOwner[side.ownerKey] += pts;
       });
     });
+  });
+}
+
+// ========== DRAFT GRADES ==========
+// Computes three metrics per owner per season:
+//   1) Draft Capital Efficiency (DCE) — sum of steal/bust values across all picks
+//   2) Raw Points (RP) — total season points from all drafted players regardless of ownership
+//   3) Points While Rostered (PWR) — points scored while still on the drafting owner's team
+//
+// Letter grades are assigned RELATIVE within each season — rankings on a curve so there's
+// always a best and worst drafter.
+function buildDraftGrades() {
+  state.draftGrades = {}; // season → { ownerKey → { dce, rp, pwr, dceGrade, rpGrade, pwrGrade, overallGrade } }
+
+  state.leagues.forEach(league => {
+    if (!league.draftPicks || league.draftPicks.length === 0) return;
+    const season = league.season;
+
+    // Build per-season data similar to what we do in renderSeason for draft value
+    // ---- Positional finish ranks ----
+    const seasonPlayerPoints = {}; // playerId → total points (all rosters combined)
+    Object.values(state.playerSeasonTotals).forEach(p => {
+      if (p.season !== season) return;
+      seasonPlayerPoints[p.playerId] = (seasonPlayerPoints[p.playerId] || 0) + p.pts;
+    });
+
+    const byPosition = {};
+    Object.entries(seasonPlayerPoints).forEach(([pid, pts]) => {
+      const pos = playerInfo(pid).position || 'UNK';
+      (byPosition[pos] = byPosition[pos] || []).push({ playerId: pid, pts });
+    });
+    const posFinishRank = {}; // playerId → {pos, rank}
+    Object.entries(byPosition).forEach(([pos, players]) => {
+      players.sort((a, b) => b.pts - a.pts);
+      players.forEach((p, i) => { posFinishRank[p.playerId] = { pos, rank: i + 1 }; });
+    });
+
+    // ---- Expected pick at each positional rank (based on actual draft order) ----
+    const expectedPickByPosRank = {};
+    const posDraftCounts = {};
+    [...league.draftPicks]
+      .filter(p => p.player_id)
+      .sort((a, b) => a.pick_no - b.pick_no)
+      .forEach(p => {
+        const pos = playerInfo(p.player_id).position;
+        if (!pos || pos === 'UNK') return;
+        posDraftCounts[pos] = (posDraftCounts[pos] || 0) + 1;
+        expectedPickByPosRank[`${pos}${posDraftCounts[pos]}`] = p.pick_no;
+      });
+    const totalPicks = league.draftPicks.length;
+
+    // ---- Reconstruct roster ownership timeline for PWR ----
+    // Starting state: each roster owns exactly the players they drafted
+    // Then walk transactions in order, applying trades/adds/drops week-by-week
+    // Result: ownership[playerId] = [{ rosterId, fromWeek, toWeek }] — when each roster owned each player
+    const ownership = {}; // playerId → [{ rosterId, fromWeek, toWeek }]
+    const rosterIdByUser = {};
+    league.users.forEach(u => {
+      const r = league.rosters.find(r => r.owner_id === u.user_id);
+      if (r) rosterIdByUser[u.user_id] = r.roster_id;
+    });
+
+    league.draftPicks.forEach(p => {
+      if (!p.player_id) return;
+      const rosterId = rosterIdByUser[p.picked_by] || p.roster_id;
+      if (!rosterId) return;
+      ownership[p.player_id] = [{ rosterId, fromWeek: 1, toWeek: 18 }];
+    });
+
+    // Walk transactions chronologically to track ownership changes
+    const allTxs = (league.transactions || []).flat().filter(t => t.status === 'complete');
+    allTxs.sort((a, b) => (a.leg || 0) - (b.leg || 0)); // sort by week
+
+    allTxs.forEach(tx => {
+      const week = tx.leg || 1;
+      const adds = tx.adds || {};    // playerId → rosterId (who got them)
+      const drops = tx.drops || {};  // playerId → rosterId (who gave them up)
+
+      // Close out ownership windows for dropped players
+      Object.entries(drops).forEach(([pid, _]) => {
+        if (!ownership[pid]) return;
+        const current = ownership[pid][ownership[pid].length - 1];
+        if (current && current.toWeek > week - 1) {
+          current.toWeek = week - 1;
+        }
+      });
+      // Open new ownership windows for added players
+      Object.entries(adds).forEach(([pid, rosterId]) => {
+        if (!ownership[pid]) ownership[pid] = [];
+        ownership[pid].push({ rosterId, fromWeek: week, toWeek: 18 });
+      });
+    });
+
+    // Helper: was `rosterId` the owner of `playerId` during `week`?
+    function wasOwned(playerId, rosterId, week) {
+      const windows = ownership[playerId];
+      if (!windows) return false;
+      return windows.some(w => w.rosterId === rosterId && week >= w.fromWeek && week <= w.toWeek);
+    }
+
+    // ---- Calculate PWR: walk matchups, credit points to original drafter if the player
+    //      was on the drafting roster that week ----
+    const drafterOfPlayer = {}; // playerId → original drafter's ownerKey + rosterId
+    league.draftPicks.forEach(p => {
+      if (!p.player_id) return;
+      const rosterId = rosterIdByUser[p.picked_by] || p.roster_id;
+      const u = league.users.find(u => u.user_id === p.picked_by);
+      if (!u || !rosterId) return;
+      const drafterKey = ownerKey(u);
+      drafterOfPlayer[p.player_id] = { ownerKey: drafterKey, rosterId };
+    });
+
+    // Stats per owner
+    const byOwner = {}; // ownerKey → { dce: 0, rp: 0, pwr: 0, pickCount: 0 }
+    league.users.forEach(u => { byOwner[ownerKey(u)] = { dce: 0, rp: 0, pwr: 0, pickCount: 0 }; });
+
+    league.draftPicks.forEach(p => {
+      if (!p.player_id) return;
+      const u = league.users.find(u => u.user_id === p.picked_by);
+      if (!u) return;
+      const drafterKey = ownerKey(u);
+      if (!byOwner[drafterKey]) return;
+      byOwner[drafterKey].pickCount++;
+      byOwner[drafterKey].rp += seasonPlayerPoints[p.player_id] || 0;
+
+      // DCE: positional finish-based value
+      const finish = posFinishRank[p.player_id];
+      if (finish) {
+        const key = `${finish.pos}${finish.rank}`;
+        const expected = expectedPickByPosRank[key] != null ? expectedPickByPosRank[key] : totalPicks + 1;
+        byOwner[drafterKey].dce += p.pick_no - expected; // + = steal, - = bust
+      } else {
+        // Player scored negligible points — treat as worst-case bust (drafted, basically replacement)
+        byOwner[drafterKey].dce += p.pick_no - (totalPicks + 1);
+      }
+    });
+
+    // PWR: walk every matchup in this season, attribute starter points to original drafter
+    // if player was still on drafter's roster during that week
+    state.allMatchups.forEach(m => {
+      if (m.season !== season) return;
+      const sides = [
+        { starters: m.startersA, pts: m.starterPointsA, rosterId: m.rosterA },
+        { starters: m.startersB, pts: m.starterPointsB, rosterId: m.rosterB }
+      ];
+      sides.forEach(side => {
+        if (!Array.isArray(side.starters) || !Array.isArray(side.pts)) return;
+        side.starters.forEach((pid, i) => {
+          if (!pid || pid === '0') return;
+          const drafter = drafterOfPlayer[pid];
+          if (!drafter) return;
+          // Was the player on their drafter's roster this week?
+          if (wasOwned(pid, drafter.rosterId, m.week)) {
+            if (byOwner[drafter.ownerKey]) {
+              byOwner[drafter.ownerKey].pwr += side.pts[i] || 0;
+            }
+          }
+        });
+      });
+    });
+
+    // ---- Assign letter grades on a curve within this season ----
+    function assignGrades(metricKey) {
+      const sorted = Object.entries(byOwner)
+        .filter(([_, v]) => v.pickCount > 0)
+        .sort((a, b) => b[1][metricKey] - a[1][metricKey]);
+      const n = sorted.length;
+      if (n === 0) return;
+      sorted.forEach(([key, _], i) => {
+        // Percentile from top (0 = best, 1 = worst)
+        const pct = n === 1 ? 0 : i / (n - 1);
+        let grade;
+        if (pct <= 0.10) grade = 'A+';
+        else if (pct <= 0.25) grade = 'A';
+        else if (pct <= 0.50) grade = 'B';
+        else if (pct <= 0.75) grade = 'C';
+        else if (pct <= 0.90) grade = 'D';
+        else grade = 'F';
+        byOwner[key][metricKey + 'Grade'] = grade;
+      });
+    }
+    assignGrades('dce');
+    assignGrades('rp');
+    assignGrades('pwr');
+
+    // Overall grade = average of the three letter grades converted to numeric
+    const gradeToNum = { 'A+': 4.3, 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
+    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
+    Object.keys(byOwner).forEach(key => {
+      const o = byOwner[key];
+      if (!o.dceGrade) return; // no picks
+      const gpa = (gradeToNum[o.dceGrade] + gradeToNum[o.rpGrade] + gradeToNum[o.pwrGrade]) / 3;
+      o.overallGrade = numToGrade(gpa);
+      o.gpa = gpa;
+    });
+
+    state.draftGrades[season] = byOwner;
   });
 }
 
@@ -1792,6 +2021,54 @@ function renderOwnerStats(ownerKey) {
 
   html += `</div>`;
 
+  // ===== DRAFT GRADES (per-season history + all-time) =====
+  const ownerGradesBySeason = [];
+  Object.keys(state.draftGrades).sort().forEach(season => {
+    const g = state.draftGrades[season][ownerKey];
+    if (g && g.overallGrade) ownerGradesBySeason.push({ season, ...g });
+  });
+
+  if (ownerGradesBySeason.length > 0) {
+    // Calculate all-time average GPA
+    const avgGPA = ownerGradesBySeason.reduce((sum, g) => sum + (g.gpa || 0), 0) / ownerGradesBySeason.length;
+    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
+    const avgLetter = numToGrade(avgGPA);
+    const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
+
+    html += `<div class="section-header"><div class="section-bar" style="background: var(--gold);"></div><h2>Draft History</h2></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>All-Time Draft Grade</h3>
+          <span class="hint">Average across ${ownerGradesBySeason.length} draft${ownerGradesBySeason.length === 1 ? '' : 's'}</span>
+        </div>
+        <div style="padding: 24px; text-align: center; border-bottom: 1px solid var(--border);">
+          <span class="grade-pill large ${cls(avgLetter)}" style="font-size: 32px; padding: 12px 20px;">${avgLetter}</span>
+          <div style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size: 12px; margin-top: 8px; letter-spacing: 2px;">GPA ${avgGPA.toFixed(2)}</div>
+        </div>
+        <div class="table-scroll"><table>
+          <thead><tr>
+            <th>Season</th>
+            <th class="num">Overall</th>
+            <th class="num">DCE</th>
+            <th class="num">RP</th>
+            <th class="num">PWR</th>
+          </tr></thead>
+          <tbody>
+            ${ownerGradesBySeason.reverse().map(g => {
+              const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
+              return `<tr>
+                <td style="font-family:'Oswald',sans-serif; font-weight:600;">${escapeHtml(g.season)}</td>
+                <td class="num"><span class="grade-pill ${cls(g.overallGrade)}">${g.overallGrade}</span></td>
+                <td class="num"><div>${gradePill(g.dceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.dce > 0 ? '+' : ''}${g.dce.toFixed(0)}</div></td>
+                <td class="num"><div>${gradePill(g.rpGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rp.toFixed(0)}</div></td>
+                <td class="num"><div>${gradePill(g.pwrGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.pwr.toFixed(0)}</div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+  }
+
   // Head-to-head table against everyone
   if (allH2hRows.length > 0) {
     const sorted = [...allH2hRows].sort((a, b) => b.pct - a.pct);
@@ -2199,6 +2476,54 @@ function renderSeason(season) {
           </table></div>
         </div>`;
     }
+
+    // ===== DRAFT GRADES =====
+    const grades = state.draftGrades[season];
+    if (grades) {
+      const gradeRows = Object.entries(grades)
+        .filter(([_, v]) => v.pickCount > 0)
+        .sort((a, b) => (b[1].gpa || 0) - (a[1].gpa || 0));
+
+      if (gradeRows.length > 0) {
+        html += `<div class="section-header"><div class="section-bar" style="background: var(--gold);"></div><h2>📋 Draft Grades</h2></div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Draft Performance Report Card</h3>
+              <span class="hint">Graded on a curve within this season</span>
+            </div>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Rank</th>
+                <th>Owner</th>
+                <th class="num" title="Overall grade combining all three metrics">Overall</th>
+                <th class="num" title="Draft Capital Efficiency: sum of steal/bust values across all picks">DCE</th>
+                <th class="num" title="Raw Points: total points scored by everyone you drafted">RP</th>
+                <th class="num" title="Points While Rostered: points scored while still on your team">PWR</th>
+              </tr></thead>
+              <tbody>
+                ${gradeRows.map(([key, g], i) => {
+                  const o = state.ownerIndex[key];
+                  const cls = grade => 'grade-' + String(grade).replace('+', '-plus');
+                  const gradePill = grade => grade ? `<span class="grade-pill ${cls(grade)}">${grade}</span>` : '—';
+                  return `<tr>
+                    <td class="${rankClass(i)}">${i + 1}</td>
+                    <td>${teamChip(key, season)}</td>
+                    <td class="num">${g.overallGrade ? `<span class="grade-pill large ${cls(g.overallGrade)}">${g.overallGrade}</span>` : '—'}</td>
+                    <td class="num"><div>${gradePill(g.dceGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.dce > 0 ? '+' : ''}${g.dce.toFixed(0)}</div></td>
+                    <td class="num"><div>${gradePill(g.rpGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.rp.toFixed(0)}</div></td>
+                    <td class="num"><div>${gradePill(g.pwrGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.pwr.toFixed(0)}</div></td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table></div>
+            <div style="padding: 12px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--border); background: var(--panel);">
+              <strong style="color: var(--text-dim);">DCE</strong> — Draft Capital Efficiency: sum of how much earlier/later each pick was taken vs the typical cost of that positional finish. Measures efficiency per pick.<br>
+              <strong style="color: var(--text-dim);">RP</strong> — Raw Points: total points scored by all drafted players across the season regardless of later trades/drops. Measures raw talent identification.<br>
+              <strong style="color: var(--text-dim);">PWR</strong> — Points While Rostered: points scored only while the player was still on your team. Rewards good draft + roster management combined.
+            </div>
+          </div>`;
+      }
+    }
   }
 
   const hl = HIGHLIGHTS[season];
@@ -2287,6 +2612,7 @@ async function init() {
     buildToiletBowlWinners();
     buildPlayerStats();
     buildBenchStats();
+    buildDraftGrades();
 
     updateLoader('Rendering...', 99);
     renderHeader(); renderTicker(); renderChampions(); renderPulse();

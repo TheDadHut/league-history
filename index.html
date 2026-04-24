@@ -14,14 +14,31 @@
     --text: #f1f5ff; --text-dim: #9aa5c4; --text-muted: #6b7594;
     --accent: #ffcc00; --accent-red: #e8172b; --accent-blue: #1877f2;
     --gold: #ffd700; --silver: #c0c7d4; --bronze: #cd7f32;
-    --c-alex: #d32f2f; --c-henny: #00838f; --c-jason: #6a1b9a; --c-jose: #2e7d32;
-    --c-justin: #1565c0; --c-liam: #ef6c00; --c-michael: #c2185b; --c-nick: #8d6e63;
+    /* Named colors for known owners — each is a distinct hue */
+    --c-alex:    #d32f2f;  /* red */
+    --c-henny:   #00838f;  /* teal */
+    --c-jason:   #6a1b9a;  /* purple */
+    --c-jose:    #2e7d32;  /* green */
+    --c-justin:  #1565c0;  /* blue */
+    --c-liam:    #ef6c00;  /* orange */
+    --c-michael: #c2185b;  /* pink */
+    --c-nick:    #8d6e63;  /* brown */
     --c-default: #546e7a;
-    /* Fallback palette — visually distinct from the named colors above.
-       Used for any owner not matched by OWNER_COLORS. */
-    --c-p0: #0097a7; --c-p1: #7b1fa2; --c-p2: #388e3c; --c-p3: #fbc02d;
-    --c-p4: #0288d1; --c-p5: #f57c00; --c-p6: #5d4037; --c-p7: #455a64;
-    --c-p8: #c62828; --c-p9: #512da8; --c-p10: #00796b; --c-p11: #e91e63;
+
+    /* Fallback palette — 12 hues that are visually distinct from each other
+       AND from the named colors above. Spread across the color wheel. */
+    --c-p0:  #ffd54f;  /* yellow */
+    --c-p1:  #26a69a;  /* mint */
+    --c-p2:  #5e35b1;  /* deep purple */
+    --c-p3:  #7cb342;  /* lime green */
+    --c-p4:  #039be5;  /* sky blue */
+    --c-p5:  #ff7043;  /* coral */
+    --c-p6:  #ec407a;  /* hot pink */
+    --c-p7:  #9e9d24;  /* olive */
+    --c-p8:  #ab47bc;  /* violet */
+    --c-p9:  #00acc1;  /* cyan */
+    --c-p10: #d84315;  /* burnt orange */
+    --c-p11: #3949ab;  /* indigo */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
@@ -147,7 +164,25 @@
   .highlight-item { padding: 16px 20px 16px 56px; border-bottom: 1px solid var(--border); font-size: 16px; line-height: 1.5; position: relative; }
   .highlight-item:last-child { border-bottom: none; }
   .highlight-item::before { content: counter(highlight, decimal-leading-zero); counter-increment: highlight; position: absolute; left: 20px; top: 16px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; color: var(--accent); }
-  .highlight-item .sub { display: block; margin-top: 6px; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-dim); font-size: 14px; }
+  /* Nested sub-items. Each level indents further and uses a slightly dimmer/smaller style. */
+  .highlight-children { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .highlight-sub {
+    padding: 4px 0 4px 14px;
+    border-left: 2px solid var(--accent);
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .highlight-sub .highlight-children { margin-top: 6px; }
+  .highlight-sub .highlight-sub {
+    border-left-color: var(--border-bright);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .highlight-sub .highlight-sub .highlight-sub {
+    border-left-color: var(--border);
+    font-style: italic;
+  }
 
   .h2h-controls { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; margin-bottom: 20px; }
   .h2h-label { font-family: 'Oswald', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; display: block; }
@@ -193,6 +228,48 @@
     .vs-badge { padding: 4px; }
     .h2h-side .wins-big { font-size: 44px; }
     .h2h-game { grid-template-columns: 80px 1fr auto 1fr; font-size: 13px; }
+  }
+
+  /* Debug overlay — shown when user presses Ctrl+Shift+D */
+  #debug-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.9); z-index: 9999;
+    overflow-y: auto; padding: 40px 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #debug-overlay.show { display: block; }
+  #debug-overlay .close {
+    position: fixed; top: 20px; right: 20px;
+    background: var(--accent-red); color: #fff; border: none;
+    padding: 10px 16px; font-family: 'Oswald', sans-serif;
+    font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    text-transform: uppercase; font-size: 13px;
+  }
+  #debug-overlay .debug-inner {
+    max-width: 900px; margin: 0 auto; background: var(--bg-card);
+    border: 1px solid var(--border); padding: 30px;
+  }
+  #debug-overlay h3 {
+    font-family: 'Oswald', sans-serif; color: var(--accent);
+    letter-spacing: 3px; font-size: 16px; margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  #debug-overlay .debug-row {
+    display: grid; grid-template-columns: 60px 1fr 1fr 1fr 1fr;
+    gap: 12px; padding: 10px 0; align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  #debug-overlay .debug-row.header { color: var(--text-muted); font-weight: bold; letter-spacing: 2px; }
+  #debug-overlay .debug-swatch {
+    width: 100%; height: 32px; border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  }
+  #debug-overlay .debug-note {
+    margin-top: 24px; padding: 14px; background: var(--panel);
+    border-left: 3px solid var(--accent); color: var(--text-dim);
+    font-size: 13px; line-height: 1.6;
   }
 </style>
 </head>
@@ -353,6 +430,18 @@
   <span class="refresh-info" id="refresh-info">Data fetched on page load</span>
 </footer>
 
+<!-- Debug overlay — toggle with Ctrl+Shift+D -->
+<div id="debug-overlay">
+  <button class="close" onclick="document.getElementById('debug-overlay').classList.remove('show')">Close</button>
+  <div class="debug-inner">
+    <h3>🛠 Color Debug · Owner Assignments</h3>
+    <div id="debug-content"></div>
+    <div class="debug-note">
+      Keys are lowercased Sleeper display_names. "Explicit match" shows which OWNER_COLORS rule (if any) matched by substring. If you see a color here that looks too similar to another, the CSS variable is correct — check the actual hex value shown. Press Ctrl+Shift+D to close.
+    </div>
+  </div>
+</div>
+
 <script>
 // ===================================================================
 // CONFIG — update each new season
@@ -390,16 +479,33 @@ const FALLBACK_PALETTE = [
 //   { "text": "Main highlight", "sub": "Extra detail shown indented below" }
 let HIGHLIGHTS = {};
 
+// Normalize a single highlight entry into a consistent shape: { text, children[] }.
+// Accepts: plain string, { text, sub }, { text, children }, or mix.
+// - A string becomes { text: "...", children: [] }
+// - Legacy "sub": "string" becomes one child { text: "string" }
+// - Legacy "sub": [items] becomes children (each item recursively normalized)
+// - "children": [items] is preferred format going forward
+function normalizeHighlight(item) {
+  if (typeof item === 'string') return { text: item, children: [] };
+  if (!item || typeof item !== 'object') return { text: String(item), children: [] };
+  const children = [];
+  if (Array.isArray(item.children)) {
+    item.children.forEach(c => children.push(normalizeHighlight(c)));
+  }
+  if (item.sub != null) {
+    if (Array.isArray(item.sub)) item.sub.forEach(s => children.push(normalizeHighlight(s)));
+    else children.push(normalizeHighlight(item.sub));
+  }
+  return { text: item.text || '', children };
+}
+
 async function loadHighlights() {
   try {
     const res = await fetch('highlights.json?t=' + Date.now()); // cache-bust
     if (!res.ok) return;
     const data = await res.json();
-    // Normalize: accept either plain strings or {text, sub} objects
     Object.keys(data).forEach(season => {
-      HIGHLIGHTS[season] = (data[season] || []).map(item =>
-        typeof item === 'string' ? { text: item } : item
-      );
+      HIGHLIGHTS[season] = (data[season] || []).map(normalizeHighlight);
     });
   } catch (e) {
     console.warn('No highlights.json found or failed to parse — skipping highlights', e);
@@ -494,7 +600,7 @@ async function loadSeasonDetails(league) {
 }
 
 function buildOwnerIndex() {
-  // Pass 1: collect every owner, sorted alphabetically by key for a stable assignment order
+  // Pass 1: collect every owner
   state.leagues.forEach(l => {
     l.users.forEach(u => {
       const key = ownerKey(u);
@@ -502,7 +608,7 @@ function buildOwnerIndex() {
         state.ownerIndex[key] = {
           key, userId: u.user_id,
           displayName: u.display_name || u.username,
-          color: null, // assigned in pass 2
+          color: null,
           teamNames: {}, userIdsBySeason: {}
         };
       }
@@ -511,18 +617,10 @@ function buildOwnerIndex() {
     });
   });
 
-  // Pass 2: assign guaranteed-unique colors.
-  //   (a) Anyone matching an OWNER_COLORS entry gets that specific color.
-  //       If multiple owners match the same explicit color, only the first keeps it;
-  //       the rest fall through to the fallback pool.
-  //   (b) Everyone else gets the next available color from FALLBACK_PALETTE that
-  //       hasn't been used yet, in alphabetical owner order.
-  //   (c) If we ever run out of palette colors (more than 12 distinct owners), we
-  //       extend by cycling — at that point collisions become unavoidable.
+  // Pass 2: assign unique colors
   const ownersSorted = Object.values(state.ownerIndex).sort((a, b) => a.key.localeCompare(b.key));
   const usedColors = new Set();
 
-  // Pass 2a: explicit matches first
   ownersSorted.forEach(o => {
     const explicit = explicitColorFor(o.key);
     if (explicit && !usedColors.has(explicit)) {
@@ -531,11 +629,9 @@ function buildOwnerIndex() {
     }
   });
 
-  // Pass 2b: fallbacks — take the next unused palette color
   let paletteIdx = 0;
   ownersSorted.forEach(o => {
     if (o.color) return;
-    // Find next unused palette color
     let found = null;
     for (let i = 0; i < FALLBACK_PALETTE.length; i++) {
       const candidate = FALLBACK_PALETTE[(paletteIdx + i) % FALLBACK_PALETTE.length];
@@ -545,11 +641,20 @@ function buildOwnerIndex() {
         break;
       }
     }
-    // Pass 2c: palette exhausted — cycle back (unavoidable collision)
     if (!found) found = FALLBACK_PALETTE[paletteIdx++ % FALLBACK_PALETTE.length];
     o.color = found;
     usedColors.add(found);
   });
+
+  // Expose to console for debugging
+  window.__debugOwners = ownersSorted.map(o => ({
+    key: o.key,
+    displayName: o.displayName,
+    color: o.color,
+    explicitMatch: explicitColorFor(o.key) || '(none)'
+  }));
+  console.log('%c[GDL] Owner colors assigned. Press Ctrl+Shift+D to inspect.', 'color:#ffcc00;font-weight:bold');
+  console.table(window.__debugOwners);
 }
 
 function ownerByRosterId(league, rosterId) {
@@ -1240,8 +1345,16 @@ function renderSeason(season) {
 
   const hl = HIGHLIGHTS[season];
   if (hl && hl.length) {
+    // Recursive renderer for any sub-item (child of a main highlight).
+    // Main highlights use .highlight-item (numbered); children use .highlight-sub.
+    const renderChildren = items => items.length === 0 ? '' :
+      `<div class="highlight-children">${items.map(c =>
+        `<div class="highlight-sub">${escapeHtml(c.text)}${renderChildren(c.children || [])}</div>`
+      ).join('')}</div>`;
     html += `<div class="section-header"><div class="section-bar"></div><h2>Season Highlights</h2></div>
-      <div class="highlights">${hl.map(h => `<div class="highlight-item">${escapeHtml(h.text)}${h.sub ? `<span class="sub">${escapeHtml(h.sub)}</span>` : ''}</div>`).join('')}</div>`;
+      <div class="highlights">${hl.map(h =>
+        `<div class="highlight-item">${escapeHtml(h.text)}${renderChildren(h.children || [])}</div>`
+      ).join('')}</div>`;
   }
 
   $('#season-content').innerHTML = html;
@@ -1255,6 +1368,41 @@ function initTabs() {
       btn.classList.add('active');
       $('#' + btn.dataset.tab).classList.add('active');
     });
+  });
+}
+
+function initDebugOverlay() {
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+      e.preventDefault();
+      const overlay = $('#debug-overlay');
+      const content = $('#debug-content');
+      // Build rows with resolved hex colors so user can see actual values
+      const rows = (window.__debugOwners || []).map(o => {
+        // Resolve CSS variable to actual computed color
+        const el = document.createElement('span');
+        el.style.color = o.color;
+        document.body.appendChild(el);
+        const hex = getComputedStyle(el).color;
+        document.body.removeChild(el);
+        return { ...o, hex };
+      });
+      content.innerHTML = `
+        <div class="debug-row header">
+          <div>Color</div><div>Key</div><div>Display Name</div><div>Match Rule</div><div>Hex</div>
+        </div>
+        ${rows.map(r => `
+          <div class="debug-row">
+            <div class="debug-swatch" style="background:${r.color}"></div>
+            <div>${escapeHtml(r.key)}</div>
+            <div>${escapeHtml(r.displayName)}</div>
+            <div style="color: var(--text-dim)">${escapeHtml(r.explicitMatch)}</div>
+            <div style="color: var(--text-muted); font-size: 11px;">${r.hex}</div>
+          </div>
+        `).join('')}
+      `;
+      overlay.classList.toggle('show');
+    }
   });
 }
 
@@ -1287,7 +1435,7 @@ async function init() {
     populateH2HSelects(); renderH2H();
     $('#h2h-a').addEventListener('change', renderH2H);
     $('#h2h-b').addEventListener('change', renderH2H);
-    populateSeasonPicker(); initTabs();
+    populateSeasonPicker(); initTabs(); initDebugOverlay();
     $('#refresh-info').textContent = 'Last fetched: ' + new Date().toLocaleString();
     setTimeout(() => $('#loading').classList.add('hidden'), 300);
   } catch (e) {

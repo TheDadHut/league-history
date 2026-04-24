@@ -1386,6 +1386,46 @@ function buildTrades() {
       });
     });
   });
+
+  // Build per-owner trade summary stats (no grades, no curves — just facts)
+  // For each owner: count of trades, wins (top WR finisher in that trade), and net WR/ST margins
+  state.tradeStatsByOwner = {};
+  Object.keys(state.ownerIndex).forEach(k => {
+    state.tradeStatsByOwner[k] = {
+      tradeCount: 0,
+      wins: 0,        // counted only in 2-party trades where this owner was the WR winner
+      losses: 0,      // counted only in 2-party trades where this owner was the WR loser
+      ties: 0,        // 2-party trades where it was effectively even (margin <2 either way)
+      netWR: 0,
+      netST: 0
+    };
+  });
+
+  state.trades.forEach(t => {
+    if (t.hasOnlyDraftPicks) return; // skip pure pick trades — no scorable value
+
+    t.parties.forEach(party => {
+      const stats = state.tradeStatsByOwner[party.ownerKey];
+      if (!stats) return;
+      stats.tradeCount++;
+      stats.netWR += party.wrNet;
+      stats.netST += party.stNet;
+    });
+
+    // Win/loss counted only for 2-party trades to avoid 3-way ambiguity
+    if (t.partyCount === 2 && t.wrWinner && t.wrLoser) {
+      const winnerStats = state.tradeStatsByOwner[t.wrWinner.ownerKey];
+      const loserStats = state.tradeStatsByOwner[t.wrLoser.ownerKey];
+      // Tie threshold: if margin < 2 pts, call it a wash
+      if (Math.abs(t.wrMargin) < 2) {
+        if (winnerStats) winnerStats.ties++;
+        if (loserStats) loserStats.ties++;
+      } else {
+        if (winnerStats) winnerStats.wins++;
+        if (loserStats) loserStats.losses++;
+      }
+    }
+  });
 }
 
 function buildDraftGrades() {
@@ -1928,6 +1968,40 @@ function renderPulse() {
       tiles.push({ label: 'Top Player · Full Season', value: p.name.toUpperCase(), sub: `${topSeason.pts.toFixed(1)} · ${topSeason.season}` });
     }
   }
+
+  // Best/Worst trader: by net WR margin across all trades they were in (min 2 trades to qualify)
+  if (state.tradeStatsByOwner) {
+    const tradeRanked = Object.entries(state.tradeStatsByOwner)
+      .filter(([_, s]) => s.tradeCount >= 2)
+      .sort((a, b) => b[1].netWR - a[1].netWR);
+    if (tradeRanked.length > 0) {
+      const [bestKey, bestStats] = tradeRanked[0];
+      const bestOwner = state.ownerIndex[bestKey];
+      if (bestOwner && bestStats.netWR > 0) {
+        const recordStr = bestStats.wins || bestStats.losses || bestStats.ties
+          ? `${bestStats.wins}-${bestStats.losses}${bestStats.ties ? `-${bestStats.ties}` : ''} · `
+          : '';
+        tiles.push({
+          label: 'Best Trader',
+          value: bestOwner.displayName.toUpperCase(),
+          sub: `${recordStr}+${bestStats.netWR.toFixed(0)} WR · ${bestStats.tradeCount} trade${bestStats.tradeCount === 1 ? '' : 's'}`
+        });
+      }
+      const [worstKey, worstStats] = tradeRanked[tradeRanked.length - 1];
+      const worstOwner = state.ownerIndex[worstKey];
+      if (worstOwner && worstStats.netWR < 0 && worstKey !== bestKey) {
+        const recordStr = worstStats.wins || worstStats.losses || worstStats.ties
+          ? `${worstStats.wins}-${worstStats.losses}${worstStats.ties ? `-${worstStats.ties}` : ''} · `
+          : '';
+        tiles.push({
+          label: 'Worst Trader',
+          value: worstOwner.displayName.toUpperCase(),
+          sub: `${recordStr}${worstStats.netWR.toFixed(0)} WR · ${worstStats.tradeCount} trade${worstStats.tradeCount === 1 ? '' : 's'}`
+        });
+      }
+    }
+  }
+
   $('#pulse-grid').innerHTML = tiles.map(t => `
     <div class="stat-tile">
       <div class="stat-label">${escapeHtml(t.label)}</div>
@@ -2705,6 +2779,23 @@ function renderOwnerStats(ownerKey) {
       <div class="stat-label">😈 Favorite Matchup</div>
       <div class="stat-value" style="color:${f.color}">${escapeHtml(f.displayName)}</div>
       <div class="stat-sub">${favoriteMatchup.wins}-${favoriteMatchup.losses} head-to-head</div>
+    </div>`;
+  }
+
+  // Trade record tile (only show if owner has been in any scorable trade)
+  const ts = state.tradeStatsByOwner[ownerKey];
+  if (ts && ts.tradeCount > 0) {
+    const recordStr = `${ts.wins}-${ts.losses}${ts.ties ? `-${ts.ties}` : ''}`;
+    const wrColor = ts.netWR > 0 ? '#4ade80' : ts.netWR < 0 ? 'var(--accent-red)' : 'var(--text)';
+    html += `<div class="stat-tile" style="border-top-color: var(--accent-blue)">
+      <div class="stat-label">🤝 Trade Record</div>
+      <div class="stat-value" style="color:${wrColor}">${recordStr}</div>
+      <div class="stat-sub">${ts.tradeCount} trade${ts.tradeCount === 1 ? '' : 's'} · W-L counts head-to-head only</div>
+    </div>`;
+    html += `<div class="stat-tile" style="border-top-color: var(--accent-blue)">
+      <div class="stat-label">📊 Net Trade Value</div>
+      <div class="stat-value" style="color:${wrColor}; font-size: 22px;">${ts.netWR > 0 ? '+' : ''}${ts.netWR.toFixed(0)} <span style="color: var(--text-muted); font-size: 14px; font-weight: 400;">WR</span></div>
+      <div class="stat-sub">${ts.netST > 0 ? '+' : ''}${ts.netST.toFixed(0)} ST · sum across all trades</div>
     </div>`;
   }
 

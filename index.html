@@ -17,10 +17,11 @@
     --c-alex: #d32f2f; --c-henny: #00838f; --c-jason: #6a1b9a; --c-jose: #2e7d32;
     --c-justin: #1565c0; --c-liam: #ef6c00; --c-michael: #c2185b; --c-nick: #8d6e63;
     --c-default: #546e7a;
-    /* Fallback palette — every team gets one of these if no explicit mapping */
-    --c-p0: #d32f2f; --c-p1: #00838f; --c-p2: #6a1b9a; --c-p3: #2e7d32;
-    --c-p4: #1565c0; --c-p5: #ef6c00; --c-p6: #c2185b; --c-p7: #8d6e63;
-    --c-p8: #00695c; --c-p9: #283593; --c-p10: #ad1457; --c-p11: #4527a0;
+    /* Fallback palette — visually distinct from the named colors above.
+       Used for any owner not matched by OWNER_COLORS. */
+    --c-p0: #0097a7; --c-p1: #7b1fa2; --c-p2: #388e3c; --c-p3: #fbc02d;
+    --c-p4: #0288d1; --c-p5: #f57c00; --c-p6: #5d4037; --c-p7: #455a64;
+    --c-p8: #c62828; --c-p9: #512da8; --c-p10: #00796b; --c-p11: #e91e63;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
@@ -358,9 +359,12 @@
 // ===================================================================
 const CURRENT_LEAGUE_ID = '1226697048753983488';
 
-// Owner color map. Match by substring — if a Sleeper display_name CONTAINS any
-// of these keys (case-insensitive), it gets that color. Add more entries as owners join.
-// Anyone not matched gets a deterministic fallback color from the palette below.
+// Owner color preferences. Match by substring — if a Sleeper display_name CONTAINS any
+// of these keys (case-insensitive), that owner is preferred to get that color.
+// Uniqueness is guaranteed: every owner gets a different color. If two owners both match
+// the same preferred color, only the first keeps it; the other falls through to the palette.
+// Add or remove entries freely — the only requirement is that every color listed below
+// must be defined as a CSS variable at the top of the file (:root section).
 const OWNER_COLORS = {
   alex:    'var(--c-alex)',
   henny:   'var(--c-henny)',
@@ -369,9 +373,11 @@ const OWNER_COLORS = {
   justin:  'var(--c-justin)',
   liam:    'var(--c-liam)',
   michael: 'var(--c-michael)',
-  mike:    'var(--c-michael)',  // in case Michael's handle has Mike in it
+  mike:    'var(--c-michael)',  // same color if Michael's handle has "Mike" in it
   nick:    'var(--c-nick)'
 };
+// Palette used to fill in colors for any owners not matched above.
+// Every owner is guaranteed a unique entry until this palette runs out (12 colors).
 const FALLBACK_PALETTE = [
   'var(--c-p0)', 'var(--c-p1)', 'var(--c-p2)',  'var(--c-p3)',
   'var(--c-p4)', 'var(--c-p5)', 'var(--c-p6)',  'var(--c-p7)',
@@ -431,21 +437,16 @@ const state = {
 
 const ownerKey = u => (u.display_name || u.username || '').toLowerCase().trim();
 
-// Resolve owner color: substring match first, then deterministic fallback so
-// every owner gets a consistent unique color even if not in OWNER_COLORS.
-function ownerColor(key) {
-  if (!key) return 'var(--c-default)';
+// Resolve owner color against OWNER_COLORS by substring match. Returns null if no explicit match.
+function explicitColorFor(key) {
+  if (!key) return null;
   const lower = key.toLowerCase();
   for (const [matchKey, color] of Object.entries(OWNER_COLORS)) {
     if (lower.includes(matchKey)) return color;
   }
-  // Deterministic hash → palette index, so same owner always gets the same color
-  let hash = 0;
-  for (let i = 0; i < lower.length; i++) {
-    hash = ((hash << 5) - hash + lower.charCodeAt(i)) | 0;
-  }
-  return FALLBACK_PALETTE[Math.abs(hash) % FALLBACK_PALETTE.length];
+  return null;
 }
+
 const teamNameFor = u => (u.metadata && u.metadata.team_name) || u.display_name || 'Unknown';
 const rankClass = i => i === 0 ? 'rank rank-1' : i === 1 ? 'rank rank-2' : i === 2 ? 'rank rank-3' : 'rank';
 
@@ -493,6 +494,7 @@ async function loadSeasonDetails(league) {
 }
 
 function buildOwnerIndex() {
+  // Pass 1: collect every owner, sorted alphabetically by key for a stable assignment order
   state.leagues.forEach(l => {
     l.users.forEach(u => {
       const key = ownerKey(u);
@@ -500,13 +502,53 @@ function buildOwnerIndex() {
         state.ownerIndex[key] = {
           key, userId: u.user_id,
           displayName: u.display_name || u.username,
-          color: ownerColor(key),
+          color: null, // assigned in pass 2
           teamNames: {}, userIdsBySeason: {}
         };
       }
       state.ownerIndex[key].userIdsBySeason[l.season] = u.user_id;
       state.ownerIndex[key].teamNames[l.season] = teamNameFor(u);
     });
+  });
+
+  // Pass 2: assign guaranteed-unique colors.
+  //   (a) Anyone matching an OWNER_COLORS entry gets that specific color.
+  //       If multiple owners match the same explicit color, only the first keeps it;
+  //       the rest fall through to the fallback pool.
+  //   (b) Everyone else gets the next available color from FALLBACK_PALETTE that
+  //       hasn't been used yet, in alphabetical owner order.
+  //   (c) If we ever run out of palette colors (more than 12 distinct owners), we
+  //       extend by cycling — at that point collisions become unavoidable.
+  const ownersSorted = Object.values(state.ownerIndex).sort((a, b) => a.key.localeCompare(b.key));
+  const usedColors = new Set();
+
+  // Pass 2a: explicit matches first
+  ownersSorted.forEach(o => {
+    const explicit = explicitColorFor(o.key);
+    if (explicit && !usedColors.has(explicit)) {
+      o.color = explicit;
+      usedColors.add(explicit);
+    }
+  });
+
+  // Pass 2b: fallbacks — take the next unused palette color
+  let paletteIdx = 0;
+  ownersSorted.forEach(o => {
+    if (o.color) return;
+    // Find next unused palette color
+    let found = null;
+    for (let i = 0; i < FALLBACK_PALETTE.length; i++) {
+      const candidate = FALLBACK_PALETTE[(paletteIdx + i) % FALLBACK_PALETTE.length];
+      if (!usedColors.has(candidate)) {
+        found = candidate;
+        paletteIdx = (paletteIdx + i + 1) % FALLBACK_PALETTE.length;
+        break;
+      }
+    }
+    // Pass 2c: palette exhausted — cycle back (unavoidable collision)
+    if (!found) found = FALLBACK_PALETTE[paletteIdx++ % FALLBACK_PALETTE.length];
+    o.color = found;
+    usedColors.add(found);
   });
 }
 

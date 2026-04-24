@@ -2777,19 +2777,40 @@ function renderOwnerStats(ownerKey) {
     const dominantArchetype = Object.entries(archetypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
     const archetypeDesc = ownerWaiverBySeason.find(g => g.archetype === dominantArchetype)?.archetypeDesc || '';
 
+    // Average Impact grade across all seasons → headline letter
+    const gradeToNum = { 'A+': 4.3, 'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0 };
+    const numToGrade = gpa => gpa >= 4.15 ? 'A+' : gpa >= 3.5 ? 'A' : gpa >= 2.5 ? 'B' : gpa >= 1.5 ? 'C' : gpa >= 0.5 ? 'D' : 'F';
+    const impactSeasons = ownerWaiverBySeason.filter(g => g.impactGrade);
+    const avgImpactGPA = impactSeasons.length > 0
+      ? impactSeasons.reduce((sum, g) => sum + (gradeToNum[g.impactGrade] || 0), 0) / impactSeasons.length
+      : 0;
+    const avgImpactLetter = impactSeasons.length > 0 ? numToGrade(avgImpactGPA) : null;
+
     html += `<div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2>Waiver History</h2></div>
       <div class="card">
         <div class="card-header">
           <h3>Waiver Identity</h3>
           <span class="hint">Across ${ownerWaiverBySeason.length} season${ownerWaiverBySeason.length === 1 ? '' : 's'}</span>
         </div>
-        <div style="padding: 28px 24px; text-align: center; border-bottom: 1px solid var(--border);">
-          <div style="font-family:'Oswald',sans-serif; font-weight:700; font-size: 32px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent);">${escapeHtml(dominantArchetype || '—')}</div>
-          <div style="color: var(--text-dim); font-size: 14px; margin-top: 6px; font-style: italic;">${escapeHtml(archetypeDesc)}</div>
+        <div style="padding: 28px 24px; text-align: center; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; align-items: center;">
+          ${avgImpactLetter ? `
+            <div>
+              <div style="color: var(--text-muted); font-family: 'Oswald', sans-serif; letter-spacing: 3px; font-size: 11px; margin-bottom: 8px;">HEADLINE GRADE</div>
+              <span class="grade-pill large ${cls(avgImpactLetter)}" style="font-size: 36px; padding: 14px 24px;">${avgImpactLetter}</span>
+              <div style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 8px; letter-spacing: 1px;">Avg Impact GPA ${avgImpactGPA.toFixed(2)}</div>
+            </div>
+            <div style="width: 50px; height: 1px; background: var(--border);"></div>
+          ` : ''}
+          <div>
+            <div style="color: var(--text-muted); font-family: 'Oswald', sans-serif; letter-spacing: 3px; font-size: 11px; margin-bottom: 8px;">DOMINANT ARCHETYPE</div>
+            <div style="font-family:'Oswald',sans-serif; font-weight:700; font-size: 32px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent);">${escapeHtml(dominantArchetype || '—')}</div>
+            <div style="color: var(--text-dim); font-size: 14px; margin-top: 6px; font-style: italic;">${escapeHtml(archetypeDesc)}</div>
+          </div>
         </div>
         <div class="table-scroll"><table>
           <thead><tr>
             <th>Season</th>
+            <th class="num">Headline</th>
             <th>Archetype</th>
             <th class="num">VOL</th>
             <th class="num">SEL</th>
@@ -2801,6 +2822,7 @@ function renderOwnerStats(ownerKey) {
           <tbody>
             ${ownerWaiverBySeason.reverse().map(g => `<tr>
               <td style="font-family:'Oswald',sans-serif; font-weight:600;">${escapeHtml(g.season)}</td>
+              <td class="num">${g.impactGrade ? `<span class="grade-pill ${cls(g.impactGrade)}">${g.impactGrade}</span>` : '—'}</td>
               <td style="font-family:'Oswald',sans-serif; font-size: 13px; color: var(--accent);">${escapeHtml(g.archetype || '—')}</td>
               <td class="num"><div>${gradePill(g.volumeGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.volume}</div></td>
               <td class="num"><div>${gradePill(g.selectionGrade)}</div><div style="color: var(--text-muted); font-family:'JetBrains Mono', monospace; font-size: 11px; margin-top: 2px;">${g.selection.toFixed(2)}</div></td>
@@ -3287,11 +3309,13 @@ function renderSeason(season) {
           <div class="card">
             <div class="card-header">
               <h3>Multi-Dimensional Waiver Performance</h3>
-              <span class="hint">Six metrics + archetype label · graded on a curve</span>
+              <span class="hint">Impact = headline · all six metrics graded on a curve</span>
             </div>
             <div class="table-scroll"><table>
               <thead><tr>
+                <th>Rank</th>
                 <th>Owner</th>
+                <th class="num" title="Headline grade — based on Impact (Value Over Baseline). The single-number summary of how much real value your waiver work added.">Headline</th>
                 <th>Archetype</th>
                 <th class="num" title="Volume: number of pickups made">VOL</th>
                 <th class="num" title="Selection: avg points/week per pickup while rostered">SEL</th>
@@ -3301,8 +3325,10 @@ function renderSeason(season) {
                 <th class="num" title="Persistence: avg weeks held when a pickup proved productive">PER</th>
               </tr></thead>
               <tbody>
-                ${waiverRows.map(([key, g]) => `<tr>
+                ${waiverRows.map(([key, g], i) => `<tr>
+                  <td class="${rankClass(i)}">${i + 1}</td>
                   <td>${teamChip(key, season)}</td>
+                  <td class="num">${g.impactGrade ? `<span class="grade-pill large ${cls(g.impactGrade)}">${g.impactGrade}</span>` : '—'}</td>
                   <td>
                     <div style="font-family:'Oswald',sans-serif; font-weight:600; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent);">${escapeHtml(g.archetype || '—')}</div>
                     <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">${escapeHtml(g.archetypeDesc || '')}</div>
@@ -3317,13 +3343,14 @@ function renderSeason(season) {
               </tbody>
             </table></div>
             <div style="padding: 14px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.6; border-top: 1px solid var(--border); background: var(--panel);">
+              <strong style="color: var(--text-dim);">Headline</strong> — Same letter as Impact. The cleanest single-number summary of how much real value your waiver work added. We chose Impact over a composite because averaging six grades hides too much.<br>
               <strong style="color: var(--text-dim);">VOL · Volume</strong> — Total pickup count.<br>
               <strong style="color: var(--text-dim);">SEL · Selection</strong> — Avg points/week per pickup while rostered. Quality per pick.<br>
-              <strong style="color: var(--text-dim);">IMP · Impact</strong> — Sum of points above a 3-pt/week baseline. Rewards big weeks proportionally.<br>
+              <strong style="color: var(--text-dim);">IMP · Impact</strong> — Sum of points above a 3-pt/week baseline. Rewards big weeks proportionally. <em>Same as Headline.</em><br>
               <strong style="color: var(--text-dim);">TIM · Timing</strong> — % of pickups whose post-pickup avg beat their pre-pickup avg. Catching breakouts vs chasing them.<br>
               <strong style="color: var(--text-dim);">INT · Integration</strong> — % of weeks rostered where the pickup was started. Did you actually use them?<br>
               <strong style="color: var(--text-dim);">PER · Persistence</strong> — Avg weeks held when a pickup ended up productive (5+ pts/wk avg). Patience with hits.<br>
-              <em style="color: var(--text-muted);">No "Overall" grade — the shape of your grades is your identity. Archetype is derived from Volume × Selection.</em>
+              <em style="color: var(--text-muted);">Archetype is derived from Volume × Selection — describes your style, not your overall quality.</em>
             </div>
           </div>`;
       }

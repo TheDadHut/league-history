@@ -543,16 +543,16 @@
   <section id="trades" class="panel">
     <div class="section-header"><div class="section-bar"></div><h2>Trade History</h2></div>
 
-    <div class="section-header" style="margin-top:0;"><div class="section-bar" style="background: #4ade80;"></div><h2 style="font-size: 18px;">💰 Best Trades</h2><span class="count-pill">TOP 5</span></div>
+    <div class="section-header" style="margin-top:0;"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🚨 Grand Larceny · While Rostered</h2><span class="count-pill">TOP 10</span></div>
     <div class="card">
-      <div class="card-header"><h3>Highest Net Value Gained</h3><span class="hint">By points while rostered after trade</span></div>
-      <div id="best-trades-body"></div>
+      <div class="card-header"><h3>Most Lopsided by WR</h3><span class="hint">Based on points scored while the new owner still held them</span></div>
+      <div id="grand-larceny-wr-body"></div>
     </div>
 
-    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">💀 Worst Trades</h2><span class="count-pill">TOP 5</span></div>
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🚨 Grand Larceny · Season Total</h2><span class="count-pill">TOP 10</span></div>
     <div class="card">
-      <div class="card-header"><h3>Biggest Net Value Lost</h3><span class="hint">The ones that still hurt</span></div>
-      <div id="worst-trades-body"></div>
+      <div class="card-header"><h3>Most Lopsided by ST</h3><span class="hint">Based on total post-trade points regardless of later drops</span></div>
+      <div id="grand-larceny-st-body"></div>
     </div>
 
     <div class="section-header"><div class="section-bar" style="background: var(--accent);"></div><h2 style="font-size: 18px;">📜 Full Trade History</h2><span class="count-pill" id="trade-count">—</span></div>
@@ -1221,17 +1221,23 @@ function buildTrades() {
         p.stNet = p.stGained - p.stLost;
       });
 
-      // Determine winner/loser (by WR net, primary metric)
-      const sorted = [...parties].sort((a, b) => b.wrNet - a.wrNet);
-      const winner = sorted[0];
-      const loser = sorted[sorted.length - 1];
-      const margin = winner && loser && parties.length >= 2 ? winner.wrNet - loser.wrNet : 0;
+      // Determine winners/losers separately for each metric — they can differ
+      const byWR = [...parties].sort((a, b) => b.wrNet - a.wrNet);
+      const byST = [...parties].sort((a, b) => b.stNet - a.stNet);
+      const wrWinner = byWR[0];
+      const wrLoser = byWR[byWR.length - 1];
+      const stWinner = byST[0];
+      const stLoser = byST[byST.length - 1];
+      const wrMargin = wrWinner && wrLoser && parties.length >= 2 ? wrWinner.wrNet - wrLoser.wrNet : 0;
+      const stMargin = stWinner && stLoser && parties.length >= 2 ? stWinner.stNet - stLoser.stNet : 0;
 
       state.trades.push({
         season, week: tradeWeek, txId: tx.transaction_id,
         created: tx.created,
         parties, draftPicks: draftPicksInvolved,
-        winner, loser, margin,
+        // Backward-compat: keep `winner`/`loser`/`margin` as WR-based (matches prior behavior)
+        winner: wrWinner, loser: wrLoser, margin: wrMargin,
+        wrMargin, stMargin, wrWinner, wrLoser, stWinner, stLoser,
         hasOnlyDraftPicks: parties.every(p => p.received.length === 0 && p.gaveUp.length === 0) && draftPicksInvolved.length > 0,
         partyCount: parties.length
       });
@@ -1909,9 +1915,10 @@ function renderBenchStats() {
 // ---- Trade Rendering ----
 function renderTrades() {
   if (!state.trades || state.trades.length === 0) {
-    $('#best-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
-    $('#worst-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
-    $('#all-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
+    const emptyMsg = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
+    $('#grand-larceny-wr-body').innerHTML = emptyMsg;
+    $('#grand-larceny-st-body').innerHTML = emptyMsg;
+    $('#all-trades-body').innerHTML = emptyMsg;
     $('#trade-count').textContent = '0 TRADES';
     return;
   }
@@ -1920,19 +1927,18 @@ function renderTrades() {
 
   // Filter to scorable trades (not pure draft pick swaps) for best/worst rankings
   const scorable = state.trades.filter(t => !t.hasOnlyDraftPicks && t.partyCount >= 2);
-  const bestTrades = [...scorable].sort((a, b) => b.margin - a.margin).slice(0, 5);
-  const worstTrades = [...scorable].sort((a, b) => a.margin - b.margin).slice(0, 5).filter(t => t.margin < 0).concat(
-    // If not enough negative-margin trades, fill with least-positive
-    [...scorable].sort((a, b) => a.margin - b.margin).slice(0, 5)
-  ).filter((v, i, arr) => arr.findIndex(x => x.txId === v.txId) === i).slice(0, 5);
 
-  $('#best-trades-body').innerHTML = bestTrades.length
-    ? bestTrades.map((t, i) => renderTradeCard(t, i + 1, 'best')).join('')
+  // Two separate rankings — WR and ST can tell different stories
+  const mostLopsidedWR = [...scorable].sort((a, b) => b.wrMargin - a.wrMargin).slice(0, 10);
+  const mostLopsidedST = [...scorable].sort((a, b) => b.stMargin - a.stMargin).slice(0, 10);
+
+  $('#grand-larceny-wr-body').innerHTML = mostLopsidedWR.length
+    ? mostLopsidedWR.map((t, i) => renderTradeCard(t, i + 1, 'larceny')).join('')
     : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">Not enough scorable trades yet.</div>';
 
-  $('#worst-trades-body').innerHTML = worstTrades.length
-    ? worstTrades.map((t, i) => renderTradeCard(t, i + 1, 'worst')).join('')
-    : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No clearly lopsided trades.</div>';
+  $('#grand-larceny-st-body').innerHTML = mostLopsidedST.length
+    ? mostLopsidedST.map((t, i) => renderTradeCard(t, i + 1, 'larceny')).join('')
+    : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">Not enough scorable trades yet.</div>';
 
   // Populate season filter
   const seasonsWithTrades = [...new Set(state.trades.map(t => t.season))].sort();
@@ -1981,7 +1987,10 @@ function renderTradeCard(trade, rank, variant) {
   // Badge for rank/variant
   let badge = '';
   if (rank) {
-    const color = variant === 'best' ? '#4ade80' : variant === 'worst' ? '#f87171' : 'var(--accent)';
+    const color = variant === 'best' ? '#4ade80'
+                : variant === 'worst' ? '#f87171'
+                : variant === 'larceny' ? '#ef4444'
+                : 'var(--accent)';
     badge = `<span style="background:${color}; color:#000; font-family:'Oswald',sans-serif; font-weight:700; padding:3px 10px; border-radius:3px; font-size:13px; letter-spacing:1px;">#${rank}</span>`;
   }
 

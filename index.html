@@ -1557,25 +1557,40 @@ function renderOwnerStats(ownerKey) {
   const o = state.ownerIndex[ownerKey];
   if (!o) return;
 
-  // Gather all regular season matchups involving this owner
+  // Gather ALL matchups involving this owner (regular season + playoffs)
   const regGames = state.allMatchups.filter(m => !m.isPlayoff && (m.ownerAKey === ownerKey || m.ownerBKey === ownerKey));
+  const playoffGames = state.allMatchups.filter(m => m.isPlayoff && (m.ownerAKey === ownerKey || m.ownerBKey === ownerKey));
 
-  // Head-to-head records against every other owner
-  const h2h = {}; // key → { wins, losses, games }
-  regGames.forEach(m => {
+  // Head-to-head records against every other owner. Track regular season and playoff separately
+  // so we can show "4-0 reg | 0-1 playoffs" for full transparency.
+  const h2h = {}; // key → { regW, regL, poW, poL, games }
+  [...regGames, ...playoffGames].forEach(m => {
     const opp = m.ownerAKey === ownerKey ? m.ownerBKey : m.ownerAKey;
     const myScore = m.ownerAKey === ownerKey ? m.scoreA : m.scoreB;
     const oppScore = m.ownerAKey === ownerKey ? m.scoreB : m.scoreA;
-    if (!h2h[opp]) h2h[opp] = { wins: 0, losses: 0, games: 0 };
+    if (!h2h[opp]) h2h[opp] = { regW: 0, regL: 0, poW: 0, poL: 0, games: 0 };
     h2h[opp].games++;
-    if (myScore > oppScore) h2h[opp].wins++;
-    else if (myScore < oppScore) h2h[opp].losses++;
+    if (m.isPlayoff) {
+      if (myScore > oppScore) h2h[opp].poW++;
+      else if (myScore < oppScore) h2h[opp].poL++;
+    } else {
+      if (myScore > oppScore) h2h[opp].regW++;
+      else if (myScore < oppScore) h2h[opp].regL++;
+    }
   });
 
-  // Build full h2h rows (all opponents faced, no filter) for the table display
-  const allH2hRows = Object.entries(h2h).map(([k, r]) => ({
-    key: k, ...r, pct: r.games > 0 ? r.wins / r.games : 0
-  }));
+  // Build rows with combined totals for sorting/comparing
+  const allH2hRows = Object.entries(h2h).map(([k, r]) => {
+    const totalW = r.regW + r.poW;
+    const totalL = r.regL + r.poL;
+    const totalGames = totalW + totalL;
+    return {
+      key: k, ...r,
+      wins: totalW, losses: totalL,
+      pct: totalGames > 0 ? totalW / totalGames : 0,
+      hasPlayoff: r.poW + r.poL > 0
+    };
+  });
 
   // For nemesis / favorite labels, require at least 2 games to avoid single-game noise
   const qualifyingRows = allH2hRows.filter(r => r.games >= 2);
@@ -1671,14 +1686,21 @@ function renderOwnerStats(ownerKey) {
     const sorted = [...allH2hRows].sort((a, b) => b.pct - a.pct);
     html += `<div class="section-header"><div class="section-bar"></div><h2>Head-to-Head Records</h2></div>
       <div class="card"><div class="table-scroll"><table>
-        <thead><tr><th>Opponent</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Games</th></tr></thead>
-        <tbody>${sorted.map(r => `<tr>
-          <td>${teamChip(r.key)}</td>
-          <td class="num"><span class="wins" style="font-weight:700;">${r.wins}</span></td>
-          <td class="num"><span class="losses" style="font-weight:700;">${r.losses}</span></td>
-          <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
-          <td class="num">${r.games}</td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>Opponent</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Breakdown</th><th class="num">Games</th></tr></thead>
+        <tbody>${sorted.map(r => {
+          // Show breakdown: "Reg | PO" when there's been playoff meetings, otherwise just "Reg"
+          const breakdown = r.hasPlayoff
+            ? `<span style="color: var(--text-dim);">${r.regW}-${r.regL} reg</span> <span style="color: var(--text-muted);">|</span> <span style="color: var(--gold);">${r.poW}-${r.poL} po</span>`
+            : `<span style="color: var(--text-dim);">regular season</span>`;
+          return `<tr>
+            <td>${teamChip(r.key)}</td>
+            <td class="num"><span class="wins" style="font-weight:700;">${r.wins}</span></td>
+            <td class="num"><span class="losses" style="font-weight:700;">${r.losses}</span></td>
+            <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
+            <td class="num" style="font-family:'JetBrains Mono', monospace; font-size: 12px;">${breakdown}</td>
+            <td class="num">${r.games}</td>
+          </tr>`;
+        }).join('')}</tbody>
       </table></div></div>`;
   }
 

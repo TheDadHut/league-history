@@ -337,6 +337,7 @@
     <button class="tab" data-tab="seasons">Seasons</button>
     <button class="tab" data-tab="fun">Fun Stats</button>
     <button class="tab" data-tab="luck">Luck & Streaks</button>
+    <button class="tab" data-tab="trades">Trades</button>
     <button class="tab" data-tab="owners">Owner Stats</button>
     <button class="tab" data-tab="founders">Founders</button>
   </nav>
@@ -536,6 +537,51 @@
       <thead><tr><th>#</th><th>Team</th><th class="num">Losses</th><th>From</th><th>To</th></tr></thead>
       <tbody id="loss-streak-body"></tbody>
     </table></div></div>
+  </section>
+
+  <!-- ===== TRADES TAB ===== -->
+  <section id="trades" class="panel">
+    <div class="section-header"><div class="section-bar"></div><h2>Trade History</h2></div>
+
+    <div class="section-header" style="margin-top:0;"><div class="section-bar" style="background: #4ade80;"></div><h2 style="font-size: 18px;">💰 Best Trades</h2><span class="count-pill">TOP 5</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Highest Net Value Gained</h3><span class="hint">By points while rostered after trade</span></div>
+      <div id="best-trades-body"></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">💀 Worst Trades</h2><span class="count-pill">TOP 5</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Biggest Net Value Lost</h3><span class="hint">The ones that still hurt</span></div>
+      <div id="worst-trades-body"></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent);"></div><h2 style="font-size: 18px;">📜 Full Trade History</h2><span class="count-pill" id="trade-count">—</span></div>
+    <div class="card">
+      <div class="card-header">
+        <h3>All Trades, Chronological</h3>
+        <div style="display: flex; gap: 8px;">
+          <select id="trade-filter-season" style="padding: 6px 10px; font-size: 12px;">
+            <option value="">All seasons</option>
+          </select>
+          <select id="trade-sort" style="padding: 6px 10px; font-size: 12px;">
+            <option value="date-desc">Newest first</option>
+            <option value="date-asc">Oldest first</option>
+            <option value="margin-desc">Biggest margin</option>
+          </select>
+        </div>
+      </div>
+      <div id="all-trades-body"></div>
+    </div>
+
+    <div class="card" style="background: var(--panel); border-left: 3px solid var(--accent);">
+      <div class="card-body" style="color: var(--text-dim); font-size: 13px; line-height: 1.6;">
+        <strong style="color: var(--text);">How it's measured:</strong> For each player in a trade, we sum points scored <em>after</em> the trade date. Two metrics shown:
+        <br><strong style="color: var(--text-dim);">WR</strong> (While Rostered) — points scored only while the receiving team still had the player. Rewards using what you got.
+        <br><strong style="color: var(--text-dim);">ST</strong> (Season Total) — all remaining season points regardless of later moves. Rewards pure talent acquired.
+        <br><br>
+        <em>Caveats:</em> Draft pick trades can't be evaluated from Sleeper data alone — they're shown but without a winner. Injuries, collusion, and context aren't captured here. Don't take a "bad trade" label personally... unless you deserve to.
+      </div>
+    </div>
   </section>
 
   <!-- ===== OWNER STATS TAB ===== -->
@@ -1057,6 +1103,142 @@ function buildBenchStats() {
 //
 // Letter grades are assigned RELATIVE within each season — rankings on a curve so there's
 // always a best and worst drafter.
+// ========== TRADES ==========
+// Analyzes every trade in league history. For each trade computes two metrics:
+//   WR (While-Rostered value): points scored by each received player AFTER the trade
+//                              but only while the recipient still owned them
+//   ST (Season Total value): all points scored AFTER the trade date, regardless of later moves
+//
+// Net value per side = points received - points given up. Positive = won the trade.
+function buildTrades() {
+  state.trades = []; // chronological list of { season, week, date, parties: [{ ownerKey, received: [], gaveUp: [], wrNet, stNet }], winner, loser, margin }
+
+  state.leagues.forEach(league => {
+    if (!league.transactions) return;
+    const season = league.season;
+
+    const rosterToOwner = {};
+    league.rosters.forEach(r => {
+      const user = league.users.find(u => u.user_id === r.owner_id);
+      if (user) rosterToOwner[r.roster_id] = ownerKey(user);
+    });
+
+    // Map player → their per-week points scored, for quick lookup
+    // Also track which roster owned them each week (for WR calculation)
+    const playerWeeklyPoints = {}; // playerId → { week: points }
+    const playerWeeklyOwner = {};  // playerId → { week: rosterId }
+    state.allMatchups.forEach(m => {
+      if (m.season !== season) return;
+      const sides = [
+        { players: m.playersA, pts: m.playersPointsA, roster: m.rosterA },
+        { players: m.playersB, pts: m.playersPointsB, roster: m.rosterB }
+      ];
+      sides.forEach(side => {
+        const pts = (side.pts && typeof side.pts === 'object' && !Array.isArray(side.pts)) ? side.pts : {};
+        (side.players || []).forEach(pid => {
+          if (!pid || pid === '0') return;
+          if (!playerWeeklyPoints[pid]) playerWeeklyPoints[pid] = {};
+          if (!playerWeeklyOwner[pid]) playerWeeklyOwner[pid] = {};
+          playerWeeklyPoints[pid][m.week] = pts[pid] || 0;
+          playerWeeklyOwner[pid][m.week] = side.roster;
+        });
+      });
+    });
+
+    // Flatten and filter to trades only
+    const allTx = (league.transactions || []).flat().filter(t => t.type === 'trade' && t.status === 'complete');
+    allTx.sort((a, b) => (a.created || 0) - (b.created || 0));
+
+    allTx.forEach(tx => {
+      const tradeWeek = tx.leg || 1;
+      const parties = [];
+
+      // Build each party's received/gaveUp lists from the adds/drops maps
+      // Sleeper structure: adds = {playerId: rosterId_that_received}, drops = {playerId: rosterId_that_gave}
+      const adds = tx.adds || {};
+      const drops = tx.drops || {};
+      const rosterIds = [...new Set([...(tx.roster_ids || []), ...Object.values(adds), ...Object.values(drops)])];
+
+      rosterIds.forEach(rid => {
+        const ownerK = rosterToOwner[rid];
+        if (!ownerK) return;
+        const received = [];
+        const gaveUp = [];
+        Object.entries(adds).forEach(([pid, targetRid]) => {
+          if (targetRid === rid) received.push(pid);
+        });
+        Object.entries(drops).forEach(([pid, sourceRid]) => {
+          if (sourceRid === rid) gaveUp.push(pid);
+        });
+        parties.push({ rosterId: rid, ownerKey: ownerK, received, gaveUp, wrGained: 0, stGained: 0, wrLost: 0, stLost: 0 });
+      });
+
+      // Also handle draft picks (tx.draft_picks) — list them but don't score
+      const draftPicksInvolved = (tx.draft_picks || []).map(p => ({
+        season: p.season, round: p.round,
+        fromRoster: p.previous_owner_id,
+        toRoster: p.owner_id
+      }));
+
+      // Calculate WR and ST values for each received player
+      const calcValue = (playerId, tradeWk, receivingRoster) => {
+        const weeklyPts = playerWeeklyPoints[playerId] || {};
+        const weeklyOwn = playerWeeklyOwner[playerId] || {};
+        let st = 0, wr = 0;
+        Object.keys(weeklyPts).forEach(w => {
+          const wk = parseInt(w);
+          if (wk <= tradeWk) return; // only count AFTER the trade week
+          const pts = weeklyPts[w] || 0;
+          st += pts;
+          if (weeklyOwn[w] === receivingRoster) wr += pts;
+        });
+        return { st, wr };
+      };
+
+      parties.forEach(party => {
+        party.received.forEach(pid => {
+          const v = calcValue(pid, tradeWeek, party.rosterId);
+          party.wrGained += v.wr;
+          party.stGained += v.st;
+        });
+      });
+
+      // For "lost" value, compute each gave-up player's post-trade value on THEIR NEW roster
+      parties.forEach(party => {
+        party.gaveUp.forEach(pid => {
+          // Find which other party received this player
+          const receiver = parties.find(p => p.received.includes(pid));
+          if (!receiver) return;
+          const v = calcValue(pid, tradeWeek, receiver.rosterId);
+          party.wrLost += v.wr;
+          party.stLost += v.st;
+        });
+      });
+
+      // Net = gained - lost
+      parties.forEach(p => {
+        p.wrNet = p.wrGained - p.wrLost;
+        p.stNet = p.stGained - p.stLost;
+      });
+
+      // Determine winner/loser (by WR net, primary metric)
+      const sorted = [...parties].sort((a, b) => b.wrNet - a.wrNet);
+      const winner = sorted[0];
+      const loser = sorted[sorted.length - 1];
+      const margin = winner && loser && parties.length >= 2 ? winner.wrNet - loser.wrNet : 0;
+
+      state.trades.push({
+        season, week: tradeWeek, txId: tx.transaction_id,
+        created: tx.created,
+        parties, draftPicks: draftPicksInvolved,
+        winner, loser, margin,
+        hasOnlyDraftPicks: parties.every(p => p.received.length === 0 && p.gaveUp.length === 0) && draftPicksInvolved.length > 0,
+        partyCount: parties.length
+      });
+    });
+  });
+}
+
 function buildDraftGrades() {
   state.draftGrades = {}; // season → { ownerKey → { dce, rp, pwr, dceGrade, rpGrade, pwrGrade, overallGrade } }
 
@@ -1539,6 +1721,7 @@ function renderExtendedStats() {
   renderLuckRating();
   renderCurrentStreaks();
   renderAllTimeStreaks();
+  renderTrades();
   populateOwnerPicker();
 }
 
@@ -1721,6 +1904,136 @@ function renderBenchStats() {
     </tr>`;
   }).join('')
     : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No bench data available.</td></tr>';
+}
+
+// ---- Trade Rendering ----
+function renderTrades() {
+  if (!state.trades || state.trades.length === 0) {
+    $('#best-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
+    $('#worst-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
+    $('#all-trades-body').innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades yet.</div>';
+    $('#trade-count').textContent = '0 TRADES';
+    return;
+  }
+
+  $('#trade-count').textContent = `${state.trades.length} TRADES`;
+
+  // Filter to scorable trades (not pure draft pick swaps) for best/worst rankings
+  const scorable = state.trades.filter(t => !t.hasOnlyDraftPicks && t.partyCount >= 2);
+  const bestTrades = [...scorable].sort((a, b) => b.margin - a.margin).slice(0, 5);
+  const worstTrades = [...scorable].sort((a, b) => a.margin - b.margin).slice(0, 5).filter(t => t.margin < 0).concat(
+    // If not enough negative-margin trades, fill with least-positive
+    [...scorable].sort((a, b) => a.margin - b.margin).slice(0, 5)
+  ).filter((v, i, arr) => arr.findIndex(x => x.txId === v.txId) === i).slice(0, 5);
+
+  $('#best-trades-body').innerHTML = bestTrades.length
+    ? bestTrades.map((t, i) => renderTradeCard(t, i + 1, 'best')).join('')
+    : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">Not enough scorable trades yet.</div>';
+
+  $('#worst-trades-body').innerHTML = worstTrades.length
+    ? worstTrades.map((t, i) => renderTradeCard(t, i + 1, 'worst')).join('')
+    : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No clearly lopsided trades.</div>';
+
+  // Populate season filter
+  const seasonsWithTrades = [...new Set(state.trades.map(t => t.season))].sort();
+  const seasonSelect = $('#trade-filter-season');
+  seasonSelect.innerHTML = '<option value="">All seasons</option>' +
+    seasonsWithTrades.map(s => `<option value="${s}">${escapeHtml(s)}</option>`).join('');
+
+  function refreshAllTrades() {
+    const seasonFilter = seasonSelect.value;
+    const sortMode = $('#trade-sort').value;
+    let list = [...state.trades];
+    if (seasonFilter) list = list.filter(t => t.season === seasonFilter);
+    if (sortMode === 'date-asc') list.sort((a, b) => (a.created || 0) - (b.created || 0));
+    else if (sortMode === 'margin-desc') list.sort((a, b) => b.margin - a.margin);
+    else list.sort((a, b) => (b.created || 0) - (a.created || 0));
+
+    $('#all-trades-body').innerHTML = list.length
+      ? list.map(t => renderTradeCard(t, null, 'full')).join('')
+      : '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-style: italic;">No trades match the filter.</div>';
+  }
+
+  seasonSelect.addEventListener('change', refreshAllTrades);
+  $('#trade-sort').addEventListener('change', refreshAllTrades);
+  refreshAllTrades();
+}
+
+// Render a single trade card. variant: 'best' | 'worst' | 'full'
+function renderTradeCard(trade, rank, variant) {
+  const dateStr = trade.created ? new Date(trade.created).toLocaleDateString() : `${trade.season} Wk ${trade.week}`;
+
+  // Handle pure draft pick trades differently
+  if (trade.hasOnlyDraftPicks) {
+    return `<div style="padding: 16px 20px; border-bottom: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 12px; color: var(--text-muted); text-transform: uppercase;">
+          ${escapeHtml(trade.season)} · Week ${trade.week}
+        </span>
+        <span style="color: var(--text-muted); font-size: 11px; font-family: 'JetBrains Mono', monospace;">DRAFT PICK TRADE</span>
+      </div>
+      <div style="color: var(--text-dim); font-size: 14px;">
+        ${trade.draftPicks.map(p => `${escapeHtml(p.season)} Round ${p.round} pick`).join(' · ')}
+      </div>
+    </div>`;
+  }
+
+  // Badge for rank/variant
+  let badge = '';
+  if (rank) {
+    const color = variant === 'best' ? '#4ade80' : variant === 'worst' ? '#f87171' : 'var(--accent)';
+    badge = `<span style="background:${color}; color:#000; font-family:'Oswald',sans-serif; font-weight:700; padding:3px 10px; border-radius:3px; font-size:13px; letter-spacing:1px;">#${rank}</span>`;
+  }
+
+  // For 2-party trades, render as side-by-side. For 3+ parties, show a compact list.
+  const isThreeWay = trade.parties.length > 2;
+
+  const partyBlock = party => {
+    const o = state.ownerIndex[party.ownerKey];
+    if (!o) return '<div>—</div>';
+    const wrColor = party.wrNet > 0 ? '#4ade80' : party.wrNet < 0 ? '#f87171' : 'var(--text-dim)';
+    const stColor = party.stNet > 0 ? '#4ade80' : party.stNet < 0 ? '#f87171' : 'var(--text-dim)';
+    const received = party.received.length > 0
+      ? party.received.map(pid => {
+          const info = playerInfo(pid);
+          return `<div style="font-size: 13px; padding: 2px 0;"><span style="color: var(--text);">${escapeHtml(info.name)}</span> <span style="color: var(--text-muted); font-size: 11px;">${escapeHtml(info.position)}</span></div>`;
+        }).join('')
+      : '<div style="font-size: 12px; color: var(--text-muted); font-style: italic;">—</div>';
+    const picksReceived = trade.draftPicks.filter(p => p.toRoster === party.rosterId);
+    const picksHtml = picksReceived.length
+      ? picksReceived.map(p => `<div style="font-size: 12px; color: var(--text-dim); padding: 1px 0;">↪ ${escapeHtml(p.season)} R${p.round} pick</div>`).join('')
+      : '';
+    return `<div style="flex: 1; min-width: 0;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom: 8px;">
+        <span class="team-dot" style="background:${o.color}"></span>
+        <span style="font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; color:${o.color}; font-size: 15px;">${escapeHtml(o.displayName)}</span>
+      </div>
+      <div style="margin-bottom: 6px;">${received}${picksHtml}</div>
+      <div style="display:flex; gap:12px; margin-top: 10px; font-family:'JetBrains Mono', monospace; font-size: 11px;">
+        <div><span style="color: var(--text-muted); letter-spacing:1px;">WR</span> <span style="color:${wrColor}; font-weight:700;">${party.wrNet > 0 ? '+' : ''}${party.wrNet.toFixed(1)}</span></div>
+        <div><span style="color: var(--text-muted); letter-spacing:1px;">ST</span> <span style="color:${stColor}; font-weight:700;">${party.stNet > 0 ? '+' : ''}${party.stNet.toFixed(1)}</span></div>
+      </div>
+    </div>`;
+  };
+
+  const separator = isThreeWay
+    ? '<div style="width: 1px; background: var(--border); margin: 0 12px;"></div>'
+    : `<div style="color: var(--accent-red); font-family:'Oswald',sans-serif; font-weight:700; font-size: 18px; padding: 0 8px; align-self: center;">⇄</div>`;
+
+  return `<div style="padding: 18px 20px; border-bottom: 1px solid var(--border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        ${badge}
+        <span style="font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 12px; color: var(--text-muted); text-transform: uppercase;">
+          ${escapeHtml(trade.season)} · Week ${trade.week}
+        </span>
+      </div>
+      <span style="color: var(--text-muted); font-size: 11px; font-family: 'JetBrains Mono', monospace;">${escapeHtml(dateStr)}</span>
+    </div>
+    <div style="display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap;">
+      ${trade.parties.map((p, i) => partyBlock(p) + (i < trade.parties.length - 1 ? separator : '')).join('')}
+    </div>
+  </div>`;
 }
 
 // ---- Luck Rating / Would-Be Record ----
@@ -2612,6 +2925,7 @@ async function init() {
     buildToiletBowlWinners();
     buildPlayerStats();
     buildBenchStats();
+    buildTrades();
     buildDraftGrades();
 
     updateLoader('Rendering...', 99);

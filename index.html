@@ -1365,13 +1365,12 @@ function renderSeason(season) {
     }
 
     // ===== DRAFT VALUE: Steals / Busts / Waiver Wire Heroes =====
-    // Rank every player by season total, compare to draft position.
-    // Only count players with a meaningful amount of playing time (>20 pts).
+    // Normalize by POSITIONAL FINISH: e.g. Puka Nacua finishes as WR4 regardless of
+    // overall rank. Compare that positional rank to what was "expected" based on
+    // actual draft behavior — where did the Nth player at each position typically go?
     const playerSeasonByPlayer = {}; // playerId → { pts, ownerKey }
     Object.values(state.playerSeasonTotals).forEach(p => {
       if (p.season !== season) return;
-      // Same player could play for multiple rosters if traded — keep max contribution's owner,
-      // but sum total points across all rosters.
       if (!playerSeasonByPlayer[p.playerId]) {
         playerSeasonByPlayer[p.playerId] = { pts: 0, ownerKey: p.ownerKey, ownerPts: 0 };
       }
@@ -1382,16 +1381,24 @@ function renderSeason(season) {
       }
     });
 
-    // Rank all players by points scored this season (descending)
-    const playerRanking = Object.entries(playerSeasonByPlayer)
-      .map(([pid, data]) => ({ playerId: pid, pts: data.pts, ownerKey: data.ownerKey }))
-      .filter(p => p.pts > 20) // filter noise
-      .sort((a, b) => b.pts - a.pts);
+    // Group players by position, enriched with info + points
+    const byPosition = {}; // position → [{playerId, pts, ownerKey}, ...]
+    Object.entries(playerSeasonByPlayer).forEach(([pid, data]) => {
+      if (data.pts <= 20) return; // filter noise
+      const pos = playerInfo(pid).position || 'UNK';
+      (byPosition[pos] = byPosition[pos] || []).push({
+        playerId: pid, pts: data.pts, ownerKey: data.ownerKey, position: pos
+      });
+    });
 
-    const finishRank = {}; // playerId → finish rank (1-based)
-    playerRanking.forEach((p, i) => { finishRank[p.playerId] = i + 1; });
+    // Compute positional finish rank for each player (WR1, WR2, RB1, etc.)
+    const posFinishRank = {}; // playerId → {pos, rank}
+    Object.entries(byPosition).forEach(([pos, players]) => {
+      players.sort((a, b) => b.pts - a.pts);
+      players.forEach((p, i) => { posFinishRank[p.playerId] = { pos, rank: i + 1 }; });
+    });
 
-    // Map draft pick → player
+    // Map draft info
     const draftedPlayerIds = new Set();
     const draftInfo = {}; // playerId → { pickNo, ownerKey }
     league.draftPicks.forEach(p => {
@@ -1402,24 +1409,74 @@ function renderSeason(season) {
       draftInfo[p.player_id] = { pickNo: p.pick_no, ownerKey: o ? o.key : null };
     });
 
-    // Draft steals: drafted players whose finish was much better than their draft position
-    const drafted = playerRanking
-      .filter(p => draftedPlayerIds.has(p.playerId))
-      .map(p => ({
-        ...p,
-        pickNo: draftInfo[p.playerId].pickNo,
-        finishRank: finishRank[p.playerId],
-        value: draftInfo[p.playerId].pickNo - finishRank[p.playerId] // + means steal, - means bust
-      }));
+    // Build "expected draft pick" for each positional rank based on this year's actual draft.
+    // For each position, sort drafted players at that position by pick order and note the pick #
+    // where the Nth player was taken. Example: if the 4th WR taken went at pick 20, then
+    // WR4 is "expected" to cost pick 20.
+    const expectedPickByPosRank = {}; // "WR4" → pick # where the 4th WR was taken
+    const posDraftCounts = {}; // for counting as we iterate
+    [...league.draftPicks]
+      .filter(p => p.player_id)
+      .sort((a, b) => a.pick_no - b.pick_no)
+      .forEach(p => {
+        const pos = playerInfo(p.player_id).position;
+        if (!pos || pos === 'UNK') return;
+        posDraftCounts[pos] = (posDraftCounts[pos] || 0) + 1;
+        expectedPickByPosRank[`${pos}${posDraftCounts[pos]}`] = p.pick_no;
+      });
+
+    // For each drafted player: compute value = expectedPick(posFinishRank) - actualPick
+    // Positive = steal (you got a higher positional finish than the pick cost suggests)
+    // Negative = bust (you paid more in draft capital than the positional finish warranted)
+    const totalPicks = league.draftPicks.length;
+    const drafted = [];
+    draftedPlayerIds.forEach(pid => {
+      const finish = posFinishRank[pid];
+      if (!finish) return; // player scored < 20 pts, skipped
+      const key = `${finish.pos}${finish.rank}`;
+      const expectedPick = expectedPickByPosRank[key];
+      // If expected is undefined, it means no one else at this position finished this rank
+      // and was drafted. Use totalPicks+1 as a proxy ("would've been undrafted at this rank").
+      const expected = expectedPick != null ? expectedPick : totalPicks + 1;
+      const actual = draftInfo[pid].pickNo;
+      drafted.push({
+        playerId: pid,
+        pts: playerSeasonByPlayer[pid].pts,
+        ownerKey: draftInfo[pid].ownerKey,
+        pickNo: actual,
+        posFinish: `${finish.pos}${finish.rank}`,
+        // + value = steal (drafted LATER than this positional finish typically costs)
+        // - value = bust (drafted EARLIER than what their positional finish was worth)
+        value: actual - expected
+      });
+    });
 
     const steals = [...drafted].sort((a, b) => b.value - a.value).slice(0, 5);
     const busts = [...drafted].sort((a, b) => a.value - b.value).slice(0, 5);
 
-    // Waiver wire heroes: top scorers who WEREN'T drafted
-    const waiverHeroes = playerRanking
-      .filter(p => !draftedPlayerIds.has(p.playerId))
-      .slice(0, 5)
-      .map(p => ({ ...p, finishRank: finishRank[p.playerId] }));
+    // Waiver wire heroes: undrafted players with strong positional finishes.
+    // Rank by positional finish quality (lower positional rank = better finish = more valuable).
+    // Cap at reasonable positional ranks — a TE8 isn't a "hero," but a TE3 undrafted is wild.
+    const positionCapForHeroes = { QB: 15, RB: 30, WR: 30, TE: 10, K: 8, DEF: 10 };
+    const waiverHeroes = Object.entries(playerSeasonByPlayer)
+      .filter(([pid, data]) => {
+        if (draftedPlayerIds.has(pid)) return false;
+        if (data.pts <= 20) return false;
+        const finish = posFinishRank[pid];
+        if (!finish) return false;
+        const cap = positionCapForHeroes[finish.pos] || 999;
+        return finish.rank <= cap;
+      })
+      .map(([pid, data]) => ({
+        playerId: pid,
+        pts: data.pts,
+        ownerKey: data.ownerKey,
+        posFinish: `${posFinishRank[pid].pos}${posFinishRank[pid].rank}`,
+        posFinishRankNum: posFinishRank[pid].rank
+      }))
+      // Sort by points scored (simple, intuitive — highest scorers first)
+      .sort((a, b) => b.pts - a.pts)
+      .slice(0, 5);
 
     const renderPlayerRow = (p, i, opts = {}) => {
       const info = playerInfo(p.playerId);
@@ -1436,7 +1493,7 @@ function renderSeason(season) {
         <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(info.position)}</td>
         <td>${owner ? teamChipCompact(owner.key, season) : '<span style="color: var(--text-muted);">—</span>'}</td>
         ${pickCell}
-        <td class="num">${opts.showPick ? '#' + p.finishRank : '#' + p.finishRank}</td>
+        <td class="num" style="font-weight:600; color: var(--accent);">${escapeHtml(p.posFinish)}</td>
         ${valueCell}
         <td class="num" style="color: var(--accent); font-weight:700;">${p.pts.toFixed(1)}</td>
       </tr>`;
@@ -1445,7 +1502,7 @@ function renderSeason(season) {
     if (steals.length > 0) {
       html += `<div class="section-header"><div class="section-bar" style="background:#4ade80;"></div><h2>💎 Biggest Draft Steals</h2><span class="count-pill">TOP 5</span></div>
         <div class="card">
-          <div class="card-header"><h3>Drafted Late, Finished High</h3><span class="hint">Value = pick # − finish rank</span></div>
+          <div class="card-header"><h3>Late-Round Production</h3><span class="hint">Value = picks later than expected for this positional finish</span></div>
           <div class="table-scroll"><table>
             <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Value</th><th class="num">Points</th></tr></thead>
             <tbody>${steals.map((p, i) => renderPlayerRow(p, i, { showPick: true, showValue: true })).join('')}</tbody>
@@ -1456,7 +1513,7 @@ function renderSeason(season) {
     if (busts.length > 0) {
       html += `<div class="section-header"><div class="section-bar" style="background:var(--accent-red);"></div><h2>💩 Biggest Draft Busts</h2><span class="count-pill">TOP 5</span></div>
         <div class="card">
-          <div class="card-header"><h3>Drafted High, Finished Low</h3><span class="hint">Negative value = bust</span></div>
+          <div class="card-header"><h3>Early Picks That Didn't Pan Out</h3><span class="hint">Picked too high for what they gave back</span></div>
           <div class="table-scroll"><table>
             <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Value</th><th class="num">Points</th></tr></thead>
             <tbody>${busts.map((p, i) => renderPlayerRow(p, i, { showPick: true, showValue: true })).join('')}</tbody>
@@ -1467,7 +1524,7 @@ function renderSeason(season) {
     if (waiverHeroes.length > 0) {
       html += `<div class="section-header"><div class="section-bar" style="background:var(--accent-blue);"></div><h2>🔥 Waiver Wire Heroes</h2><span class="count-pill">TOP 5</span></div>
         <div class="card">
-          <div class="card-header"><h3>Best Undrafted Players</h3><span class="hint">Picked up off the scrap heap</span></div>
+          <div class="card-header"><h3>Undrafted Gold</h3><span class="hint">Best positional finishes among undrafted players</span></div>
           <div class="table-scroll"><table>
             <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Points</th></tr></thead>
             <tbody>${waiverHeroes.map((p, i) => renderPlayerRow(p, i, { showPick: false, showValue: false })).join('')}</tbody>
@@ -1578,5 +1635,7 @@ async function init() {
 }
 init();
 </script>
+</body>
+</html>
 </body>
 </html>

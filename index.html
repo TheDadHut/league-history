@@ -485,20 +485,20 @@
       </table></div>
     </div>
 
-    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🪑 Bench Points Left</h2></div>
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🪑 Points Missed by Benching</h2></div>
     <div class="card">
-      <div class="card-header"><h3>Points Left on the Bench</h3><span class="hint">Who needs to set their lineup better</span></div>
+      <div class="card-header"><h3>Optimal Lineup vs Actual</h3><span class="hint">How many points you'd have scored with perfect hindsight</span></div>
       <div class="table-scroll"><table>
-        <thead><tr><th>#</th><th>Team</th><th class="num">Total Bench Pts</th><th class="num">Per Game</th><th class="num">Games</th></tr></thead>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Total Missed</th><th class="num">Per Game</th><th class="num">Games</th></tr></thead>
         <tbody id="bench-total-body"></tbody>
       </table></div>
     </div>
 
     <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🤦 Shoulda Started Him</h2><span class="count-pill">TOP 10</span></div>
     <div class="card">
-      <div class="card-header"><h3>Highest-Scoring Benched Players</h3><span class="hint">Single-week performances riding the pine</span></div>
+      <div class="card-header"><h3>Worst Specific Benching Decisions</h3><span class="hint">Bench player outscored the starter they could've replaced</span></div>
       <div class="table-scroll"><table>
-        <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Points</th><th>When</th></tr></thead>
+        <thead><tr><th>#</th><th>Benched</th><th>Pos</th><th>Owner</th><th class="num">Pts</th><th>Started Instead</th><th class="num">Missed</th><th>When</th></tr></thead>
         <tbody id="bench-shoulda-body"></tbody>
       </table></div>
     </div>
@@ -777,6 +777,7 @@ async function loadSeasonDetails(league) {
   return {
     leagueId: league.league_id, season: league.season, status: league.status,
     name: league.name, settings: league.settings,
+    rosterPositions: league.roster_positions || [],
     users, rosters, weeklyMatchups, winnersBracket, losersBracket, draftPicks, transactions
   };
 }
@@ -1055,41 +1056,183 @@ function buildPlayerStats() {
 }
 
 // ========== BENCH STATS ==========
-// "Shoulda Started Him" — highest-scoring benched player in a single week.
-// "Bench Points Left" — total bench points per owner across all regular season games.
+// Two corrected metrics based on optimal lineup math:
 //
-// A bench player = any player on the roster (`players` array) who was NOT in `starters`.
-// We exclude IR/taxi players since those can't be started anyway — Sleeper signals these
-// via the `reserve` and `taxi` arrays on the matchup, but those aren't always populated.
-// A safer proxy: if a player was rostered but scored 0 points AND wasn't started, they
-// were likely benched on purpose (so we still count them). The edge cases we're willing
-// to miss are IR designees, which Sleeper often doesn't put in `players` anyway.
-function buildBenchStats() {
-  state.benchPerformances = []; // { playerId, pts, season, week, ownerKey, rosterId }
-  state.benchTotalsByOwner = {}; // ownerKey → total bench points across regular season
+// 1) "Points Missed" — For each week, compute the best possible lineup this owner
+//    could have started (given league roster slots + position eligibility) vs what
+//    they actually started. The gap is points they truly left on the bench.
+//    A perfect lineup setter scores 0 points missed, regardless of roster strength.
+//
+// 2) "Shoulda Started Him" — For each bench player, compute the "cost of benching"
+//    them. If their points > the lowest eligible starter they could have replaced,
+//    the difference is the points missed by benching them specifically.
 
-  Object.keys(state.ownerIndex).forEach(k => { state.benchTotalsByOwner[k] = 0; });
+// Position eligibility for Sleeper roster slots. Matches Sleeper's internal codes.
+const SLOT_ELIGIBILITY = {
+  QB: ['QB'],
+  RB: ['RB'],
+  WR: ['WR'],
+  TE: ['TE'],
+  K: ['K'],
+  DEF: ['DEF'],
+  FLEX: ['RB', 'WR', 'TE'],
+  REC_FLEX: ['WR', 'TE'],
+  WRRB_FLEX: ['RB', 'WR'],
+  SUPER_FLEX: ['QB', 'RB', 'WR', 'TE'],
+  IDP_FLEX: ['DL', 'LB', 'DB'],
+  DL: ['DL', 'DE', 'DT'],
+  LB: ['LB'],
+  DB: ['DB', 'CB', 'S'],
+  // BN = bench, not a starting slot — exclude from optimal lineup calc
+};
+
+// Compute optimal lineup for one roster for one week.
+// Returns: { optimalTotal, optimalStarterIds, shouldHaveStarted: [{ benchPlayerId, replacedStarterId, gainedPts }] }
+function computeOptimalLineup(rosterPositions, allPlayers, pointsMap) {
+  // Filter out BN and any unsupported slots
+  const startingSlots = (rosterPositions || []).filter(s => s !== 'BN' && s !== 'IR' && s !== 'TAXI');
+  if (startingSlots.length === 0) return { optimalTotal: 0, optimalStarterIds: new Set() };
+
+  // Candidates: players with their points and position
+  const candidates = allPlayers
+    .filter(pid => pid && pid !== '0')
+    .map(pid => ({
+      playerId: pid,
+      pts: pointsMap[pid] || 0,
+      position: playerInfo(pid).position
+    }));
+
+  // Sort slots by specificity (most restrictive first) to avoid greedy mistakes
+  // Example: fill QB/RB/WR/TE before FLEX so we don't waste a RB in a FLEX slot when we
+  // needed them in the RB slot.
+  const slotSpecificity = slot => (SLOT_ELIGIBILITY[slot] || []).length;
+  const slotsInOrder = [...startingSlots]
+    .map((slot, idx) => ({ slot, idx }))
+    .sort((a, b) => slotSpecificity(a.slot) - slotSpecificity(b.slot));
+
+  const used = new Set();
+  const assignedStarters = new Set();
+  let optimalTotal = 0;
+
+  slotsInOrder.forEach(({ slot }) => {
+    const eligible = SLOT_ELIGIBILITY[slot];
+    if (!eligible) return;
+    // Find highest-scoring available candidate for this slot
+    let best = null;
+    candidates.forEach(c => {
+      if (used.has(c.playerId)) return;
+      if (!eligible.includes(c.position)) return;
+      if (!best || c.pts > best.pts) best = c;
+    });
+    if (best) {
+      used.add(best.playerId);
+      assignedStarters.add(best.playerId);
+      optimalTotal += best.pts;
+    }
+  });
+
+  return { optimalTotal, optimalStarterIds: assignedStarters };
+}
+
+// Given actual starters and the optimal lineup, figure out which bench players
+// SHOULD have been started (i.e., they're in optimal but not in actual).
+// For each such swap, return the paired lowest-eligible starter they replaced.
+function computeShouldaStarted(actualStarters, optimalStarters, rosterPositions, allPlayers, pointsMap) {
+  const actualSet = new Set(actualStarters);
+  const optimalSet = optimalStarters;
+  const swaps = [];
+
+  // Bench players who should have been started
+  optimalSet.forEach(pid => {
+    if (!actualSet.has(pid)) {
+      // This player should have been started. Find the "weakest" actual starter at an
+      // eligible position — that's who they should have replaced.
+      const benchInfo = playerInfo(pid);
+      const benchPts = pointsMap[pid] || 0;
+
+      // Which actual starters could this bench player replace? Any starter at an
+      // eligible slot (meaning the bench player's position is valid for that slot).
+      let worstReplaceable = null;
+      actualStarters.forEach((starterId, slotIdx) => {
+        if (optimalSet.has(starterId)) return; // they were in the optimal, not a mistake
+        const slot = (rosterPositions || [])[slotIdx];
+        if (!slot || slot === 'BN' || slot === 'IR' || slot === 'TAXI') return;
+        const eligible = SLOT_ELIGIBILITY[slot];
+        if (!eligible || !eligible.includes(benchInfo.position)) return;
+        const sPts = pointsMap[starterId] || 0;
+        if (!worstReplaceable || sPts < worstReplaceable.pts) {
+          worstReplaceable = { playerId: starterId, pts: sPts };
+        }
+      });
+
+      if (worstReplaceable) {
+        swaps.push({
+          benchPlayerId: pid,
+          benchPts,
+          replacedStarterId: worstReplaceable.playerId,
+          replacedPts: worstReplaceable.pts,
+          gained: benchPts - worstReplaceable.pts
+        });
+      }
+    }
+  });
+
+  return swaps;
+}
+
+function buildBenchStats() {
+  state.lineupMistakes = [];           // { playerId, pts, benchedInstead: starterId, gained, season, week, ownerKey }
+  state.pointsMissedByOwner = {};      // ownerKey → total optimal-gap across regular season
+  state.gamesByOwnerForBench = {};     // ownerKey → count
+
+  Object.keys(state.ownerIndex).forEach(k => {
+    state.pointsMissedByOwner[k] = 0;
+    state.gamesByOwnerForBench[k] = 0;
+  });
+
+  // Need to look up roster_positions per league
+  const leagueBySeason = {};
+  state.leagues.forEach(l => { leagueBySeason[l.season] = l; });
 
   state.allMatchups.forEach(m => {
-    if (m.isPlayoff) return; // regular season only
+    if (m.isPlayoff) return;
+    const league = leagueBySeason[m.season];
+    if (!league) return;
+    const slots = league.rosterPositions || [];
+    if (slots.length === 0) return; // can't compute without slot info
+
     const sides = [
       { players: m.playersA, pts: m.playersPointsA, starters: m.startersA, ownerKey: m.ownerAKey, roster: m.rosterA },
       { players: m.playersB, pts: m.playersPointsB, starters: m.startersB, ownerKey: m.ownerBKey, roster: m.rosterB }
     ];
     sides.forEach(side => {
-      if (!Array.isArray(side.players)) return;
-      // players_points is an object like { "4046": 18.2, "6797": 0 } on Sleeper's API
+      if (!Array.isArray(side.players) || !Array.isArray(side.starters)) return;
       const pointsMap = (side.pts && typeof side.pts === 'object' && !Array.isArray(side.pts)) ? side.pts : {};
-      const starterSet = new Set(side.starters || []);
-      side.players.forEach(pid => {
-        if (!pid || pid === '0') return;
-        if (starterSet.has(pid)) return; // skip starters
-        const pts = pointsMap[pid] || 0;
-        state.benchPerformances.push({
-          playerId: pid, pts, season: m.season, week: m.week,
-          ownerKey: side.ownerKey, rosterId: side.roster
+
+      // Compute actual starter total
+      const actualTotal = side.starters.reduce((sum, pid) => sum + (pointsMap[pid] || 0), 0);
+
+      // Compute optimal lineup
+      const { optimalTotal, optimalStarterIds } = computeOptimalLineup(slots, side.players, pointsMap);
+
+      const pointsMissed = Math.max(0, optimalTotal - actualTotal);
+      state.pointsMissedByOwner[side.ownerKey] = (state.pointsMissedByOwner[side.ownerKey] || 0) + pointsMissed;
+      state.gamesByOwnerForBench[side.ownerKey] = (state.gamesByOwnerForBench[side.ownerKey] || 0) + 1;
+
+      // Figure out specific lineup mistakes (bench player → starter they should've replaced)
+      const swaps = computeShouldaStarted(side.starters, optimalStarterIds, slots, side.players, pointsMap);
+      swaps.forEach(swap => {
+        if (swap.gained <= 0) return; // no actual gain, skip
+        state.lineupMistakes.push({
+          benchPlayerId: swap.benchPlayerId,
+          benchPts: swap.benchPts,
+          replacedStarterId: swap.replacedStarterId,
+          replacedPts: swap.replacedPts,
+          gained: swap.gained,
+          season: m.season,
+          week: m.week,
+          ownerKey: side.ownerKey
         });
-        state.benchTotalsByOwner[side.ownerKey] += pts;
       });
     });
   });
@@ -1870,23 +2013,18 @@ function renderClutchAndBlowoutRecord() {
 }
 
 // ---- Bench Points Left / Shoulda Started Him ----
+// Based on optimal lineup math — fairly accounts for roster strength differences.
 function renderBenchStats() {
-  // Bench Points Left: total bench points per owner, with per-game average
-  const gamesByOwner = {};
-  state.allMatchups.forEach(m => {
-    if (m.isPlayoff) return;
-    gamesByOwner[m.ownerAKey] = (gamesByOwner[m.ownerAKey] || 0) + 1;
-    gamesByOwner[m.ownerBKey] = (gamesByOwner[m.ownerBKey] || 0) + 1;
-  });
-  const benchRows = Object.entries(state.benchTotalsByOwner)
+  // "Points Missed" per owner — aggregate gap between optimal and actual lineup
+  const rows = Object.entries(state.pointsMissedByOwner)
     .map(([key, total]) => {
-      const games = gamesByOwner[key] || 0;
+      const games = state.gamesByOwnerForBench[key] || 0;
       return { key, total, games, perGame: games > 0 ? total / games : 0 };
     })
     .filter(r => r.games > 0)
     .sort((a, b) => b.total - a.total);
 
-  $('#bench-total-body').innerHTML = benchRows.length ? benchRows.map((r, i) => `
+  $('#bench-total-body').innerHTML = rows.length ? rows.map((r, i) => `
     <tr>
       <td class="${rankClass(i)}">${i + 1}</td>
       <td>${teamChip(r.key)}</td>
@@ -1894,22 +2032,28 @@ function renderBenchStats() {
       <td class="num">${r.perGame.toFixed(2)}</td>
       <td class="num">${r.games}</td>
     </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No bench data available.</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No lineup data available.</td></tr>';
 
-  // Shoulda Started Him: top 10 single-week bench performances
-  const topBench = [...state.benchPerformances].sort((a, b) => b.pts - a.pts).slice(0, 10);
-  $('#bench-shoulda-body').innerHTML = topBench.length ? topBench.map((r, i) => {
-    const info = playerInfo(r.playerId);
+  // Shoulda Started Him — top 10 specific benching mistakes by points-gained
+  const topMistakes = [...(state.lineupMistakes || [])].sort((a, b) => b.gained - a.gained).slice(0, 10);
+  $('#bench-shoulda-body').innerHTML = topMistakes.length ? topMistakes.map((r, i) => {
+    const benchInfo = playerInfo(r.benchPlayerId);
+    const starterInfo = playerInfo(r.replacedStarterId);
     return `<tr>
       <td class="${rankClass(i)}">${i + 1}</td>
-      <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(info.name)}</td>
-      <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(info.position)}</td>
+      <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(benchInfo.name)}</td>
+      <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(benchInfo.position)}</td>
       <td>${teamChipCompact(r.ownerKey, r.season)}</td>
-      <td class="num" style="color: var(--accent); font-weight:700;">${r.pts.toFixed(2)}</td>
+      <td class="num" style="color: var(--accent); font-weight:700;">${r.benchPts.toFixed(2)}</td>
+      <td style="font-size: 13px; color: var(--text-dim);">
+        started <span style="color: var(--text); font-weight:600;">${escapeHtml(starterInfo.name)}</span>
+        <span style="color: var(--accent-red); font-family:'JetBrains Mono', monospace; font-size:11px;">${r.replacedPts.toFixed(2)}</span>
+      </td>
+      <td class="num" style="color: var(--accent-red); font-weight:700;">-${r.gained.toFixed(2)}</td>
       <td>${escapeHtml(r.season)} W${r.week}</td>
     </tr>`;
   }).join('')
-    : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No bench data available.</td></tr>';
+    : '<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No lineup mistakes detected.</td></tr>';
 }
 
 // ---- Trade Rendering ----

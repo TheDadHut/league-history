@@ -1646,27 +1646,31 @@ function buildWaiverGrades() {
       // Walk forward from pickup week; count points while still on this roster
       let totalPts = 0;
       let weeksRostered = 0;
-      let hadHit = false; // any week scoring 5+ pts
+      let hadBigGame = false;           // any single game 10+ pts
+      let weeksScoring5plus = 0;        // weeks averaging 5+ contributions
       for (let w = p.week; w <= 18; w++) {
         const owner = playerWeeklyOwner[p.playerId]?.[w];
         if (owner !== p.rosterId) {
-          // Player not on this roster in week w. If this is after pickup, they were dropped/traded.
-          // Stop counting — we only care about this specific tenure.
-          // But guard: sometimes a player doesn't appear in matchup data until 1-2 weeks after
-          // being claimed (e.g., claim Tuesday for Sunday's game but bye week). We should
-          // tolerate a 1-week gap.
-          if (w > p.week) break; // they were here and are now gone
-          continue; // first week might not have data yet
+          // Tolerate a single missing week before the pickup shows in data (bye / post-Sunday claim)
+          if (w > p.week) break;
+          continue;
         }
         const pts = playerWeeklyPoints[p.playerId]?.[w] || 0;
         totalPts += pts;
         weeksRostered++;
-        if (pts >= 5) hadHit = true;
+        if (pts >= 10) hadBigGame = true;
+        if (pts >= 5) weeksScoring5plus++;
       }
+
+      // A "hit" is a pickup that produced MEANINGFUL fantasy value:
+      //   - Scored 10+ in any single game (gave a real start-worthy week), OR
+      //   - Was a consistent contributor: 3+ weeks of 5+ pts production
+      // This rules out the "scored 5.1 pts once in 14 weeks" false positive.
+      const isHit = hadBigGame || weeksScoring5plus >= 3;
 
       byOwner[p.ownerKey].rpa += totalPts;
       byOwner[p.ownerKey].totalWeeksRostered += weeksRostered;
-      if (hadHit) byOwner[p.ownerKey].hits++;
+      if (isHit) byOwner[p.ownerKey].hits++;
 
       // Track individual pickup for league-wide leaderboard
       if (weeksRostered > 0) {
@@ -1682,10 +1686,15 @@ function buildWaiverGrades() {
       }
     });
 
-    // Compute WCE (avg pts per roster-week) and HR (hit rate) per owner
+    // Compute WCE (avg pts per roster-week) and HR (smoothed hit rate) per owner
+    // HR uses Bayesian smoothing: (hits + 2) / (pickups + 5). This applies a prior of
+    // "average manager hits ~40% of the time" which dampens extreme ratios from small
+    // samples while barely affecting owners with large sample sizes.
     Object.values(byOwner).forEach(o => {
       o.wce = o.totalWeeksRostered > 0 ? o.rpa / o.totalWeeksRostered : 0;
-      o.hr = o.pickupCount > 0 ? o.hits / o.pickupCount : 0;
+      o.hr = (o.hits + 2) / (o.pickupCount + 5);
+      // Also keep raw hit rate for display context
+      o.rawHr = o.pickupCount > 0 ? o.hits / o.pickupCount : 0;
     });
 
     // Assign letter grades on a curve
@@ -3213,7 +3222,7 @@ function renderSeason(season) {
                 <th class="num" title="Overall grade combining all three metrics">Overall</th>
                 <th class="num" title="Waiver Capital Efficiency: points-per-week from pickups">WCE</th>
                 <th class="num" title="Raw Points Added: total points scored by your pickups while on your roster">RPA</th>
-                <th class="num" title="Hit Rate: % of pickups that had a productive week (5+ pts)">HR</th>
+                <th class="num" title="Hit Rate: smoothed % of pickups that produced meaningful value (10+ pt game or 3+ weeks of 5+ pts)">HR</th>
                 <th class="num">Pickups</th>
               </tr></thead>
               <tbody>
@@ -3231,7 +3240,7 @@ function renderSeason(season) {
             <div style="padding: 12px 20px; color: var(--text-muted); font-size: 12px; line-height: 1.5; border-top: 1px solid var(--border); background: var(--panel);">
               <strong style="color: var(--text-dim);">WCE</strong> — Waiver Capital Efficiency: avg points-per-week your pickups scored while on your roster. Rewards finding consistent producers.<br>
               <strong style="color: var(--text-dim);">RPA</strong> — Raw Points Added: total points from pickups while rostered. Rewards volume + quality.<br>
-              <strong style="color: var(--text-dim);">HR</strong> — Hit Rate: % of pickups that had at least one game with 5+ points. Rewards pickup instincts vs random churn.
+              <strong style="color: var(--text-dim);">HR</strong> — Hit Rate (smoothed): % of pickups that produced meaningful fantasy value — either a 10+ point game or 3+ weeks of 5+ point production. Smoothed with a Bayesian prior to avoid over-rewarding tiny sample sizes.
             </div>
           </div>`;
       }

@@ -311,6 +311,8 @@
     <button class="tab" data-tab="h2h">Head-to-Head</button>
     <button class="tab" data-tab="seasons">Seasons</button>
     <button class="tab" data-tab="fun">Fun Stats</button>
+    <button class="tab" data-tab="luck">Luck & Streaks</button>
+    <button class="tab" data-tab="owners">Owner Stats</button>
     <button class="tab" data-tab="founders">Founders</button>
   </nav>
 </div>
@@ -417,6 +419,90 @@
         <tbody id="luckywin-body"></tbody>
       </table></div>
     </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent);"></div><h2 style="font-size: 18px;">⚔️ Biggest Rivalry</h2></div>
+    <div class="card"><div class="card-body" id="rivalry-body"></div></div>
+
+    <div class="section-header"><div class="section-bar" style="background: #4ade80;"></div><h2 style="font-size: 18px;">📏 Most Consistent Teams</h2><span class="count-pill">TOP 5</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Lowest Week-to-Week Variance</h3><span class="hint">No surprises, every week</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Avg</th><th class="num">Std Dev</th><th class="num">Games</th></tr></thead>
+        <tbody id="consistent-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">🎢 Most Volatile Teams</h2><span class="count-pill">TOP 5</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Highest Week-to-Week Variance</h3><span class="hint">Boom-or-bust, feast or famine</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Avg</th><th class="num">Std Dev</th><th class="num">Games</th></tr></thead>
+        <tbody id="volatile-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--gold);"></div><h2 style="font-size: 18px;">🎯 Clutch Index</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Record in Close Games</h3><span class="hint">Games decided by under 10 points</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Close Games</th></tr></thead>
+        <tbody id="clutch-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-blue);"></div><h2 style="font-size: 18px;">💣 Blowout Record</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Record in Blowouts</h3><span class="hint">Games decided by 30+ points</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Blowouts</th></tr></thead>
+        <tbody id="blowout-record-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ===== LUCK & STREAKS TAB ===== -->
+  <section id="luck" class="panel">
+    <div class="section-header"><div class="section-bar"></div><h2>Luck & Streaks</h2></div>
+
+    <div class="section-header" style="margin-top:0;"><div class="section-bar" style="background: var(--gold);"></div><h2 style="font-size: 18px;">🍀 Luck Rating</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Actual Record vs Would-Be Record</h3><span class="hint">What your record WOULD be if you played the league median each week</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Actual</th><th class="num">Expected</th><th class="num">Luck</th></tr></thead>
+        <tbody id="luck-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: #4ade80;"></div><h2 style="font-size: 18px;">🔥 Current Streaks</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Heating Up / Cooling Off</h3><span class="hint">Most recent consecutive wins or losses</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Team</th><th class="num">Streak</th><th class="num">Since</th></tr></thead>
+        <tbody id="current-streak-body"></tbody>
+      </table></div>
+    </div>
+
+    <div class="section-header"><div class="section-bar" style="background: #4ade80;"></div><h2 style="font-size: 18px;">📈 Longest Win Streaks</h2><span class="count-pill">ALL-TIME TOP 5</span></div>
+    <div class="card"><div class="table-scroll"><table>
+      <thead><tr><th>#</th><th>Team</th><th class="num">Wins</th><th>From</th><th>To</th></tr></thead>
+      <tbody id="win-streak-body"></tbody>
+    </table></div></div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--accent-red);"></div><h2 style="font-size: 18px;">📉 Longest Losing Streaks</h2><span class="count-pill">ALL-TIME TOP 5</span></div>
+    <div class="card"><div class="table-scroll"><table>
+      <thead><tr><th>#</th><th>Team</th><th class="num">Losses</th><th>From</th><th>To</th></tr></thead>
+      <tbody id="loss-streak-body"></tbody>
+    </table></div></div>
+  </section>
+
+  <!-- ===== OWNER STATS TAB ===== -->
+  <section id="owners" class="panel">
+    <div class="section-header"><div class="section-bar"></div><h2>Owner Stats</h2></div>
+    <div class="card">
+      <div class="card-header"><h3>Select Owner</h3></div>
+      <div class="card-body"><select id="owner-picker" style="max-width: 300px;"></select></div>
+    </div>
+    <div id="owner-content"></div>
   </section>
 
   <section id="founders" class="panel">
@@ -1150,6 +1236,453 @@ function renderFunStats() {
     <td>${escapeHtml(g.season)} W${g.week}</td></tr>`).join('');
 }
 
+// ============================================================
+// Extended stats: consistency, clutch, rivalries, luck, streaks
+// ============================================================
+
+function renderExtendedStats() {
+  renderRivalry();
+  renderConsistencyAndVolatility();
+  renderClutchAndBlowoutRecord();
+  renderLuckRating();
+  renderCurrentStreaks();
+  renderAllTimeStreaks();
+  populateOwnerPicker();
+}
+
+// ---- Biggest Rivalry ----
+// Most games played between two owners, with closest all-time series record as tiebreaker.
+function renderRivalry() {
+  const regGames = state.allMatchups.filter(m => !m.isPlayoff);
+  const pairs = {}; // sorted-keys string → { keyA, keyB, games, aWins, bWins }
+  regGames.forEach(m => {
+    const [a, b] = [m.ownerAKey, m.ownerBKey].sort();
+    const pk = `${a}|${b}`;
+    if (!pairs[pk]) pairs[pk] = { keyA: a, keyB: b, games: 0, aWins: 0, bWins: 0 };
+    pairs[pk].games++;
+    const aIsOwnerA = m.ownerAKey === a;
+    const aScore = aIsOwnerA ? m.scoreA : m.scoreB;
+    const bScore = aIsOwnerA ? m.scoreB : m.scoreA;
+    if (aScore > bScore) pairs[pk].aWins++;
+    else if (bScore > aScore) pairs[pk].bWins++;
+  });
+
+  // Score: games × (1 - |winDiff|/games) — more games AND more balanced = bigger rivalry
+  const scored = Object.values(pairs).map(p => {
+    const diff = Math.abs(p.aWins - p.bWins);
+    const closeness = p.games > 0 ? 1 - (diff / p.games) : 0;
+    return { ...p, rivalryScore: p.games * (0.5 + closeness * 0.5) };
+  });
+  scored.sort((a, b) => b.rivalryScore - a.rivalryScore);
+  const top = scored[0];
+  if (!top) {
+    $('#rivalry-body').innerHTML = '<div style="color: var(--text-muted); font-style: italic; text-align:center;">Not enough games played yet.</div>';
+    return;
+  }
+  const oA = state.ownerIndex[top.keyA];
+  const oB = state.ownerIndex[top.keyB];
+  $('#rivalry-body').innerHTML = `
+    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; text-align: center;">
+      <div>
+        <div style="font-family:'Oswald',sans-serif; font-weight:700; font-size: 28px; color:${oA.color}; text-transform: uppercase;">${escapeHtml(oA.displayName)}</div>
+        <div style="font-family:'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; color: ${top.aWins > top.bWins ? '#4ade80' : (top.aWins < top.bWins ? '#f87171' : 'var(--text-dim)')}; margin-top: 8px;">${top.aWins}</div>
+      </div>
+      <div style="color: var(--accent-red); font-family:'Oswald',sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 3px;">VS</div>
+      <div>
+        <div style="font-family:'Oswald',sans-serif; font-weight:700; font-size: 28px; color:${oB.color}; text-transform: uppercase;">${escapeHtml(oB.displayName)}</div>
+        <div style="font-family:'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; color: ${top.bWins > top.aWins ? '#4ade80' : (top.bWins < top.aWins ? '#f87171' : 'var(--text-dim)')}; margin-top: 8px;">${top.bWins}</div>
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 18px; color: var(--text-dim); font-family:'Oswald',sans-serif; letter-spacing: 2px; font-size: 13px; text-transform: uppercase;">
+      ${top.games} matchups · ${top.aWins === top.bWins ? 'dead even' : 'most contested rivalry'}
+    </div>`;
+}
+
+// ---- Consistency & Volatility ----
+// Standard deviation of weekly scores for each owner across all seasons
+function renderConsistencyAndVolatility() {
+  const scoresByOwner = {};
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    (scoresByOwner[m.ownerAKey] = scoresByOwner[m.ownerAKey] || []).push(m.scoreA);
+    (scoresByOwner[m.ownerBKey] = scoresByOwner[m.ownerBKey] || []).push(m.scoreB);
+  });
+  const rows = Object.entries(scoresByOwner)
+    .filter(([_, scores]) => scores.length >= 5)
+    .map(([key, scores]) => {
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const variance = scores.reduce((sum, s) => sum + (s - avg) ** 2, 0) / scores.length;
+      return { key, avg, stdDev: Math.sqrt(variance), games: scores.length };
+    });
+
+  const consistent = [...rows].sort((a, b) => a.stdDev - b.stdDev).slice(0, 5);
+  const volatile = [...rows].sort((a, b) => b.stdDev - a.stdDev).slice(0, 5);
+
+  $('#consistent-body').innerHTML = consistent.map((r, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num">${r.avg.toFixed(2)}</td>
+    <td class="num" style="color: #4ade80; font-weight:700;">${r.stdDev.toFixed(2)}</td>
+    <td class="num">${r.games}</td></tr>`).join('');
+  $('#volatile-body').innerHTML = volatile.map((r, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num">${r.avg.toFixed(2)}</td>
+    <td class="num" style="color: var(--accent-red); font-weight:700;">${r.stdDev.toFixed(2)}</td>
+    <td class="num">${r.games}</td></tr>`).join('');
+}
+
+// ---- Clutch Index & Blowout Record ----
+function renderClutchAndBlowoutRecord() {
+  const CLOSE_THRESHOLD = 10;
+  const BLOWOUT_THRESHOLD = 30;
+  const clutch = {};
+  const blowouts = {};
+  Object.keys(state.ownerIndex).forEach(k => {
+    clutch[k] = { w: 0, l: 0 };
+    blowouts[k] = { w: 0, l: 0 };
+  });
+
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    if (!m.winnerKey) return;
+    const margin = Math.abs(m.scoreA - m.scoreB);
+    const loserKey = m.winnerKey === m.ownerAKey ? m.ownerBKey : m.ownerAKey;
+    if (margin < CLOSE_THRESHOLD) {
+      clutch[m.winnerKey].w++;
+      clutch[loserKey].l++;
+    } else if (margin >= BLOWOUT_THRESHOLD) {
+      blowouts[m.winnerKey].w++;
+      blowouts[loserKey].l++;
+    }
+  });
+
+  const fmt = (data, sortKey) => {
+    const rows = Object.entries(data).map(([key, r]) => ({
+      key, w: r.w, l: r.l,
+      games: r.w + r.l,
+      pct: (r.w + r.l) > 0 ? r.w / (r.w + r.l) : 0
+    })).filter(r => r.games > 0);
+    rows.sort((a, b) => sortKey === 'pct' ? b.pct - a.pct : b.games - a.games);
+    return rows;
+  };
+
+  const clutchRows = fmt(clutch, 'pct');
+  $('#clutch-body').innerHTML = clutchRows.length ? clutchRows.map((r, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num"><span class="wins" style="font-weight:700;">${r.w}</span></td>
+    <td class="num"><span class="losses" style="font-weight:700;">${r.l}</span></td>
+    <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
+    <td class="num">${r.games}</td></tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No close games yet.</td></tr>';
+
+  const blowoutRows = fmt(blowouts, 'pct');
+  $('#blowout-record-body').innerHTML = blowoutRows.length ? blowoutRows.map((r, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(r.key)}</td>
+    <td class="num"><span class="wins" style="font-weight:700;">${r.w}</span></td>
+    <td class="num"><span class="losses" style="font-weight:700;">${r.l}</span></td>
+    <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
+    <td class="num">${r.games}</td></tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No blowouts yet.</td></tr>';
+}
+
+// ---- Luck Rating / Would-Be Record ----
+// For each week, compute the median score. If your score > median, you "should have" won.
+// Compare that should-have record to your actual record.
+function renderLuckRating() {
+  // Group scores by season/week
+  const weekBuckets = {}; // "season|week" → [{ ownerKey, pts, actualWin }]
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    const wk = `${m.season}|${m.week}`;
+    if (!weekBuckets[wk]) weekBuckets[wk] = [];
+    const aWin = m.scoreA > m.scoreB;
+    const bWin = m.scoreB > m.scoreA;
+    weekBuckets[wk].push({ ownerKey: m.ownerAKey, pts: m.scoreA, actualWin: aWin });
+    weekBuckets[wk].push({ ownerKey: m.ownerBKey, pts: m.scoreB, actualWin: bWin });
+  });
+
+  // For each week, rank scores. Expected wins for ownerN = (number of opponents they outscored) / (total teams - 1)
+  const stats = {}; // ownerKey → { actualWins, expectedWins, games }
+  Object.keys(state.ownerIndex).forEach(k => { stats[k] = { actualWins: 0, expectedWins: 0, games: 0 }; });
+
+  Object.values(weekBuckets).forEach(teams => {
+    const n = teams.length;
+    if (n < 2) return;
+    // For each team, count how many other teams they outscored
+    teams.forEach(t => {
+      const beats = teams.filter(other => other !== t && t.pts > other.pts).length;
+      const ties = teams.filter(other => other !== t && t.pts === other.pts).length;
+      const expected = (beats + ties * 0.5) / (n - 1);
+      stats[t.ownerKey].expectedWins += expected;
+      stats[t.ownerKey].actualWins += t.actualWin ? 1 : 0;
+      stats[t.ownerKey].games++;
+    });
+  });
+
+  const rows = Object.entries(stats)
+    .filter(([_, s]) => s.games > 0)
+    .map(([key, s]) => ({
+      key,
+      actualWins: s.actualWins,
+      expectedWins: s.expectedWins,
+      luck: s.actualWins - s.expectedWins, // + = lucky, - = unlucky
+      games: s.games
+    }))
+    .sort((a, b) => b.luck - a.luck);
+
+  $('#luck-body').innerHTML = rows.map((r, i) => {
+    const luckColor = r.luck > 0.5 ? '#4ade80' : r.luck < -0.5 ? '#f87171' : 'var(--text-dim)';
+    const sign = r.luck > 0 ? '+' : '';
+    return `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td>${teamChip(r.key)}</td>
+      <td class="num"><span class="wins" style="font-weight:700;">${r.actualWins}</span><span style="color: var(--text-muted);">-</span><span class="losses" style="font-weight:700;">${r.games - r.actualWins}</span></td>
+      <td class="num" style="color: var(--text-dim);">${r.expectedWins.toFixed(1)}-${(r.games - r.expectedWins).toFixed(1)}</td>
+      <td class="num" style="color:${luckColor}; font-weight:700;">${sign}${r.luck.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- Current Streaks ----
+// For each owner, most recent consecutive wins or losses
+function renderCurrentStreaks() {
+  // Build chronological list of games per owner (regular season only, latest first)
+  const gamesByOwner = {};
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    const aRes = m.scoreA > m.scoreB ? 'W' : (m.scoreA < m.scoreB ? 'L' : 'T');
+    const bRes = m.scoreB > m.scoreA ? 'W' : (m.scoreB < m.scoreA ? 'L' : 'T');
+    (gamesByOwner[m.ownerAKey] = gamesByOwner[m.ownerAKey] || []).push({ season: m.season, week: m.week, result: aRes });
+    (gamesByOwner[m.ownerBKey] = gamesByOwner[m.ownerBKey] || []).push({ season: m.season, week: m.week, result: bRes });
+  });
+  const rows = Object.entries(gamesByOwner).map(([key, games]) => {
+    // Sort chronologically (oldest first), then reverse to get most recent first
+    games.sort((a, b) => a.season.localeCompare(b.season) || a.week - b.week);
+    const latest = games[games.length - 1];
+    if (!latest) return null;
+    const streakType = latest.result;
+    let streak = 0, startGame = latest;
+    for (let i = games.length - 1; i >= 0; i--) {
+      if (games[i].result === streakType) {
+        streak++;
+        startGame = games[i];
+      } else break;
+    }
+    return { key, streakType, streak, startSeason: startGame.season, startWeek: startGame.week };
+  }).filter(Boolean)
+    .sort((a, b) => {
+      // Sort wins first (longest first), then losses (longest first)
+      if (a.streakType === 'W' && b.streakType !== 'W') return -1;
+      if (b.streakType === 'W' && a.streakType !== 'W') return 1;
+      return b.streak - a.streak;
+    });
+
+  $('#current-streak-body').innerHTML = rows.map(r => {
+    const color = r.streakType === 'W' ? '#4ade80' : r.streakType === 'L' ? '#f87171' : 'var(--text-dim)';
+    const icon = r.streakType === 'W' ? '🔥' : r.streakType === 'L' ? '❄️' : '—';
+    return `<tr>
+      <td>${teamChip(r.key)}</td>
+      <td class="num"><span style="color:${color}; font-weight:700; font-size: 16px;">${icon} ${r.streak}${r.streakType}</span></td>
+      <td class="num" style="color: var(--text-dim); font-family:'JetBrains Mono', monospace;">${escapeHtml(r.startSeason)} W${r.startWeek}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- All-Time Longest Streaks ----
+function renderAllTimeStreaks() {
+  // For each owner, walk their chronological games and track all win/loss streaks
+  const gamesByOwner = {};
+  state.allMatchups.forEach(m => {
+    if (m.isPlayoff) return;
+    const aRes = m.scoreA > m.scoreB ? 'W' : (m.scoreA < m.scoreB ? 'L' : 'T');
+    const bRes = m.scoreB > m.scoreA ? 'W' : (m.scoreB < m.scoreA ? 'L' : 'T');
+    (gamesByOwner[m.ownerAKey] = gamesByOwner[m.ownerAKey] || []).push({ season: m.season, week: m.week, result: aRes });
+    (gamesByOwner[m.ownerBKey] = gamesByOwner[m.ownerBKey] || []).push({ season: m.season, week: m.week, result: bRes });
+  });
+
+  const allStreaks = []; // { key, type, length, fromSeason, fromWeek, toSeason, toWeek }
+  Object.entries(gamesByOwner).forEach(([key, games]) => {
+    games.sort((a, b) => a.season.localeCompare(b.season) || a.week - b.week);
+    let curType = null, curLen = 0, curFrom = null;
+    games.forEach((g, i) => {
+      if (g.result === curType) {
+        curLen++;
+      } else {
+        if (curType && curLen > 0) {
+          const last = games[i - 1];
+          allStreaks.push({ key, type: curType, length: curLen, fromSeason: curFrom.season, fromWeek: curFrom.week, toSeason: last.season, toWeek: last.week });
+        }
+        curType = g.result; curLen = 1; curFrom = g;
+      }
+    });
+    // Close out final streak
+    if (curType && curLen > 0 && games.length > 0) {
+      const last = games[games.length - 1];
+      allStreaks.push({ key, type: curType, length: curLen, fromSeason: curFrom.season, fromWeek: curFrom.week, toSeason: last.season, toWeek: last.week });
+    }
+  });
+
+  const winStreaks = allStreaks.filter(s => s.type === 'W').sort((a, b) => b.length - a.length).slice(0, 5);
+  const lossStreaks = allStreaks.filter(s => s.type === 'L').sort((a, b) => b.length - a.length).slice(0, 5);
+
+  $('#win-streak-body').innerHTML = winStreaks.length ? winStreaks.map((s, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(s.key)}</td>
+    <td class="num" style="color: #4ade80; font-weight:700;">${s.length}W</td>
+    <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace;">${escapeHtml(s.fromSeason)} W${s.fromWeek}</td>
+    <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace;">${escapeHtml(s.toSeason)} W${s.toWeek}</td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No win streaks yet.</td></tr>';
+
+  $('#loss-streak-body').innerHTML = lossStreaks.length ? lossStreaks.map((s, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChip(s.key)}</td>
+    <td class="num" style="color: var(--accent-red); font-weight:700;">${s.length}L</td>
+    <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace;">${escapeHtml(s.fromSeason)} W${s.fromWeek}</td>
+    <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace;">${escapeHtml(s.toSeason)} W${s.toWeek}</td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px; font-style: italic;">No loss streaks yet.</td></tr>';
+}
+
+// ---- Owner Stats (per-owner drilldown) ----
+function populateOwnerPicker() {
+  const owners = Object.values(state.ownerIndex).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  $('#owner-picker').innerHTML = owners.map(o => `<option value="${o.key}">${escapeHtml(o.displayName)}</option>`).join('');
+  $('#owner-picker').addEventListener('change', () => renderOwnerStats($('#owner-picker').value));
+  if (owners[0]) renderOwnerStats(owners[0].key);
+}
+
+function renderOwnerStats(ownerKey) {
+  const o = state.ownerIndex[ownerKey];
+  if (!o) return;
+
+  // Gather all regular season matchups involving this owner
+  const regGames = state.allMatchups.filter(m => !m.isPlayoff && (m.ownerAKey === ownerKey || m.ownerBKey === ownerKey));
+
+  // Head-to-head records against every other owner
+  const h2h = {}; // key → { wins, losses, games }
+  regGames.forEach(m => {
+    const opp = m.ownerAKey === ownerKey ? m.ownerBKey : m.ownerAKey;
+    const myScore = m.ownerAKey === ownerKey ? m.scoreA : m.scoreB;
+    const oppScore = m.ownerAKey === ownerKey ? m.scoreB : m.scoreA;
+    if (!h2h[opp]) h2h[opp] = { wins: 0, losses: 0, games: 0 };
+    h2h[opp].games++;
+    if (myScore > oppScore) h2h[opp].wins++;
+    else if (myScore < oppScore) h2h[opp].losses++;
+  });
+
+  // Nemesis = opponent with the lowest win % against
+  const h2hRows = Object.entries(h2h).map(([k, r]) => ({
+    key: k, ...r, pct: r.games > 0 ? r.wins / r.games : 0
+  })).filter(r => r.games >= 2); // at least 2 games to count as nemesis-worthy
+
+  const nemesis = h2hRows.length ? [...h2hRows].sort((a, b) => a.pct - b.pct)[0] : null;
+  const favoriteMatchup = h2hRows.length ? [...h2hRows].sort((a, b) => b.pct - a.pct)[0] : null;
+
+  // Playoff stats: count from winnersBracket entries where this roster appears
+  let playoffAppearances = 0;
+  let finalsAppearances = 0;
+  let championships = 0;
+  let playoffWins = 0;
+  let playoffLosses = 0;
+  state.leagues.forEach(league => {
+    if (!league.winnersBracket || league.winnersBracket.length === 0) return;
+    // Find the roster ID for this owner in this season
+    const u = league.users.find(user => (user.display_name || user.username || '').toLowerCase().trim() === ownerKey);
+    if (!u) return;
+    const roster = league.rosters.find(r => r.owner_id === u.user_id);
+    if (!roster) return;
+    const rid = roster.roster_id;
+    const bracketAppearances = league.winnersBracket.filter(g => g.t1 === rid || g.t2 === rid);
+    if (bracketAppearances.length > 0) playoffAppearances++;
+    bracketAppearances.forEach(g => {
+      if (g.w === rid) playoffWins++;
+      else if (g.l === rid) playoffLosses++;
+    });
+    // Finals = matches where p === 1 (championship game)
+    const finalsGame = league.winnersBracket.filter(g => g.p === 1).pop();
+    if (finalsGame && (finalsGame.t1 === rid || finalsGame.t2 === rid)) {
+      finalsAppearances++;
+      if (finalsGame.w === rid) championships++;
+    }
+  });
+
+  // Regular season totals
+  const totalGames = regGames.length;
+  const wins = regGames.filter(m => {
+    const myScore = m.ownerAKey === ownerKey ? m.scoreA : m.scoreB;
+    const oppScore = m.ownerAKey === ownerKey ? m.scoreB : m.scoreA;
+    return myScore > oppScore;
+  }).length;
+  const losses = totalGames - wins;
+  const regPct = totalGames > 0 ? wins / totalGames : 0;
+  const playoffPct = (playoffWins + playoffLosses) > 0 ? playoffWins / (playoffWins + playoffLosses) : 0;
+
+  // Render
+  const totalSeasons = state.leagues.length;
+  let html = `
+    <div class="section-header" style="margin-top: 20px;"><div class="section-bar" style="background:${o.color}"></div><h2>${escapeHtml(o.displayName)}</h2></div>
+    <div class="stat-grid">
+      <div class="stat-tile" style="border-top-color:${o.color}">
+        <div class="stat-label">Regular Season Record</div>
+        <div class="stat-value">${wins}-${losses}</div>
+        <div class="stat-sub">.${regPct.toFixed(3).split('.')[1] || '000'} across ${totalSeasons} season${totalSeasons === 1 ? '' : 's'}</div>
+      </div>
+      <div class="stat-tile" style="border-top-color:${o.color}">
+        <div class="stat-label">Playoff Appearances</div>
+        <div class="stat-value">${playoffAppearances}${totalSeasons > 0 ? ` <span style="font-size:14px; color:var(--text-dim); font-weight:400;">/ ${totalSeasons}</span>` : ''}</div>
+        <div class="stat-sub">${playoffAppearances === totalSeasons && totalSeasons > 0 ? 'Never missed' : totalSeasons > 0 ? `${Math.round(playoffAppearances/totalSeasons*100)}% rate` : '—'}</div>
+      </div>
+      <div class="stat-tile" style="border-top-color:${o.color}">
+        <div class="stat-label">Finals Appearances</div>
+        <div class="stat-value">${finalsAppearances}</div>
+        <div class="stat-sub">${championships > 0 ? `🏆 ${championships} championship${championships === 1 ? '' : 's'}` : 'Still chasing the trophy'}</div>
+      </div>
+      <div class="stat-tile" style="border-top-color:${o.color}">
+        <div class="stat-label">Reg Season vs Playoff PCT</div>
+        <div class="stat-value">${regPct.toFixed(3).replace(/^0/, '')} / ${(playoffWins + playoffLosses) > 0 ? playoffPct.toFixed(3).replace(/^0/, '') : '—'}</div>
+        <div class="stat-sub">${(playoffWins + playoffLosses) === 0 ? 'No playoff games yet' : playoffPct > regPct ? 'Playoff performer' : 'Reg season specialist'}</div>
+      </div>`;
+
+  if (nemesis) {
+    const n = state.ownerIndex[nemesis.key];
+    html += `<div class="stat-tile" style="border-top-color: var(--accent-red)">
+      <div class="stat-label">😤 Nemesis</div>
+      <div class="stat-value" style="color:${n.color}">${escapeHtml(n.displayName)}</div>
+      <div class="stat-sub">${nemesis.wins}-${nemesis.losses} head-to-head</div>
+    </div>`;
+  }
+  if (favoriteMatchup && favoriteMatchup.key !== (nemesis && nemesis.key)) {
+    const f = state.ownerIndex[favoriteMatchup.key];
+    html += `<div class="stat-tile" style="border-top-color: #4ade80">
+      <div class="stat-label">😈 Favorite Matchup</div>
+      <div class="stat-value" style="color:${f.color}">${escapeHtml(f.displayName)}</div>
+      <div class="stat-sub">${favoriteMatchup.wins}-${favoriteMatchup.losses} head-to-head</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  // Head-to-head table against everyone
+  if (h2hRows.length > 0) {
+    const sorted = [...h2hRows].sort((a, b) => b.pct - a.pct);
+    html += `<div class="section-header"><div class="section-bar"></div><h2>Head-to-Head Records</h2></div>
+      <div class="card"><div class="table-scroll"><table>
+        <thead><tr><th>Opponent</th><th class="num">W</th><th class="num">L</th><th class="num">PCT</th><th class="num">Games</th></tr></thead>
+        <tbody>${sorted.map(r => `<tr>
+          <td>${teamChip(r.key)}</td>
+          <td class="num"><span class="wins" style="font-weight:700;">${r.wins}</span></td>
+          <td class="num"><span class="losses" style="font-weight:700;">${r.losses}</span></td>
+          <td class="num" style="color: var(--accent); font-weight:700;">${r.pct.toFixed(3).replace(/^0/, '')}</td>
+          <td class="num">${r.games}</td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>`;
+  }
+
+  $('#owner-content').innerHTML = html;
+}
+
 function renderFounders() {
   const first = state.leagues[0];
   if (!first) return;
@@ -1621,7 +2154,7 @@ async function init() {
 
     updateLoader('Rendering...', 99);
     renderHeader(); renderTicker(); renderChampions(); renderPulse();
-    renderAllTimeTable(); initAllTimeSort(); renderRecords(); renderFunStats(); renderFounders();
+    renderAllTimeTable(); initAllTimeSort(); renderRecords(); renderFunStats(); renderExtendedStats(); renderFounders();
     populateH2HSelects(); renderH2H();
     $('#h2h-a').addEventListener('change', renderH2H);
     $('#h2h-b').addEventListener('change', renderH2H);
@@ -1635,7 +2168,5 @@ async function init() {
 }
 init();
 </script>
-</body>
-</html>
 </body>
 </html>

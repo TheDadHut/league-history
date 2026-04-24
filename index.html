@@ -17,6 +17,10 @@
     --c-alex: #d32f2f; --c-henny: #00838f; --c-jason: #6a1b9a; --c-jose: #2e7d32;
     --c-justin: #1565c0; --c-liam: #ef6c00; --c-michael: #c2185b; --c-nick: #8d6e63;
     --c-default: #546e7a;
+    /* Fallback palette — every team gets one of these if no explicit mapping */
+    --c-p0: #d32f2f; --c-p1: #00838f; --c-p2: #6a1b9a; --c-p3: #2e7d32;
+    --c-p4: #1565c0; --c-p5: #ef6c00; --c-p6: #c2185b; --c-p7: #8d6e63;
+    --c-p8: #00695c; --c-p9: #283593; --c-p10: #ad1457; --c-p11: #4527a0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
@@ -326,6 +330,15 @@
         <tbody id="hardluck-body"></tbody>
       </table></div>
     </div>
+
+    <div class="section-header"><div class="section-bar" style="background: var(--gold);"></div><h2 style="font-size: 18px;">Lucky Wins</h2><span class="count-pill">TOP 5</span></div>
+    <div class="card">
+      <div class="card-header"><h3>Lowest Points in a Win</h3><span class="hint">Won without showing up</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>#</th><th>Team</th><th class="num">Points</th><th>Opponent</th><th class="num">Opp</th><th>When</th></tr></thead>
+        <tbody id="luckywin-body"></tbody>
+      </table></div>
+    </div>
   </section>
 
   <section id="founders" class="panel">
@@ -345,28 +358,47 @@
 // ===================================================================
 const CURRENT_LEAGUE_ID = '1226697048753983488';
 
-// Owner color map. Keys = lowercased display_name (the @handle shown in Sleeper).
+// Owner color map. Match by substring — if a Sleeper display_name CONTAINS any
+// of these keys (case-insensitive), it gets that color. Add more entries as owners join.
+// Anyone not matched gets a deterministic fallback color from the palette below.
 const OWNER_COLORS = {
-  alex: 'var(--c-alex)', henny: 'var(--c-henny)', jason: 'var(--c-jason)',
-  jose: 'var(--c-jose)', justin: 'var(--c-justin)', liam: 'var(--c-liam)',
-  michael: 'var(--c-michael)', nick: 'var(--c-nick)'
+  alex:    'var(--c-alex)',
+  henny:   'var(--c-henny)',
+  jason:   'var(--c-jason)',
+  jose:    'var(--c-jose)',
+  justin:  'var(--c-justin)',
+  liam:    'var(--c-liam)',
+  michael: 'var(--c-michael)',
+  mike:    'var(--c-michael)',  // in case Michael's handle has Mike in it
+  nick:    'var(--c-nick)'
 };
+const FALLBACK_PALETTE = [
+  'var(--c-p0)', 'var(--c-p1)', 'var(--c-p2)',  'var(--c-p3)',
+  'var(--c-p4)', 'var(--c-p5)', 'var(--c-p6)',  'var(--c-p7)',
+  'var(--c-p8)', 'var(--c-p9)', 'var(--c-p10)', 'var(--c-p11)'
+];
 
-// Manual highlights — these can't come from the API
-const HIGHLIGHTS = {
-  '2024': [
-    { text: "Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again." },
-    { text: "Henny flies up the standings by playing the waiver wire exceptionally well." },
-    { text: "Jose claims he knows more about football than Jason.", sub: "Jose beats Jason." },
-    { text: "Alex is exposed as a corrupt commissioner." },
-    { text: "Jose pumps Jason's team with bad trades.", sub: "Gives Jason a 5-win streak." },
-    { text: 'Henny changes team name to "I Let Him Off the Hook" after Alex wins the championship.' },
-    { text: "Tee Higgins puts up a top-10 league performance in the championship round to help Alex win the league." }
-  ],
-  '2025': [
-    { text: "Michael threw his team and juiced Nick." }
-  ]
-};
+// Manual highlights — edit highlights.json in the same folder as this file.
+// Format: { "2024": ["Highlight one.", "Highlight two."], "2025": [...] }
+// For a note/sub-line under a highlight, use this form instead of a string:
+//   { "text": "Main highlight", "sub": "Extra detail shown indented below" }
+let HIGHLIGHTS = {};
+
+async function loadHighlights() {
+  try {
+    const res = await fetch('highlights.json?t=' + Date.now()); // cache-bust
+    if (!res.ok) return;
+    const data = await res.json();
+    // Normalize: accept either plain strings or {text, sub} objects
+    Object.keys(data).forEach(season => {
+      HIGHLIGHTS[season] = (data[season] || []).map(item =>
+        typeof item === 'string' ? { text: item } : item
+      );
+    });
+  } catch (e) {
+    console.warn('No highlights.json found or failed to parse — skipping highlights', e);
+  }
+}
 
 // ===================================================================
 const API = 'https://api.sleeper.app/v1';
@@ -398,7 +430,22 @@ const state = {
 };
 
 const ownerKey = u => (u.display_name || u.username || '').toLowerCase().trim();
-const ownerColor = key => OWNER_COLORS[key] || 'var(--c-default)';
+
+// Resolve owner color: substring match first, then deterministic fallback so
+// every owner gets a consistent unique color even if not in OWNER_COLORS.
+function ownerColor(key) {
+  if (!key) return 'var(--c-default)';
+  const lower = key.toLowerCase();
+  for (const [matchKey, color] of Object.entries(OWNER_COLORS)) {
+    if (lower.includes(matchKey)) return color;
+  }
+  // Deterministic hash → palette index, so same owner always gets the same color
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) {
+    hash = ((hash << 5) - hash + lower.charCodeAt(i)) | 0;
+  }
+  return FALLBACK_PALETTE[Math.abs(hash) % FALLBACK_PALETTE.length];
+}
 const teamNameFor = u => (u.metadata && u.metadata.team_name) || u.display_name || 'Unknown';
 const rankClass = i => i === 0 ? 'rank rank-1' : i === 1 ? 'rank rank-2' : i === 2 ? 'rank rank-3' : 'rank';
 
@@ -922,6 +969,16 @@ function renderFunStats() {
     <td>${teamChipCompact(g.winnerKey, g.season)}</td>
     <td class="num">${g.winnerScore.toFixed(2)}</td>
     <td>${escapeHtml(g.season)} W${g.week}</td></tr>`).join('');
+
+  // Lucky wins: lowest winning scores
+  const luckywins = [...withMargin].sort((a, b) => a.winnerScore - b.winnerScore).slice(0, 5);
+  $('#luckywin-body').innerHTML = luckywins.map((g, i) => `
+    <tr><td class="${rankClass(i)}">${i + 1}</td>
+    <td>${teamChipCompact(g.winnerKey, g.season)}</td>
+    <td class="num" style="color: var(--gold); font-weight:700;">${g.winnerScore.toFixed(2)}</td>
+    <td>${teamChipCompact(g.loserKey, g.season)}</td>
+    <td class="num">${g.loserScore.toFixed(2)}</td>
+    <td>${escapeHtml(g.season)} W${g.week}</td></tr>`).join('');
 }
 
 function renderFounders() {
@@ -1091,8 +1148,8 @@ function renderSeason(season) {
       if (toilet) {
         const to = state.ownerIndex[toilet.ownerKey];
         html += `<div class="award green"><span class="award-label">🚽 Toilet Bowl Winner</span>
-          <span class="award-winner" style="color:${to.color}">${escapeHtml(to.teamName)}</span>
-          <span class="award-detail">${escapeHtml(to.displayName)}</span></div>`;
+          <span class="award-winner" style="color:${to.color}">${escapeHtml(to.displayName)}</span>
+          <span class="award-detail">${escapeHtml(toilet.teamName)}</span></div>`;
       }
 
       html += `</div>`;
@@ -1172,6 +1229,7 @@ async function init() {
 
     updateLoader('Loading player database...', 75);
     state.players = await loadPlayerDB();
+    await loadHighlights();
 
     updateLoader('Processing data...', 92);
     buildOwnerIndex();

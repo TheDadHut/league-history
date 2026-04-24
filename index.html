@@ -1341,6 +1341,117 @@ function renderSeason(season) {
     if (rounds.length > 2) {
       html += `<div style="text-align:center; padding: 12px; color: var(--text-muted); font-size: 13px; font-style: italic;">Rounds 3-${rounds.length} available in Sleeper app</div>`;
     }
+
+    // ===== DRAFT VALUE: Steals / Busts / Waiver Wire Heroes =====
+    // Rank every player by season total, compare to draft position.
+    // Only count players with a meaningful amount of playing time (>20 pts).
+    const playerSeasonByPlayer = {}; // playerId → { pts, ownerKey }
+    Object.values(state.playerSeasonTotals).forEach(p => {
+      if (p.season !== season) return;
+      // Same player could play for multiple rosters if traded — keep max contribution's owner,
+      // but sum total points across all rosters.
+      if (!playerSeasonByPlayer[p.playerId]) {
+        playerSeasonByPlayer[p.playerId] = { pts: 0, ownerKey: p.ownerKey, ownerPts: 0 };
+      }
+      playerSeasonByPlayer[p.playerId].pts += p.pts;
+      if (p.pts > playerSeasonByPlayer[p.playerId].ownerPts) {
+        playerSeasonByPlayer[p.playerId].ownerKey = p.ownerKey;
+        playerSeasonByPlayer[p.playerId].ownerPts = p.pts;
+      }
+    });
+
+    // Rank all players by points scored this season (descending)
+    const playerRanking = Object.entries(playerSeasonByPlayer)
+      .map(([pid, data]) => ({ playerId: pid, pts: data.pts, ownerKey: data.ownerKey }))
+      .filter(p => p.pts > 20) // filter noise
+      .sort((a, b) => b.pts - a.pts);
+
+    const finishRank = {}; // playerId → finish rank (1-based)
+    playerRanking.forEach((p, i) => { finishRank[p.playerId] = i + 1; });
+
+    // Map draft pick → player
+    const draftedPlayerIds = new Set();
+    const draftInfo = {}; // playerId → { pickNo, ownerKey }
+    league.draftPicks.forEach(p => {
+      if (!p.player_id) return;
+      draftedPlayerIds.add(p.player_id);
+      const user = league.users.find(u => u.user_id === p.picked_by);
+      const o = user ? state.ownerIndex[ownerKey(user)] : null;
+      draftInfo[p.player_id] = { pickNo: p.pick_no, ownerKey: o ? o.key : null };
+    });
+
+    // Draft steals: drafted players whose finish was much better than their draft position
+    const drafted = playerRanking
+      .filter(p => draftedPlayerIds.has(p.playerId))
+      .map(p => ({
+        ...p,
+        pickNo: draftInfo[p.playerId].pickNo,
+        finishRank: finishRank[p.playerId],
+        value: draftInfo[p.playerId].pickNo - finishRank[p.playerId] // + means steal, - means bust
+      }));
+
+    const steals = [...drafted].sort((a, b) => b.value - a.value).slice(0, 5);
+    const busts = [...drafted].sort((a, b) => a.value - b.value).slice(0, 5);
+
+    // Waiver wire heroes: top scorers who WEREN'T drafted
+    const waiverHeroes = playerRanking
+      .filter(p => !draftedPlayerIds.has(p.playerId))
+      .slice(0, 5)
+      .map(p => ({ ...p, finishRank: finishRank[p.playerId] }));
+
+    const renderPlayerRow = (p, i, opts = {}) => {
+      const info = playerInfo(p.playerId);
+      const owner = p.ownerKey ? state.ownerIndex[p.ownerKey] : null;
+      const pickCell = opts.showPick
+        ? `<td class="num" style="color: var(--text-dim);">#${p.pickNo}</td>`
+        : `<td class="num" style="color: var(--text-muted); font-style: italic;">UNDRAFTED</td>`;
+      const valueCell = opts.showValue
+        ? `<td class="num" style="color: ${p.value > 0 ? '#4ade80' : '#f87171'}; font-weight:700;">${p.value > 0 ? '+' : ''}${p.value}</td>`
+        : '';
+      return `<tr>
+        <td class="${rankClass(i)}">${i + 1}</td>
+        <td style="font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase;">${escapeHtml(info.name)}</td>
+        <td style="color: var(--text-dim); font-family:'JetBrains Mono', monospace; font-size:12px;">${escapeHtml(info.position)}</td>
+        <td>${owner ? teamChipCompact(owner.key, season) : '<span style="color: var(--text-muted);">—</span>'}</td>
+        ${pickCell}
+        <td class="num">${opts.showPick ? '#' + p.finishRank : '#' + p.finishRank}</td>
+        ${valueCell}
+        <td class="num" style="color: var(--accent); font-weight:700;">${p.pts.toFixed(1)}</td>
+      </tr>`;
+    };
+
+    if (steals.length > 0) {
+      html += `<div class="section-header"><div class="section-bar" style="background:#4ade80;"></div><h2>💎 Biggest Draft Steals</h2><span class="count-pill">TOP 5</span></div>
+        <div class="card">
+          <div class="card-header"><h3>Drafted Late, Finished High</h3><span class="hint">Value = pick # − finish rank</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Value</th><th class="num">Points</th></tr></thead>
+            <tbody>${steals.map((p, i) => renderPlayerRow(p, i, { showPick: true, showValue: true })).join('')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    if (busts.length > 0) {
+      html += `<div class="section-header"><div class="section-bar" style="background:var(--accent-red);"></div><h2>💩 Biggest Draft Busts</h2><span class="count-pill">TOP 5</span></div>
+        <div class="card">
+          <div class="card-header"><h3>Drafted High, Finished Low</h3><span class="hint">Negative value = bust</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Value</th><th class="num">Points</th></tr></thead>
+            <tbody>${busts.map((p, i) => renderPlayerRow(p, i, { showPick: true, showValue: true })).join('')}</tbody>
+          </table></div>
+        </div>`;
+    }
+
+    if (waiverHeroes.length > 0) {
+      html += `<div class="section-header"><div class="section-bar" style="background:var(--accent-blue);"></div><h2>🔥 Waiver Wire Heroes</h2><span class="count-pill">TOP 5</span></div>
+        <div class="card">
+          <div class="card-header"><h3>Best Undrafted Players</h3><span class="hint">Picked up off the scrap heap</span></div>
+          <div class="table-scroll"><table>
+            <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Owner</th><th class="num">Drafted</th><th class="num">Finished</th><th class="num">Points</th></tr></thead>
+            <tbody>${waiverHeroes.map((p, i) => renderPlayerRow(p, i, { showPick: false, showValue: false })).join('')}</tbody>
+          </table></div>
+        </div>`;
+    }
   }
 
   const hl = HIGHLIGHTS[season];

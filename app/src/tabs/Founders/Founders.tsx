@@ -36,7 +36,7 @@ export default function Founders() {
         </p>
       )}
 
-      {state.status === 'ready' &&
+      {(state.status === 'core-ready' || state.status === 'ready') &&
         (() => {
           const founders = selectFounders(state.leagues, state.ownerIndex);
           if (!founders) {

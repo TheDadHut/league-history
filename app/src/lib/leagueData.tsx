@@ -44,16 +44,32 @@ export type { LeagueWithUsers, SeasonDetails };
 /**
  * Discriminated state surface every consumer renders against.
  *
- * `seasons` extends `LeagueWithUsers` with rosters, weekly matchups, and
- * playoff brackets — every tab beyond Founders needs at least some of
- * these. The `leagues` alias remains for back-compat with consumers
- * that only need the slim `LeagueWithUsers` shape (TypeScript's
- * structural typing makes the assignment safe).
+ * The provider hydrates in two stages so tabs that only need lean data
+ * (Founders) don't wait on the heavy per-season fetches that Overview,
+ * Records, etc. require:
+ *
+ *   - `core-ready`  — `leagues` + `ownerIndex` are populated. Founders
+ *                     can render. Per-season details are still in flight.
+ *   - `ready`       — `seasons` (rosters, weekly matchups, brackets) are
+ *                     also populated. Tabs that need season details
+ *                     render here.
+ *
+ * Both states share the same `leagues` / `ownerIndex` shape so Founders
+ * is indifferent to which one is current. Overview waits for `ready`.
  */
 export type LeagueDataState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | {
+      // Lean state: users + owner index landed; seasons still in flight.
+      // Tabs that only need lean data (Founders) render at this point.
+      status: 'core-ready';
+      leagues: LeagueWithUsers[];
+      ownerIndex: OwnerIndex;
+    }
+  | {
+      // Full state: per-season details (rosters, matchups, brackets) also in.
+      // Tabs that need season details (Overview, Records, etc.) render here.
       status: 'ready';
       /** Slim per-season payload — alias of `seasons` for callers that only need users. */
       leagues: LeagueWithUsers[];
@@ -101,6 +117,14 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
         // per-season fetches before assembling it.
         const ownerIndex = buildOwnerIndex(enriched);
 
+        // Stage 1: surface the lean payload now so Founders (and any
+        // future owner-only tabs) can paint while season details fetch.
+        setState({
+          status: 'core-ready',
+          leagues: enriched,
+          ownerIndex,
+        });
+
         // Hydrate every season with rosters, weekly matchups, and brackets.
         // Per-season fetches happen in parallel; within each season the
         // helper fans out further (see `loadSeasonDetails`).
@@ -109,6 +133,7 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
         );
         if (cancelled) return;
 
+        // Stage 2: full payload. Overview, Records, etc. unblock here.
         setState({
           status: 'ready',
           leagues: enriched,

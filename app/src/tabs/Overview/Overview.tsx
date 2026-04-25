@@ -28,7 +28,10 @@ import styles from './Overview.module.css';
 export default function Overview() {
   const state = useLeagueData();
 
-  if (state.status === 'loading') {
+  // `core-ready` means lean league data is loaded but per-season details
+  // (rosters, matchups, brackets) are still in flight — Overview needs
+  // those, so we keep showing the loading state until `ready`.
+  if (state.status === 'loading' || state.status === 'core-ready') {
     return (
       <section className={styles.section} aria-busy="true">
         <p className={styles.status}>Loading…</p>

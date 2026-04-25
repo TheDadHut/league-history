@@ -5,6 +5,7 @@ import './App.css';
 
 // Each tab is dynamically imported so Vite emits its own chunk; per the
 // migration plan, every tab should be code-split on its own boundary.
+const Overview = lazy(() => import('./tabs/Overview/Overview'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -16,7 +17,10 @@ interface TabDef {
 
 // Order mirrors the legacy site's tab nav (index.html lines 332-343).
 // Tabs are added here as they're ported in Phase 3.
-const TABS: readonly TabDef[] = [{ path: 'founders', label: 'Founders' }];
+const TABS: readonly TabDef[] = [
+  { path: 'overview', label: 'Overview' },
+  { path: 'founders', label: 'Founders' },
+];
 
 function App() {
   return (
@@ -50,7 +54,8 @@ function App() {
         <LeagueDataProvider>
           <Suspense fallback={<p className="app-suspense">Loading…</p>}>
             <Routes>
-              <Route path="/" element={<Navigate to="/founders" replace />} />
+              <Route path="/" element={<Navigate to="/overview" replace />} />
+              <Route path="/overview" element={<Overview />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

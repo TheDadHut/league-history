@@ -21,7 +21,7 @@
 // fallbacks; this implementation matches that behavior verbatim.
 
 import { FALLBACK_PALETTE, OWNER_COLORS } from '../config';
-import type { League, User } from '../types/sleeper';
+import type { BracketMatch, League, Matchup, Roster, User } from '../types/sleeper';
 
 export interface Owner {
   /** Lower-cased display_name (or username if display_name is empty). The stable cross-season key. */
@@ -61,6 +61,25 @@ function explicitColorFor(key: string): string | null {
 
 /** A season payload that has had `users` attached. Mirrors the shape used by the stat selectors. */
 export type LeagueWithUsers = League & { users: User[] };
+
+/**
+ * A season's full per-league payload — adds rosters, all 18 weeks of
+ * matchups, and both playoff brackets on top of `LeagueWithUsers`.
+ *
+ * Mirrors the legacy `loadSeasonDetails()` shape (index.html lines
+ * 749-783); the heavy fetches happen once at the provider layer so
+ * downstream tabs can read this directly without re-fetching.
+ *
+ * `weeklyMatchups[i]` holds week `i + 1`'s matchups; missing weeks are
+ * empty arrays (legacy code coerces fetch errors to `[]` in the same
+ * spot).
+ */
+export type SeasonDetails = LeagueWithUsers & {
+  rosters: Roster[];
+  weeklyMatchups: Matchup[][];
+  winnersBracket: BracketMatch[];
+  losersBracket: BracketMatch[];
+};
 
 /**
  * Builds the cross-season owner index with stable color assignments. Every

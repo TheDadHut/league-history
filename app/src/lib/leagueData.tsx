@@ -28,18 +28,39 @@ import type { ReactNode } from 'react';
 import { CURRENT_LEAGUE_ID } from '../config';
 import { walkPreviousLeagues } from './history';
 import { getUsers } from './sleeper';
-import { buildOwnerIndex, type OwnerIndex, type LeagueWithUsers } from './owners';
+import { loadSeasonDetails } from './season';
+import {
+  buildOwnerIndex,
+  type LeagueWithUsers,
+  type OwnerIndex,
+  type SeasonDetails,
+} from './owners';
 
-// Re-exported so consumers can keep importing it from `leagueData` without
+// Re-exported so consumers can keep importing them from `leagueData` without
 // reaching into the owners module. Defined in `owners.ts` to break the
 // circular import that would otherwise form (this file imports from owners).
-export type { LeagueWithUsers };
+export type { LeagueWithUsers, SeasonDetails };
 
-/** Discriminated state surface every consumer renders against. */
+/**
+ * Discriminated state surface every consumer renders against.
+ *
+ * `seasons` extends `LeagueWithUsers` with rosters, weekly matchups, and
+ * playoff brackets — every tab beyond Founders needs at least some of
+ * these. The `leagues` alias remains for back-compat with consumers
+ * that only need the slim `LeagueWithUsers` shape (TypeScript's
+ * structural typing makes the assignment safe).
+ */
 export type LeagueDataState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; leagues: LeagueWithUsers[]; ownerIndex: OwnerIndex };
+  | {
+      status: 'ready';
+      /** Slim per-season payload — alias of `seasons` for callers that only need users. */
+      leagues: LeagueWithUsers[];
+      /** Full per-season payload (rosters, weekly matchups, brackets). */
+      seasons: SeasonDetails[];
+      ownerIndex: OwnerIndex;
+    };
 
 // `null` means "no provider above us" — the hook below treats that as a
 // developer error, which is more useful than a silent default value.
@@ -75,8 +96,25 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
         );
         if (cancelled) return;
 
+        // Build the owner index from the lean `LeagueWithUsers` payload —
+        // it only reads `users`, so there's no need to wait for the heavy
+        // per-season fetches before assembling it.
         const ownerIndex = buildOwnerIndex(enriched);
-        setState({ status: 'ready', leagues: enriched, ownerIndex });
+
+        // Hydrate every season with rosters, weekly matchups, and brackets.
+        // Per-season fetches happen in parallel; within each season the
+        // helper fans out further (see `loadSeasonDetails`).
+        const seasons: SeasonDetails[] = await Promise.all(
+          enriched.map((league) => loadSeasonDetails(league)),
+        );
+        if (cancelled) return;
+
+        setState({
+          status: 'ready',
+          leagues: enriched,
+          seasons,
+          ownerIndex,
+        });
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Unknown error loading league data.';

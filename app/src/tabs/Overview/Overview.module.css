@@ -1,0 +1,408 @@
+/* Overview tab — visual parity with the legacy site:
+ *   - section-header / section-bar / count-pill (index.html lines 105-109)
+ *   - .champs-grid / .champ-card (lines 140-145)
+ *   - .stat-grid / .stat-tile (lines 147-151)
+ *   - .card / .card-header / .table-scroll / table (lines 111-128)
+ *   - .team-chip / .team-dot / .team-owner (lines 133-135)
+ *   - .rank / .rank-1/2/3 (lines 130-131)
+ *   - sortable th / sort-ind (lines 120-123)
+ *
+ * Colors and typography are inherited from `:root` in index.css.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+/* -------------------------------------------------------------------
+ * Hall of Champs
+ * ------------------------------------------------------------------- */
+
+.champsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.champCard {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--panel) 100%);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid var(--gold);
+}
+
+.champCard::before {
+  content: '🏆';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 120px;
+  opacity: 0.08;
+  transform: rotate(15deg);
+  pointer-events: none;
+}
+
+.champYear {
+  font-family: 'Oswald', sans-serif;
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+}
+
+.champTeam {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.champOwner {
+  color: var(--text-dim);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.emptyChamps {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 28px;
+}
+
+/* -------------------------------------------------------------------
+ * League Pulse
+ * ------------------------------------------------------------------- */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.statTile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  padding: 16px 18px;
+}
+
+.statLabel {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.statValue {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.statSub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* -------------------------------------------------------------------
+ * All-Time Standings — card + table
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  background: linear-gradient(90deg, #000 0%, var(--panel) 100%);
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 500px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+/* `.num` is applied to both `th` and `td` so the alignment + monospace
+ * styling stays consistent between header and cell. */
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+/* Sortable header — the click target is a `<button>` inside the `<th>`
+ * for accessibility (keyboard activation, focus ring), not the `<th>`
+ * itself like the legacy site. */
+.sortable {
+  cursor: pointer;
+}
+
+.sortable:hover {
+  color: var(--accent);
+}
+
+.sortable.sorted .sortInd {
+  color: var(--accent);
+}
+
+/* The clickable header is a `<button>` for keyboard + a11y, but it
+ * needs to look exactly like the legacy text-only `<th>`. Reset every
+ * default browser style and let it inherit color/font/letter-spacing
+ * from the surrounding `<th>`. The button hugs its content so the
+ * `<th>`'s `text-align` controls left vs right placement (matches the
+ * legacy layout where `.num` headers right-align the label). */
+.sortButton {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sortInd {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 10px;
+  /* Reserve space so the header's height doesn't shift when sorted. */
+  min-width: 8px;
+  text-align: center;
+}
+
+/* Rank pill */
+.rank {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 36px;
+  font-size: 16px;
+}
+
+.rank1 {
+  color: var(--gold);
+}
+
+.rank2 {
+  color: var(--silver);
+}
+
+.rank3 {
+  color: var(--bronze);
+}
+
+.wins {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.losses {
+  color: #f87171;
+  font-weight: 700;
+}
+
+/* Team chip — colored dot + team name in owner color + dim owner sub. */
+.teamChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.teamOwner {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Hide the secondary owner sub-line on phones (legacy mirror at
+   * lines 224-226). The team name and color dot stay. */
+  .teamOwner {
+    display: none;
+  }
+
+  .champCard {
+    padding: 18px 20px;
+  }
+
+  .champTeam {
+    font-size: 22px;
+  }
+
+  .statValue {
+    font-size: 20px;
+  }
+}

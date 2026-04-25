@@ -1,0 +1,107 @@
+/* Founders tab — visual parity with the legacy site (.founders-grid /
+ * .founder-card / .founder-name / .founder-team in index.html lines
+ * 216-219). Colors and typography are inherited from the global
+ * design tokens defined on :root in index.css.
+ */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 18px 20px;
+  border-radius: 3px;
+  border-top: 3px solid var(--border-bright);
+}
+
+.name {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.team {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+/* Loading + error states — match the legacy load/error idiom (terse,
+ * uppercase labels, no spinners other than the global one). */
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+@media (max-width: 640px) {
+  .grid {
+    /* On phones, ensure cards fit without horizontal scroll even on the
+     * narrowest viewports we care about (~320px). */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .card {
+    padding: 14px 16px;
+  }
+
+  .team {
+    font-size: 18px;
+  }
+}

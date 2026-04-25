@@ -1,6 +1,49 @@
 {
   "_comment": "Highlight formats supported (newest first): 1) Plain string, 2) {text}, 3) {text, sub: 'string'} for one sub, 4) {text, children: [...]} for one or more children — each child can recurse with its own children",
   "2024": [
+    {
+      "text": "Alex lost in week 15 to MobClassic, came back through the losers bracket, and won the championship anyway.",
+      "children": [
+        { "text": "The commissioner cannot be eliminated." }
+      ]
+    },
+    {
+      "text": "BigBickBaniel finished 11-3 with the best regular-season record and never played in a championship game.",
+      "children": [
+        { "text": "Second-highest fpts in the league. Gone in the first round." }
+      ]
+    },
+    "Skratchmonkey went 4-10, made the championship, and lost 134-194.",
+    {
+      "text": "MobClassic put up 180 to knock Alex out in week 15, then scored 92 in week 16.",
+      "children": [
+        { "text": "Lost by 75. Peaked at the wrong time." }
+      ]
+    },
+    {
+      "text": "Henny led the entire league in points scored and potential points and didn't win a ring.",
+      "children": [
+        { "text": "2137 fpts, 2512 potential. Most productive roster, zero hardware." }
+      ]
+    },
+    {
+      "text": "Alex traded Tyreek Hill for Travis Kelce in week 3.",
+      "children": [
+        { "text": "Tyreek had a historically bad season. Kelce anchored the title run." }
+      ]
+    },
+    {
+      "text": "Alex picked up Brock Bowers in a week 4 three-way trade.",
+      "children": [
+        { "text": "Bowers set the NFL record for rookie TE receptions. Paired with Kelce, it was over." }
+      ]
+    },
+    {
+      "text": "frankenjoyer dealt the #1 overall pick in week 4 and still made the playoffs.",
+      "children": [
+        { "text": "Lost to blaz300 — the team that took the pick — by 2.2 points." }
+      ]
+    },
     "Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again.",
     "Henny flies up the standings by playing the waiver wire exceptionally well.",
     {

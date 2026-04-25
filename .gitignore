@@ -1,0 +1,11 @@
+# Agent pipeline — local only
+/CLAUDE.md
+/docs/migration-plan.md
+/docs/glossary.md
+/.claude/
+
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp

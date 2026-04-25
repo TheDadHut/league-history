@@ -7,6 +7,7 @@ import './App.css';
 // migration plan, every tab should be code-split on its own boundary.
 const Overview = lazy(() => import('./tabs/Overview/Overview'));
 const Records = lazy(() => import('./tabs/Records/Records'));
+const HeadToHead = lazy(() => import('./tabs/HeadToHead/HeadToHead'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -22,6 +23,7 @@ interface TabDef {
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
   { path: 'records', label: 'Records' },
+  { path: 'head-to-head', label: 'Head-to-Head' },
   { path: 'founders', label: 'Founders' },
 ];
 
@@ -60,6 +62,7 @@ function App() {
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="/overview" element={<Overview />} />
               <Route path="/records" element={<Records />} />
+              <Route path="/head-to-head" element={<HeadToHead />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

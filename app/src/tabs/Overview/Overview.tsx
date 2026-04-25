@@ -30,7 +30,8 @@ export default function Overview() {
 
   // `core-ready` means lean league data is loaded but per-season details
   // (rosters, matchups, brackets) are still in flight — Overview needs
-  // those, so we keep showing the loading state until `ready`.
+  // those, so we keep showing the loading state until at least
+  // `seasons-ready` (the player DB doesn't gate Overview).
   if (state.status === 'loading' || state.status === 'core-ready') {
     return (
       <section className={styles.section} aria-busy="true">

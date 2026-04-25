@@ -11,8 +11,8 @@
 // Loading strategy: `useEffect` with the empty dep array. Considered the
 // React 19 `use(promise)` + Suspense idiom but rejected for now:
 //   1. The existing tabs render their own loading / error UI from a
-//      discriminated union (`{ status: 'loading' | 'error' | 'ready' }`).
-//      Matching that shape keeps the consumer pattern uniform.
+//      discriminated union (see `LeagueDataState` below). Matching that
+//      shape keeps the consumer pattern uniform.
 //   2. `use(promise)` requires hoisting a stable Promise reference and
 //      pairs naturally with Suspense + an ErrorBoundary; neither is
 //      wired into the app shell yet. Adding both for one provider is
@@ -27,7 +27,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_LEAGUE_ID } from '../config';
 import { walkPreviousLeagues } from './history';
-import { getUsers } from './sleeper';
+import { getPlayers, getUsers } from './sleeper';
 import { loadSeasonDetails } from './season';
 import {
   buildOwnerIndex,
@@ -35,27 +35,34 @@ import {
   type OwnerIndex,
   type SeasonDetails,
 } from './owners';
+import type { Player } from '../types/sleeper';
 
 // Re-exported so consumers can keep importing them from `leagueData` without
 // reaching into the owners module. Defined in `owners.ts` to break the
 // circular import that would otherwise form (this file imports from owners).
 export type { LeagueWithUsers, SeasonDetails };
 
+/** Sleeper player DB, keyed by `player_id`. ~5MB; cached in sessionStorage. */
+export type PlayerIndex = Record<string, Player>;
+
 /**
  * Discriminated state surface every consumer renders against.
  *
- * The provider hydrates in two stages so tabs that only need lean data
- * (Founders) don't wait on the heavy per-season fetches that Overview,
- * Records, etc. require:
+ * The provider hydrates in three stages so tabs that only need lean
+ * data don't wait on heavier fetches:
  *
- *   - `core-ready`  — `leagues` + `ownerIndex` are populated. Founders
- *                     can render. Per-season details are still in flight.
- *   - `ready`       — `seasons` (rosters, weekly matchups, brackets) are
- *                     also populated. Tabs that need season details
- *                     render here.
+ *   - `core-ready`     — `leagues` + `ownerIndex` are populated. Founders
+ *                        can render. Per-season details are still in flight.
+ *   - `seasons-ready`  — `seasons` (rosters, weekly matchups, brackets) are
+ *                        also populated. Tabs that need season details but
+ *                        not the player DB (Overview) render here.
+ *   - `ready`          — the Sleeper player DB (~5MB) is also loaded.
+ *                        Tabs that surface individual player names/positions
+ *                        (Records, Seasons, Trades, …) render here.
  *
- * Both states share the same `leagues` / `ownerIndex` shape so Founders
- * is indifferent to which one is current. Overview waits for `ready`.
+ * The states are additive — every later state is a superset of the
+ * earlier one. Founders accepts any non-loading/error state; Overview
+ * accepts `seasons-ready` or `ready`; Records waits for `ready`.
  */
 export type LeagueDataState =
   | { status: 'loading' }
@@ -68,14 +75,25 @@ export type LeagueDataState =
       ownerIndex: OwnerIndex;
     }
   | {
-      // Full state: per-season details (rosters, matchups, brackets) also in.
-      // Tabs that need season details (Overview, Records, etc.) render here.
-      status: 'ready';
+      // Per-season details landed; player DB still in flight.
+      // Tabs that need season details but not player names (Overview)
+      // render at this point.
+      status: 'seasons-ready';
       /** Slim per-season payload — alias of `seasons` for callers that only need users. */
       leagues: LeagueWithUsers[];
       /** Full per-season payload (rosters, weekly matchups, brackets). */
       seasons: SeasonDetails[];
       ownerIndex: OwnerIndex;
+    }
+  | {
+      // Everything loaded — including the Sleeper player DB. Tabs that
+      // surface individual player names (Records, Seasons, Trades, …)
+      // render at this point.
+      status: 'ready';
+      leagues: LeagueWithUsers[];
+      seasons: SeasonDetails[];
+      ownerIndex: OwnerIndex;
+      players: PlayerIndex;
     };
 
 // `null` means "no provider above us" — the hook below treats that as a
@@ -128,17 +146,40 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
         // Hydrate every season with rosters, weekly matchups, and brackets.
         // Per-season fetches happen in parallel; within each season the
         // helper fans out further (see `loadSeasonDetails`).
+        //
+        // Kick off the player-DB fetch alongside the per-season fetches —
+        // it's served from sessionStorage on cache hits, so this is a
+        // no-cost parallel start in the common case. Even on a cold
+        // session, fetching the player DB and the seasons concurrently
+        // beats serializing them.
+        const playersPromise = getPlayers();
         const seasons: SeasonDetails[] = await Promise.all(
           enriched.map((league) => loadSeasonDetails(league)),
         );
         if (cancelled) return;
 
-        // Stage 2: full payload. Overview, Records, etc. unblock here.
+        // Stage 2: per-season details landed. Surface this tier so
+        // Overview can paint its lean tiles before the heavier player-DB
+        // payload finishes parsing.
+        setState({
+          status: 'seasons-ready',
+          leagues: enriched,
+          seasons,
+          ownerIndex,
+        });
+
+        const players = await playersPromise;
+        if (cancelled) return;
+
+        // Stage 3: full payload. Records and any future tab that needs
+        // individual player metadata (Seasons, Trades, Owner Stats)
+        // unblocks here.
         setState({
           status: 'ready',
           leagues: enriched,
           seasons,
           ownerIndex,
+          players,
         });
       } catch (err) {
         if (cancelled) return;

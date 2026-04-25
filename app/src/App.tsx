@@ -6,6 +6,7 @@ import './App.css';
 // Each tab is dynamically imported so Vite emits its own chunk; per the
 // migration plan, every tab should be code-split on its own boundary.
 const Overview = lazy(() => import('./tabs/Overview/Overview'));
+const Records = lazy(() => import('./tabs/Records/Records'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -15,10 +16,12 @@ interface TabDef {
   label: string;
 }
 
-// Order mirrors the legacy site's tab nav (index.html lines 332-343).
-// Tabs are added here as they're ported in Phase 3.
+// Final order should match the legacy nav (index.html lines 332-343):
+// Overview -> Records -> Head-to-Head -> Seasons -> Fun Stats -> Luck & Streaks -> Trades -> Owner Stats -> Founders.
+// Tabs are added in migration order today and will be reordered before the Phase 5 cutover.
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
+  { path: 'records', label: 'Records' },
   { path: 'founders', label: 'Founders' },
 ];
 
@@ -56,6 +59,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="/overview" element={<Overview />} />
+              <Route path="/records" element={<Records />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

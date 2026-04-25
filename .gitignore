@@ -3,6 +3,7 @@
 /docs/migration-plan.md
 /docs/glossary.md
 /.claude/
+/.mcp.json
 
 # OS / editor noise
 .DS_Store

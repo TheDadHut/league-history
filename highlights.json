@@ -1,10 +1,11 @@
 {
-  "_comment": "Highlight formats supported (newest first): 1) Plain string, 2) {text}, 3) {text, sub: 'string'} for one sub, 4) {text, children: [...]} for one or more children — each child can recurse with its own children",
+  "_comment": "Highlight formats supported: 1) plain string, 2) {text}, 3) {text, children: [...]} for one or more children — each child can recurse with its own children. Within a season, entries are ordered chronologically (early-season first, post-final reactions last).",
   "2024": [
+    "Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again.",
     {
-      "text": "Alex won the title by beating the only two teams that outscored him in the regular season.",
+      "text": "Same week Jose landed CMC, he also dumped CeeDee Lamb and picked up Jacobs and Pacheco.",
       "children": [
-        { "text": "Henny (1st in PF) in the semis, Michael (2nd in PF) in the final. Alex was 3rd." }
+        { "text": "None of it worked." }
       ]
     },
     {
@@ -18,31 +19,10 @@
       "text": "Alex drafted Tyreek Hill at pick 3, traded him to Michael three weeks later for Travis Kelce and Hayden Hurst, then flipped Hurst in a three-way to land Brock Bowers.",
       "children": [
         { "text": "Tyreek had the worst statistical season of his career." },
-        { "text": "Bowers set the NFL rookie TE reception record (112)." }
+        { "text": "Bowers set the NFL rookie TE reception record (112) — anchor of Alex's title run." }
       ]
     },
-    {
-      "text": "Michael went 11-3 in the regular season, got a first-round bye, and lost the championship to the 3-seed.",
-      "children": [
-        { "text": "The 3-seed was Alex." }
-      ]
-    },
-    {
-      "text": "In the same week Jose traded for CMC, he also moved CeeDee Lamb — his pick-2 WR — along with acquiring Josh Jacobs and Isaiah Pacheco.",
-      "children": [
-        { "text": "None of it worked." }
-      ]
-    },
-    "Henny led the league in both PF (2137.98) and potential points (2512.68) and walked away with nothing.",
-    "Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again.",
     "Henny flies up the standings by playing the waiver wire exceptionally well.",
-    {
-      "text": "Jose claims he knows more about football than Jason.",
-      "children": [
-        { "text": "Jose beats Jason." }
-      ]
-    },
-    "Alex is exposed as a corrupt commissioner.",
     {
       "text": "Jose pumps Jason's team with bad trades.",
       "children": [
@@ -54,8 +34,28 @@
         }
       ]
     },
-    "Henny changes team name to \"I Let Him Off the Hook\" after Alex wins the championship.",
-    "Tee Higgins puts up a top-10 league performance in the championship round to help Alex win the league."
+    {
+      "text": "Jose claims he knows more about football than Jason.",
+      "children": [
+        { "text": "Jose beats Jason." }
+      ]
+    },
+    "Henny led the league in both PF (2137.98) and potential points (2512.68) and walked away with nothing.",
+    {
+      "text": "Michael went 11-3 in the regular season, got a first-round bye, and lost the championship to the 3-seed.",
+      "children": [
+        { "text": "The 3-seed was Alex." }
+      ]
+    },
+    {
+      "text": "Alex won the title by beating the only two teams that outscored him in the regular season.",
+      "children": [
+        { "text": "Henny (1st in PF) in the semis, Michael (2nd in PF) in the final. Alex was 3rd." }
+      ]
+    },
+    "Tee Higgins puts up a top-10 league performance in the championship round to help Alex win the league.",
+    "Alex is exposed as a corrupt commissioner.",
+    "Henny changes team name to \"I Let Him Off the Hook\" after Alex wins the championship."
   ],
   "2025": [
     "Michael threw his team and juiced Nick.",

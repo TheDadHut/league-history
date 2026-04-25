@@ -234,7 +234,7 @@ function PlayerWeeksSection({ rows }: PlayerWeeksSectionProps) {
             <tbody>
               {rows.map((row, i) => (
                 <tr
-                  key={`${row.playerId}-${row.ownerKey}-${row.season}-${row.week}`}
+                  key={`${i}-${row.playerId}-${row.ownerKey}-${row.season}-${row.week}`}
                 >
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td className={styles.playerName}>{row.player.name}</td>

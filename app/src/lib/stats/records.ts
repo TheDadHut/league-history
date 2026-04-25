@@ -330,7 +330,7 @@ function collectPlayerWeekPerformances(
 
       starters.forEach((pid, i) => {
         if (!pid || pid === '0') return;
-        const pts = points[i] ?? 0;
+        const pts = points[i] || 0;
         rows.push({
           playerId: pid,
           ownerKey: side.ownerKey,

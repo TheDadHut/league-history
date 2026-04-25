@@ -16,8 +16,9 @@ interface TabDef {
   label: string;
 }
 
-// Order mirrors the legacy site's tab nav (index.html lines 332-343).
-// Tabs are added here as they're ported in Phase 3.
+// Final order should match the legacy nav (index.html lines 332-343):
+// Overview -> Records -> Head-to-Head -> Seasons -> Fun Stats -> Luck & Streaks -> Trades -> Owner Stats -> Founders.
+// Tabs are added in migration order today and will be reordered before the Phase 5 cutover.
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
   { path: 'records', label: 'Records' },

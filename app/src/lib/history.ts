@@ -20,6 +20,18 @@ const MAX_HOPS = 20;
  * Walks `previous_league_id` from `currentLeagueId` until the chain
  * terminates (null or the "0" sentinel) or `MAX_HOPS` is hit. Returns
  * the seasons chronologically — oldest first.
+ *
+ * @remarks
+ * This awaits N **sequential** Sleeper fetches (`getLeague` per hop, ~200ms
+ * each over a typical home connection), so the returned promise doesn't
+ * resolve until the entire chain has been walked. For the GDL's ~5-season
+ * history that's roughly a one-second wait before any data is available;
+ * for longer leagues it scales linearly.
+ *
+ * Callers that can render incrementally should not block UI on the full
+ * result. If streaming becomes important during Phase 3, an
+ * `AsyncGenerator<League>` form may be added alongside this function so
+ * tabs can paint each season as it arrives.
  */
 export async function walkPreviousLeagues(currentLeagueId: string): Promise<League[]> {
   const seasons: League[] = [];

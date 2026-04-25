@@ -163,6 +163,10 @@ export interface H2HGame {
  * playoff games. Matches the legacy per-owner tally shape (index.html
  * lines 2664, 2669) so Owner Stats can read the same record off of
  * `selectH2HSeries(...)` once that tab migrates.
+ *
+ * All `*A` fields are owner A's perspective; `*B` fields are owner B's.
+ * The legacy `regW`/`regL`/`poW`/`poL` are aliases of the A-perspective
+ * fields, kept for the existing render path.
  */
 export interface H2HRecord {
   /** Regular-season wins for owner A. */
@@ -173,6 +177,22 @@ export interface H2HRecord {
   poW: number;
   /** Playoff losses for owner A. */
   poL: number;
+  /** Regular-season wins for owner A (alias of `regW`). */
+  regWA: number;
+  /** Regular-season losses for owner A (alias of `regL`). */
+  regLA: number;
+  /** Regular-season wins for owner B. */
+  regWB: number;
+  /** Regular-season losses for owner B. */
+  regLB: number;
+  /** Playoff wins for owner A (alias of `poW`). */
+  poWA: number;
+  /** Playoff losses for owner A (alias of `poL`). */
+  poLA: number;
+  /** Playoff wins for owner B. */
+  poWB: number;
+  /** Playoff losses for owner B. */
+  poLB: number;
   /** Total games (including ties). */
   games: number;
   /** Combined wins for owner A across reg + playoffs. */
@@ -269,6 +289,14 @@ export function selectH2HSeries(
       regL,
       poW,
       poL,
+      regWA: regW,
+      regLA: regL,
+      regWB: regL,
+      regLB: regW,
+      poWA: poW,
+      poLA: poL,
+      poWB: poL,
+      poLB: poW,
       games: games.length,
       totalWinsA,
       totalWinsB,

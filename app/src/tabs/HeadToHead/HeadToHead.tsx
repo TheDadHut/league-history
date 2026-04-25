@@ -263,9 +263,9 @@ interface GameRowProps {
 
 function GameRow({ game }: GameRowProps) {
   // Legacy: A wins ⇒ A's score green, B's score red, and vice versa.
-  // Ties keep both sides neutral (legacy never explicitly handled
-  // ties; matchups don't tie in practice but we still avoid pretending
-  // both sides won).
+  // Ties are intentionally rendered neutrally; the legacy site painted
+  // A=lose / B=win on ties, which was a small legacy bug. We treat both
+  // sides as neutral (no win/lose class).
   const aClass =
     game.winner === 'A'
       ? `${styles.score} ${styles.win}`

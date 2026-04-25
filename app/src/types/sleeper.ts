@@ -85,11 +85,15 @@ export interface Matchup {
   /** Starter slot order; "0" sentinel for empty slots. */
   starters: string[] | null;
   /**
-   * Per-player point totals. Sleeper returns this as an object keyed by
-   * player_id, but very old/incomplete payloads can come back as an empty
-   * array — narrow before using.
+   * Per-player point totals. Three-state shape:
+   *   - `Record<string, number>` keyed by player_id when Sleeper has scoring data,
+   *   - an empty array `[]` for very old/incomplete payloads (the array case is
+   *     never populated — legacy code guards with `!Array.isArray()` and
+   *     substitutes `{}`), or
+   *   - `null` when the field is absent entirely.
+   * Narrow before using.
    */
-  players_points: Record<string, number> | unknown[] | null;
+  players_points: Record<string, number> | [] | null;
   /** Points for each starter, indexed positionally to match `starters`. */
   starters_points: number[] | null;
   /** Commissioner-set point overrides; typically null. */
@@ -100,7 +104,7 @@ export interface Matchup {
 /**
  * Single bracket node. Sleeper returns an array from
  * `/league/{league_id}/winners_bracket` and `/losers_bracket`. The legacy
- * code only reads `m` (round), `t1`, `t2`, `w` (winner roster id), and `p`
+ * code only reads `r` (round), `t1`, `t2`, `w` (winner roster id), and `p`
  * (placement in losers bracket / consolation games).
  */
 export interface BracketMatch {
@@ -180,8 +184,8 @@ export interface Transaction {
   type: string;
   /** "complete" | "failed" — legacy only counts complete transactions. */
   status: string;
-  /** Unix ms when created. */
-  created: number;
+  /** Unix ms when created. Null on rare incomplete payloads — legacy guards with `(tx.created || 0)`. */
+  created: number | null;
   /** Status update timestamp; null on pending. */
   status_updated: number | null;
   /**
@@ -195,8 +199,8 @@ export interface Transaction {
   adds: Record<string, number> | null;
   /** player_id → roster_id that gave them up. Null for transactions with no drops. */
   drops: Record<string, number> | null;
-  /** Pre-draft pick swaps, present on trades that include picks. */
-  draft_picks: TransactionDraftPick[];
+  /** Pre-draft pick swaps, present on trades that include picks. Null when no picks are involved — legacy guards with `(tx.draft_picks || [])`. */
+  draft_picks: TransactionDraftPick[] | null;
   [key: string]: unknown;
 }
 

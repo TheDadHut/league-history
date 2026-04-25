@@ -18,9 +18,9 @@
 //
 // The legacy Pulse panel also includes player and trader tiles that
 // depend on data not yet ported (the player DB; the Trades tab's
-// fairness analysis). Those tiles are intentionally omitted here — and
-// noted at their slot — so they slot back in cleanly when their host
-// tabs are migrated.
+// fairness analysis). Those tiles are rendered here as visually-distinct
+// placeholders (em-dash value + sub) so the grid matches the legacy
+// layout; real numbers land when the Records and Trades tabs migrate.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
 import { ownerKey } from '../owners';
@@ -317,27 +317,25 @@ export interface PulseTile {
 /**
  * Returns the legacy Pulse-grid tiles in display order.
  *
- * Mirrors `renderPulse()` (lines 1916-2011) for the tiles whose data
- * dependencies are already in the React app:
+ * Mirrors `renderPulse()` (lines 1916-2011). Tiles whose data lives in
+ * the loaded provider state get real values; tiles that depend on the
+ * player DB or trade-fairness analysis (which arrive with the Records
+ * and Trades tab migrations) render with em-dash placeholders so the
+ * grid matches the legacy layout exactly.
  *
- *   1. All-Time Wins Leader
- *   2. League High Single Game
- *   3. Most Points For (Season)
- *   4. Unluckiest (Most PA, single season)
- *   5. Total Regular Season Games
- *   6. Active Owners
- *
- * The legacy site also renders four more tiles when the data is
- * loaded:
- *
- *   - Top Player · Single Week
- *   - Top Player · Full Season
- *   - Best Trader / Worst Trader
- *
- * Those tiles slot back in once the Records (player DB) and Trades
- * tabs migrate. They're intentionally omitted here rather than
- * surfaced in a half-blank state.
+ *   1. All-Time Wins Leader              (real)
+ *   2. League High Single Game           (real)
+ *   3. Most Points For (Season)          (real)
+ *   4. Unluckiest (Most PA)              (real)
+ *   5. Total Regular Season Games        (real)
+ *   6. Active Owners                     (real)
+ *   7. Top Player · Single Week          (placeholder — fills in with Records / player DB)
+ *   8. Top Player · Full Season          (placeholder — fills in with Records / player DB)
+ *   9. Best Trader                       (placeholder — fills in with Trades migration)
+ *  10. Worst Trader                      (placeholder — fills in with Trades migration)
  */
+/** Placeholder used for any pulse tile whose data hasn't been loaded yet. Em-dash, U+2014. */
+const PULSE_PLACEHOLDER = '—';
 export function selectPulseTiles(
   seasons: SeasonDetails[],
   ownerIndex: OwnerIndex,
@@ -442,6 +440,34 @@ export function selectPulseTiles(
     label: 'Active Owners',
     value: Object.keys(ownerIndex).length.toString(),
     sub: 'All-time',
+  });
+
+  // 7-10. Placeholder tiles. Their data lives in tabs that haven't
+  // migrated yet — the player DB (Records) and the trade-fairness
+  // analysis (Trades). Em-dash placeholders preserve grid parity with
+  // the legacy layout without fabricating numbers.
+  // 'Top Player · Single/Full Season' fill in when Records lands the
+  // player-DB integration. 'Best/Worst Trader' fill in when Trades
+  // migrates and trade-fairness analysis runs.
+  tiles.push({
+    label: 'Top Player · Single Week',
+    value: PULSE_PLACEHOLDER,
+    sub: PULSE_PLACEHOLDER,
+  });
+  tiles.push({
+    label: 'Top Player · Full Season',
+    value: PULSE_PLACEHOLDER,
+    sub: PULSE_PLACEHOLDER,
+  });
+  tiles.push({
+    label: 'Best Trader',
+    value: PULSE_PLACEHOLDER,
+    sub: PULSE_PLACEHOLDER,
+  });
+  tiles.push({
+    label: 'Worst Trader',
+    value: PULSE_PLACEHOLDER,
+    sub: PULSE_PLACEHOLDER,
   });
 
   return tiles;

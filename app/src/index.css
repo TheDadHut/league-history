@@ -1,102 +1,74 @@
+/* ===================================================================
+ * Global design tokens
+ * ===================================================================
+ *
+ * Ported from the legacy index.html (lines 11-42) so the React app
+ * inherits the same visual language tab-by-tab. CSS Modules in each
+ * tab consume these variables; nothing tab-specific lives here.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --bg: #0a0e1a;
+  --bg-card: #151b2e;
+  --panel: #1a2138;
+  --border: #252d48;
+  --border-bright: #3a4468;
+  --text: #f1f5ff;
+  --text-dim: #9aa5c4;
+  --text-muted: #6b7594;
+  --accent: #ffcc00;
+  --accent-red: #e8172b;
+  --accent-blue: #1877f2;
+  --gold: #ffd700;
+  --silver: #c0c7d4;
+  --bronze: #cd7f32;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Named colors for known owners — each is a distinct hue. Substring-matched
+   * in OWNER_COLORS (config.ts). */
+  --c-alex: #d32f2f;
+  --c-henny: #00838f;
+  --c-jason: #6a1b9a;
+  --c-jose: #2e7d32;
+  --c-justin: #1565c0;
+  --c-liam: #ef6c00;
+  --c-michael: #c2185b;
+  --c-nick: #8d6e63;
+  --c-default: #546e7a;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Fallback palette — 12 hues that are visually distinct from each other
+   * and from the named colors above. */
+  --c-p0: #ffd54f;
+  --c-p1: #26a69a;
+  --c-p2: #5e35b1;
+  --c-p3: #7cb342;
+  --c-p4: #039be5;
+  --c-p5: #ff7043;
+  --c-p6: #ec407a;
+  --c-p7: #9e9d24;
+  --c-p8: #ab47bc;
+  --c-p9: #00acc1;
+  --c-p10: #d84315;
+  --c-p11: #3949ab;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code {
-  font-family: var(--mono);
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: var(--text-h);
-  background: var(--code-bg);
+  font-family: 'Barlow Condensed', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(232, 23, 43, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(255, 204, 0, 0.06), transparent 40%),
+    linear-gradient(180deg, var(--bg) 0%, #080c17 100%);
+  overflow-x: hidden;
 }

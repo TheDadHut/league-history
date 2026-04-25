@@ -20,15 +20,15 @@
 // `buildAllMatchupsWithStarters` mirrors the legacy `buildAllMatchups`
 // (lines 851-890) — same skip rules, same matchup pairing logic — but
 // preserves the per-side starters and starters_points so the player
-// selectors can index into them. The Overview tab keeps a slimmer
-// flat-matchup builder colocated in `stats/overview.ts`; the two will
-// be unified in a follow-up once at least one more tab needs the
+// selectors can index into them. The lean version (no starters) lives
+// in `stats/util.ts` and is shared by Overview, H2H, and Seasons; the
+// two will be unified in a follow-up once a second tab also needs the
 // starters payload.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
-import { ownerKey } from '../owners';
 import type { PlayerIndex } from '../leagueData';
 import { playerDisplay, type PlayerDisplay } from '../players';
+import { buildRosterToOwnerKey } from './util';
 
 // ===================================================================
 // Internal: flattened matchup view (with starters)
@@ -53,20 +53,6 @@ interface FlatMatchupWithStarters {
   /** Final scores for the two sides, in the same order as `a` / `b`. */
   scoreA: number;
   scoreB: number;
-}
-
-/** `roster_id` → owner key for one season. Same shape used by overview.ts. */
-function buildRosterToOwnerKey(season: SeasonDetails): Map<number, string> {
-  const map = new Map<number, string>();
-  for (const roster of season.rosters) {
-    if (roster.owner_id == null) continue;
-    const user = season.users.find((u) => u.user_id === roster.owner_id);
-    if (!user) continue;
-    const key = ownerKey(user);
-    if (!key) continue;
-    map.set(roster.roster_id, key);
-  }
-  return map;
 }
 
 /**

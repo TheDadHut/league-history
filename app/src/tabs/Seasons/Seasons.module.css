@@ -1,0 +1,319 @@
+/* Seasons tab — visual parity with the legacy site:
+ *   - section-header / section-bar (index.html lines 105-109)
+ *   - .card / .card-header / .card-body (lines 111-115)
+ *   - select element styling from the legacy `#season-picker`
+ *     (line 414 inline `style="max-width: 300px;"`).
+ *   - .table / .table-scroll (lines 116-128)
+ *   - .team-chip / .team-dot / .team-owner (lines 133-135)
+ *   - .rank / .rank-1/2/3 (lines 130-131)
+ *   - The standings W-L cell uses the same span structure as the
+ *     legacy site (line 3137); the wins / losses spans inherit the
+ *     default table color in the legacy markup since `.record .wins`
+ *     / `.record .losses` only matched inside `.record` containers.
+ *     We keep them neutral here too — bold but no green/red tint —
+ *     to preserve visual parity.
+ *
+ * Colors and typography are inherited from `:root` in index.css.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error + empty placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+.empty {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Card frame (used for both the picker card and the standings card)
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  background: linear-gradient(90deg, #000 0%, var(--panel) 100%);
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.cardBody {
+  padding: 20px;
+}
+
+/* -------------------------------------------------------------------
+ * Season picker — styled like the H2H select but capped at the legacy
+ * `max-width: 300px` (index.html line 414). On phones the cap drops
+ * away and the select fills the card body so the touch target is
+ * comfortable.
+ * ------------------------------------------------------------------- */
+
+.pickerLabel {
+  display: block;
+  max-width: 300px;
+}
+
+/* Visually-hidden label text — the picker is self-describing in
+ * context (the card title says "Select Season") but screen readers
+ * still need the input/label association. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
+}
+
+.picker {
+  width: 100%;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+  padding: 12px 14px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.picker:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------
+ * Standings table — matches the Records tab's table styling so the
+ * two tabs feel like siblings.
+ * ------------------------------------------------------------------- */
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 480px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+/* `.num` is applied to both `th` and `td` so alignment + monospace
+ * styling stay consistent between header and cell. */
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+/* -------------------------------------------------------------------
+ * W-L cell — bold wins/losses pair separated by a dim dash.
+ * ------------------------------------------------------------------- */
+
+.winsLosses {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.wins,
+.losses {
+  font-weight: 700;
+}
+
+.dash {
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------------
+ * Rank pill — gold / silver / bronze for the top three rows.
+ * ------------------------------------------------------------------- */
+
+.rank {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 36px;
+  font-size: 16px;
+}
+
+.rank1 {
+  color: var(--gold);
+}
+
+.rank2 {
+  color: var(--silver);
+}
+
+.rank3 {
+  color: var(--bronze);
+}
+
+/* -------------------------------------------------------------------
+ * Team chip — colored dot + team name in owner color + dim owner sub.
+ * `--owner-color` is set per-row by the React layer so the dot and
+ * the team-name color stay in sync without sprinkling inline styles
+ * across every cell.
+ * ------------------------------------------------------------------- */
+
+.teamChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  background: var(--owner-color);
+}
+
+.teamName {
+  color: var(--owner-color);
+}
+
+.teamOwner {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity — matches the legacy `@media (max-width: 640px)`
+ * rules at index.html lines 224-231.
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .pickerLabel {
+    max-width: none;
+  }
+
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Hide the secondary owner sub-line on phones (legacy mirror). The
+   * team name and color dot stay; the chip stays compact. */
+  .teamOwner {
+    display: none;
+  }
+}

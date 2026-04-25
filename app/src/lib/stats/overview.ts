@@ -23,100 +23,12 @@
 // layout; real numbers land when the Records and Trades tabs migrate.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
-import { ownerKey } from '../owners';
+import { buildAllMatchups, buildRosterToOwnerKey } from './util';
 
-// ===================================================================
-// Internal: flattened matchup view
-// ===================================================================
-
-/**
- * One side-vs-side matchup, flattened across seasons. Mirrors the
- * legacy `state.allMatchups` shape used by every Overview stat. Only
- * the fields the Overview tab consumes are tracked; richer matchup
- * shapes (starters, bench points, etc.) get rebuilt by tabs that need
- * them (Records, Fun Stats, Luck).
- */
-interface FlatMatchup {
-  season: string;
-  week: number;
-  isPlayoff: boolean;
-  ownerAKey: string;
-  ownerBKey: string;
-  scoreA: number;
-  scoreB: number;
-}
-
-/** Lookup helper: `roster_id` → owner key for one league. */
-function buildRosterToOwnerKey(season: SeasonDetails): Map<number, string> {
-  const map = new Map<number, string>();
-  for (const roster of season.rosters) {
-    if (roster.owner_id == null) continue;
-    const user = season.users.find((u) => u.user_id === roster.owner_id);
-    if (!user) continue;
-    const key = ownerKey(user);
-    if (!key) continue;
-    map.set(roster.roster_id, key);
-  }
-  return map;
-}
-
-/**
- * Walks every season's `weeklyMatchups` and produces a flat
- * `FlatMatchup[]` that the standings + pulse selectors consume.
- *
- * Mirrors `buildAllMatchups()` (index.html lines 851-890):
- *   - Drops weeks with no data (empty array).
- *   - Pairs entries by `matchup_id`; skips byes (`matchup_id == null`).
- *   - Skips pairs that aren't exactly two teams (commish edits).
- *   - Skips 0-0 pairs (Sleeper occasionally returns these for
- *     unplayed weeks).
- *   - Uses each league's `playoff_week_start` (defaults to 15) to
- *     mark playoff games — those are excluded from the regular-season
- *     standings but counted as "all-time" elsewhere.
- */
-function buildAllMatchups(seasons: SeasonDetails[]): FlatMatchup[] {
-  const all: FlatMatchup[] = [];
-  for (const season of seasons) {
-    const playoffStart = season.settings.playoff_week_start ?? 15;
-    const rosterToOwner = buildRosterToOwnerKey(season);
-
-    season.weeklyMatchups.forEach((week, idx) => {
-      const weekNum = idx + 1;
-      if (!week || week.length === 0) return;
-
-      const byMatchup = new Map<number, typeof week>();
-      for (const m of week) {
-        if (m.matchup_id == null) continue;
-        const list = byMatchup.get(m.matchup_id) ?? [];
-        list.push(m);
-        byMatchup.set(m.matchup_id, list);
-      }
-
-      for (const pair of byMatchup.values()) {
-        if (pair.length !== 2) continue;
-        const [a, b] = pair;
-        const scoreA = a.points || 0;
-        const scoreB = b.points || 0;
-        if (scoreA === 0 && scoreB === 0) continue;
-
-        const oa = rosterToOwner.get(a.roster_id);
-        const ob = rosterToOwner.get(b.roster_id);
-        if (!oa || !ob) continue;
-
-        all.push({
-          season: season.season,
-          week: weekNum,
-          isPlayoff: weekNum >= playoffStart,
-          ownerAKey: oa,
-          ownerBKey: ob,
-          scoreA,
-          scoreB,
-        });
-      }
-    });
-  }
-  return all;
-}
+// `buildAllMatchups` + `buildRosterToOwnerKey` (and their `FlatMatchup`
+// shape) live in `./util` — Overview was the first consumer of the
+// lean flat-matchup view; H2H and Seasons share the same helpers from
+// there now that more than one tab needs them.
 
 // ===================================================================
 // Hall of Champs

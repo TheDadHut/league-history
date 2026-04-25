@@ -14,9 +14,8 @@
 // from the inaugural league alone) so the same person uses the same
 // color on every tab.
 
-import type { OwnerIndex } from '../owners';
+import type { OwnerIndex, LeagueWithUsers } from '../owners';
 import { ownerKey, teamNameFor } from '../owners';
-import type { League, User } from '../../types/sleeper';
 
 export interface FounderEntry {
   /** Stable owner key — useful for React `key` props and de-dup. */
@@ -28,9 +27,6 @@ export interface FounderEntry {
   /** Cross-season-stable owner color (a CSS `var(--…)` value). */
   color: string;
 }
-
-/** A league season payload that has had its users attached. */
-type LeagueWithUsers = League & { users: User[] };
 
 /**
  * Returns the inaugural-season roster as `FounderEntry[]`, in Sleeper's

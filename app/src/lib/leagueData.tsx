@@ -22,20 +22,18 @@
 //
 // Strict-mode double-invoke (dev only) is handled with the same
 // `cancelled` flag pattern the Founders tab used before this hoist.
-//
-// Provider value is memoized so consumer components don't re-render on
-// every parent render — only when the underlying state actually changes.
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_LEAGUE_ID } from '../config';
 import { walkPreviousLeagues } from './history';
 import { getUsers } from './sleeper';
-import { buildOwnerIndex, type OwnerIndex } from './owners';
-import type { League, User } from '../types/sleeper';
+import { buildOwnerIndex, type OwnerIndex, type LeagueWithUsers } from './owners';
 
-/** A season payload that has had its users attached. Mirrors the shape used by the stat selectors. */
-export type LeagueWithUsers = League & { users: User[] };
+// Re-exported so consumers can keep importing it from `leagueData` without
+// reaching into the owners module. Defined in `owners.ts` to break the
+// circular import that would otherwise form (this file imports from owners).
+export type { LeagueWithUsers };
 
 /** Discriminated state surface every consumer renders against. */
 export type LeagueDataState =
@@ -91,18 +89,14 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
     };
   }, []);
 
-  // Memoize the context value so consumers only re-render when state
-  // actually changes — not on every parent render.
-  const value = useMemo(() => state, [state]);
-
-  return <LeagueDataContext.Provider value={value}>{children}</LeagueDataContext.Provider>;
+  return <LeagueDataContext.Provider value={state}>{children}</LeagueDataContext.Provider>;
 }
 
 /**
  * Returns the current `LeagueDataState`. Throws if called outside a
  * `LeagueDataProvider` so the misuse surfaces immediately in dev.
  */
-// eslint-disable-next-line react-refresh/only-export-components
+// eslint-disable-next-line react-refresh/only-export-components -- hook and provider are intentionally colocated; splitting serves no purpose.
 export function useLeagueData(): LeagueDataState {
   const value = useContext(LeagueDataContext);
   if (value === null) {

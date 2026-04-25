@@ -59,8 +59,8 @@ function explicitColorFor(key: string): string | null {
   return null;
 }
 
-/** Type guard: a season payload that has had `users` attached. */
-type LeagueWithUsers = League & { users: User[] };
+/** A season payload that has had `users` attached. Mirrors the shape used by the stat selectors. */
+export type LeagueWithUsers = League & { users: User[] };
 
 /**
  * Builds the cross-season owner index with stable color assignments. Every
@@ -86,7 +86,7 @@ export function buildOwnerIndex(leagues: LeagueWithUsers[]): OwnerIndex {
       } else {
         index[key] = {
           key,
-          displayName: user.display_name || user.username,
+          displayName: user.display_name || user.username || 'Unknown',
           color: '', // filled in below
           teamNamesBySeason: { [league.season]: teamNameFor(user) },
           userIdsBySeason: { [league.season]: user.user_id },

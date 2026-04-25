@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { LeagueDataProvider } from './lib/leagueData';
 import './App.css';
 
 // Each tab is dynamically imported so Vite emits its own chunk; per the
@@ -44,12 +45,14 @@ function App() {
       </nav>
 
       <main className="app-main">
-        <Suspense fallback={<p className="app-suspense">Loading…</p>}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/founders" replace />} />
-            <Route path="/founders" element={<Founders />} />
-          </Routes>
-        </Suspense>
+        <LeagueDataProvider>
+          <Suspense fallback={<p className="app-suspense">Loading…</p>}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/founders" replace />} />
+              <Route path="/founders" element={<Founders />} />
+            </Routes>
+          </Suspense>
+        </LeagueDataProvider>
       </main>
 
       <footer className="app-footer">

@@ -28,7 +28,11 @@ import type {
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} failed: ${res.status}`);
-  return (await res.json()) as T;
+  try {
+    return (await res.json()) as T;
+  } catch (err) {
+    throw new Error(`${url}: response body was not valid JSON`, { cause: err });
+  }
 }
 
 export function getLeague(leagueId: string): Promise<League> {
@@ -75,10 +79,16 @@ export function getTransactions(leagueId: string, week: number): Promise<Transac
 // Player DB — cached aggressively because the payload is ~5MB.
 // Bump the version key whenever the cached shape would change so old
 // caches are auto-invalidated (legacy used `_v1` → `_v2` for this).
+//
+// v3 stores the full Sleeper payload (`Record<string, Player>`); the
+// legacy site under `_v2` stores a trimmed `{name, position, team}`
+// projection. The two shapes are incompatible, so the new code MUST
+// NOT share a cache key with the legacy site during the parallel
+// migration period — hence v3.
 // -------------------------------------------------------------------
 
-const PLAYERS_CACHE_KEY = 'sleeper_players_v2';
-const PLAYERS_CACHE_TIME_KEY = 'sleeper_players_v2_time';
+const PLAYERS_CACHE_KEY = 'sleeper_players_v3';
+const PLAYERS_CACHE_TIME_KEY = 'sleeper_players_v3_time';
 const PLAYERS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 
 /**

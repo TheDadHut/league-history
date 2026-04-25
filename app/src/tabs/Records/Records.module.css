@@ -1,0 +1,258 @@
+/* Records tab — visual parity with the legacy site:
+ *   - section-header / section-bar / count-pill (index.html lines 105-109)
+ *   - .card / .table-scroll / table (lines 111-128)
+ *   - .team-chip / .team-dot / .team-owner (lines 133-135)
+ *   - .rank / .rank-1/2/3 (lines 130-131)
+ *   - The blue accent bar on the player sections (line 382, 388 inline style)
+ *
+ * Colors and typography are inherited from `:root` in index.css.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+}
+
+/* The two player-record sections use the blue accent bar in the legacy
+ * site (inline `style="background: var(--accent-blue)"` on the bar). */
+.sectionBarBlue {
+  background: var(--accent-blue);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+/* -------------------------------------------------------------------
+ * Card + table
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 500px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+/* `.num` is applied to both `th` and `td` so alignment + monospace
+ * styling stay consistent between header and cell. */
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+/* Highs (gold accent) and lows (red) — applied on top of `.num` for the
+ * scoring cells. Mirrors the legacy inline `style="color: var(--accent)"`
+ * and `style="color: var(--accent-red)"` on those columns. */
+.numHigh {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.numLow {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
+/* Player-name cells — uppercase Oswald to match the legacy inline style
+ * applied at `index.html` lines 2087, 2102. */
+.playerName {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Position cells — small monospace dim text (legacy inline style on
+ * lines 2088, 2103). */
+.position {
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+/* -------------------------------------------------------------------
+ * Rank pill
+ * ------------------------------------------------------------------- */
+
+.rank {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 36px;
+  font-size: 16px;
+}
+
+.rank1 {
+  color: var(--gold);
+}
+
+.rank2 {
+  color: var(--silver);
+}
+
+.rank3 {
+  color: var(--bronze);
+}
+
+/* -------------------------------------------------------------------
+ * Team chip — colored dot + team name in owner color + optional owner sub.
+ *
+ * `--owner-color` is set per-row by the React layer so the dot and the
+ * team-name color stay in sync without sprinkling inline styles across
+ * every cell.
+ * ------------------------------------------------------------------- */
+
+.teamChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  background: var(--owner-color);
+}
+
+.teamName {
+  color: var(--owner-color);
+}
+
+.teamOwner {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity (matches the legacy `@media (max-width: 640px)` rules
+ * at index.html lines 224-231).
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Hide the secondary owner sub-line on phones (legacy mirror). The
+   * team name and color dot stay; the chip stays compact. */
+  .teamOwner {
+    display: none;
+  }
+
+  /* The position cell is already tiny; let it wrap if a multi-letter
+   * abbreviation lands next to a long player name. */
+  .position {
+    font-size: 11px;
+  }
+}

@@ -6,6 +6,7 @@ import './App.css';
 // Each tab is dynamically imported so Vite emits its own chunk; per the
 // migration plan, every tab should be code-split on its own boundary.
 const Overview = lazy(() => import('./tabs/Overview/Overview'));
+const Records = lazy(() => import('./tabs/Records/Records'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -19,6 +20,7 @@ interface TabDef {
 // Tabs are added here as they're ported in Phase 3.
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
+  { path: 'records', label: 'Records' },
   { path: 'founders', label: 'Founders' },
 ];
 
@@ -56,6 +58,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="/overview" element={<Overview />} />
+              <Route path="/records" element={<Records />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

@@ -5,6 +5,10 @@
 /.claude/
 /.mcp.json
 
+# Vite app build/dep dirs (also covered by app/.gitignore)
+/app/node_modules
+/app/dist
+
 # OS / editor noise
 .DS_Store
 .idea/

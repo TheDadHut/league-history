@@ -25,7 +25,7 @@ export default function Founders() {
         <h2 id="founders-heading" className={styles.sectionTitle}>
           The Founding Fathers
         </h2>
-        <span className={styles.countPill}>Inaugural Season</span>
+        <span className={styles.countPill}>INAUGURAL SEASON</span>
       </header>
 
       {state.status === 'loading' && <p className={styles.status}>Loading…</p>}

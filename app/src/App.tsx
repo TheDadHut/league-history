@@ -16,11 +16,12 @@ interface TabDef {
 
 // Order mirrors the legacy site's tab nav (index.html lines 332-343).
 // Tabs are added here as they're ported in Phase 3.
-const TABS: readonly TabDef[] = [{ path: 'founders', label: 'Founders' }] as const;
+const TABS: readonly TabDef[] = [{ path: 'founders', label: 'Founders' }];
 
 function App() {
   return (
     <div className="app-shell">
+      {/* TODO: logo-mark and subtitle (with current season) deferred — port when a tab consumes league data at the shell level. */}
       <header className="app-header">
         <div className="app-header-inner">
           <span className="app-kicker">Gaming Disability League</span>
@@ -45,6 +46,7 @@ function App() {
       </nav>
 
       <main className="app-main">
+        {/* Inside <main>: only tab content needs league data; shell chrome doesn't. */}
         <LeagueDataProvider>
           <Suspense fallback={<p className="app-suspense">Loading…</p>}>
             <Routes>

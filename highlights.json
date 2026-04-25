@@ -58,21 +58,9 @@
     "Henny changes team name to \"I Let Him Off the Hook\" after Alex wins the championship."
   ],
   "2025": [
-    "Michael threw his team and juiced Nick.",
+    "The league expanded from 8 to 12 teams. Three of the four new owners finished 5-9 or worse.",
     "No one wanted to trade and bitched when Jose and Damien Traded 🙂",
-    {
-      "text": "Alex decided to become a dictator again.",
-      "children": [
-        { "text": "He has become babysitter, dictator of fantasy." }
-      ]
-    },
-    "Justin went from last to finals, then lost because of Puka.",
-    {
-      "text": "Jose threw on purpose so Cat wouldnt win toilet bowl.",
-      "children": [
-        { "text": "Jose claims he did not throw." }
-      ]
-    },
+    "Michael threw his team and juiced Nick.",
     {
       "text": "Brandon crashout was legendary.",
       "children": [
@@ -82,6 +70,34 @@
             { "text": "It was nice being your friend while it lasted. 😢" }
           ]
         }
+      ]
+    },
+    {
+      "text": "Alex decided to become a dictator again.",
+      "children": [
+        { "text": "He has become babysitter, dictator of fantasy." }
+      ]
+    },
+    {
+      "text": "Alex went from defending champion to 6-8.",
+      "children": [
+        { "text": "Still ran the league though." }
+      ]
+    },
+    "Cat went 0-14 in her debut season.",
+    "Liam went 10-4 and made the semis. No one noticed.",
+    "Henny finished 5th in PF and got bounced in the semis by the eventual champion.",
+    "Justin went from last to finals, then lost because of Puka.",
+    {
+      "text": "Nick won the championship with the league-best 2041.42 PF.",
+      "children": [
+        { "text": "Michael helped." }
+      ]
+    },
+    {
+      "text": "Jose threw on purpose so Cat wouldnt win toilet bowl.",
+      "children": [
+        { "text": "Jose claims he did not throw." }
       ]
     }
   ]

@@ -1,6 +1,39 @@
 {
   "_comment": "Highlight formats supported (newest first): 1) Plain string, 2) {text}, 3) {text, sub: 'string'} for one sub, 4) {text, children: [...]} for one or more children — each child can recurse with its own children",
   "2024": [
+    {
+      "text": "Alex won the title with the fourth-lowest fpts in the league.",
+      "children": [
+        { "text": "His playoff path: beat Henny (league-best fpts), then beat Michael (second-best fpts)." }
+      ]
+    },
+    {
+      "text": "Jose traded Patrick Mahomes to Henny in week 4 for Christian Kirk.",
+      "children": [
+        { "text": "Mahomes was the foundation of Henny's league-leading 2137.98 fpts." },
+        { "text": "Henny still didn't win." }
+      ]
+    },
+    {
+      "text": "Alex drafted Tyreek Hill at pick 3, traded him to Michael three weeks later for Travis Kelce and Hayden Hurst, then flipped Hurst in a three-way to land Brock Bowers.",
+      "children": [
+        { "text": "Tyreek had the worst statistical season of his career." },
+        { "text": "Bowers set the NFL rookie TE reception record (112)." }
+      ]
+    },
+    {
+      "text": "Michael went 11-3 in the regular season, got a first-round bye, and lost the championship to the 3-seed.",
+      "children": [
+        { "text": "The 3-seed was Alex." }
+      ]
+    },
+    {
+      "text": "In the same week Jose traded for CMC, he also moved CeeDee Lamb — his pick-2 WR — along with acquiring Josh Jacobs and Isaiah Pacheco.",
+      "children": [
+        { "text": "None of it worked." }
+      ]
+    },
+    "Henny led the league in both fpts (2137.98) and potential points (2512.68) and walked away with nothing.",
     "Jose guts his whole team for Christian McCaffrey, who, when he returns, only plays 2 games and gets injured again.",
     "Henny flies up the standings by playing the waiver wire exceptionally well.",
     {

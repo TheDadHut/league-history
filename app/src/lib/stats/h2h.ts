@@ -32,91 +32,12 @@
 // avoid recomputing on every render.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
-import { ownerKey } from '../owners';
+import { buildAllMatchups } from './util';
 
-// ===================================================================
-// Internal: flattened matchup view
-// ===================================================================
-//
-// Identical shape to the one used in `stats/overview.ts`. Kept private
-// to each stat module rather than hoisted to a shared `stats/util.ts`
-// because (a) the modules have already settled on this shape
-// independently, and (b) lifting it pulls Overview's selectors into
-// any module that imports from a shared util file. Revisit if a third
-// tab also needs it.
-
-interface FlatMatchup {
-  season: string;
-  week: number;
-  isPlayoff: boolean;
-  ownerAKey: string;
-  ownerBKey: string;
-  scoreA: number;
-  scoreB: number;
-}
-
-/** Lookup helper: `roster_id` → owner key for one league. */
-function buildRosterToOwnerKey(season: SeasonDetails): Map<number, string> {
-  const map = new Map<number, string>();
-  for (const roster of season.rosters) {
-    if (roster.owner_id == null) continue;
-    const user = season.users.find((u) => u.user_id === roster.owner_id);
-    if (!user) continue;
-    const key = ownerKey(user);
-    if (!key) continue;
-    map.set(roster.roster_id, key);
-  }
-  return map;
-}
-
-/**
- * Walks every season's `weeklyMatchups` and produces a flat
- * `FlatMatchup[]`. Mirrors `buildAllMatchups()` (index.html lines
- * 851-890) — see `stats/overview.ts` for the full filter rationale.
- */
-function buildAllMatchups(seasons: SeasonDetails[]): FlatMatchup[] {
-  const all: FlatMatchup[] = [];
-  for (const season of seasons) {
-    const playoffStart = season.settings.playoff_week_start ?? 15;
-    const rosterToOwner = buildRosterToOwnerKey(season);
-
-    season.weeklyMatchups.forEach((week, idx) => {
-      const weekNum = idx + 1;
-      if (!week || week.length === 0) return;
-
-      const byMatchup = new Map<number, typeof week>();
-      for (const m of week) {
-        if (m.matchup_id == null) continue;
-        const list = byMatchup.get(m.matchup_id) ?? [];
-        list.push(m);
-        byMatchup.set(m.matchup_id, list);
-      }
-
-      for (const pair of byMatchup.values()) {
-        if (pair.length !== 2) continue;
-        const [a, b] = pair;
-        const scoreA = a.points || 0;
-        const scoreB = b.points || 0;
-        if (scoreA === 0 && scoreB === 0) continue;
-
-        const oa = rosterToOwner.get(a.roster_id);
-        const ob = rosterToOwner.get(b.roster_id);
-        if (!oa || !ob) continue;
-
-        all.push({
-          season: season.season,
-          week: weekNum,
-          isPlayoff: weekNum >= playoffStart,
-          ownerAKey: oa,
-          ownerBKey: ob,
-          scoreA,
-          scoreB,
-        });
-      }
-    });
-  }
-  return all;
-}
+// The flat-matchup helpers (`buildAllMatchups`, `buildRosterToOwnerKey`,
+// the `FlatMatchup` shape) live in `./util` — see that module for the
+// pairing/filter rationale. H2H only needs the cross-pair view, so we
+// only pull `buildAllMatchups` here.
 
 // ===================================================================
 // Owner picker options

@@ -27,6 +27,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CURRENT_LEAGUE_ID } from '../config';
 import { walkPreviousLeagues } from './history';
+import { loadHighlights, type Highlights } from './highlights';
 import { getPlayers, getUsers } from './sleeper';
 import { loadSeasonDetails } from './season';
 import {
@@ -81,9 +82,11 @@ export type LeagueDataState =
       status: 'seasons-ready';
       /** Slim per-season payload — alias of `seasons` for callers that only need users. */
       leagues: LeagueWithUsers[];
-      /** Full per-season payload (rosters, weekly matchups, brackets). */
+      /** Full per-season payload (rosters, weekly matchups, brackets, drafts, transactions). */
       seasons: SeasonDetails[];
       ownerIndex: OwnerIndex;
+      /** Manually-curated season highlights, keyed by season string. Empty on fetch failure. */
+      highlights: Highlights;
     }
   | {
       // Everything loaded — including the Sleeper player DB. Tabs that
@@ -94,6 +97,8 @@ export type LeagueDataState =
       seasons: SeasonDetails[];
       ownerIndex: OwnerIndex;
       players: PlayerIndex;
+      /** Manually-curated season highlights, keyed by season string. Empty on fetch failure. */
+      highlights: Highlights;
     };
 
 // `null` means "no provider above us" — the hook below treats that as a
@@ -143,29 +148,49 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
           ownerIndex,
         });
 
-        // Hydrate every season with rosters, weekly matchups, and brackets.
-        // Per-season fetches happen in parallel; within each season the
-        // helper fans out further (see `loadSeasonDetails`).
+        // Hydrate every season with rosters, weekly matchups, brackets,
+        // drafts, and transactions. Per-season fetches happen in
+        // parallel; within each season the helper fans out further (see
+        // `loadSeasonDetails`).
         //
-        // Kick off the player-DB fetch alongside the per-season fetches —
-        // it's served from sessionStorage on cache hits, so this is a
-        // no-cost parallel start in the common case. Even on a cold
-        // session, fetching the player DB and the seasons concurrently
-        // beats serializing them.
+        // Kick off the player-DB fetch and the highlights JSON fetch
+        // alongside the per-season fetches:
+        //   - The player DB is served from sessionStorage on cache hits,
+        //     so this is a no-cost parallel start in the common case.
+        //     Even on a cold session, fetching it concurrently with the
+        //     seasons beats serializing them.
+        //   - The highlights JSON is small and tucked into `app/public/`,
+        //     so it's a single sub-1KB fetch. We surface it on the
+        //     `seasons-ready` tier so Seasons doesn't have to wait for
+        //     the heavy player DB just to render highlights — that
+        //     mirrors the legacy site, which only checks `HIGHLIGHTS`
+        //     existence at render time without gating on the player DB.
         const playersPromise = getPlayers();
+        const highlightsPromise = loadHighlights();
+
         const seasons: SeasonDetails[] = await Promise.all(
           enriched.map((league) => loadSeasonDetails(league)),
         );
         if (cancelled) return;
 
-        // Stage 2: per-season details landed. Surface this tier so
-        // Overview can paint its lean tiles before the heavier player-DB
-        // payload finishes parsing.
+        // Highlights almost always finish well before the per-season
+        // fan-out (it's one small static file vs ~21+18 API calls per
+        // season), but await here so we can surface them on the same
+        // `seasons-ready` tick. If the file is genuinely slow we'd
+        // rather pause this tier than briefly render Seasons without
+        // its highlights panel and then have it pop in.
+        const highlights = await highlightsPromise;
+        if (cancelled) return;
+
+        // Stage 2: per-season details + highlights landed. Surface this
+        // tier so Overview can paint its lean tiles before the heavier
+        // player-DB payload finishes parsing.
         setState({
           status: 'seasons-ready',
           leagues: enriched,
           seasons,
           ownerIndex,
+          highlights,
         });
 
         const players = await playersPromise;
@@ -180,6 +205,7 @@ export function LeagueDataProvider({ children }: LeagueDataProviderProps) {
           seasons,
           ownerIndex,
           players,
+          highlights,
         });
       } catch (err) {
         if (cancelled) return;

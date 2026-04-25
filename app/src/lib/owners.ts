@@ -21,7 +21,15 @@
 // fallbacks; this implementation matches that behavior verbatim.
 
 import { FALLBACK_PALETTE, OWNER_COLORS } from '../config';
-import type { BracketMatch, League, Matchup, Roster, User } from '../types/sleeper';
+import type {
+  BracketMatch,
+  DraftPick,
+  League,
+  Matchup,
+  Roster,
+  Transaction,
+  User,
+} from '../types/sleeper';
 
 export interface Owner {
   /** Lower-cased display_name (or username if display_name is empty). The stable cross-season key. */
@@ -64,7 +72,8 @@ export type LeagueWithUsers = League & { users: User[] };
 
 /**
  * A season's full per-league payload — adds rosters, all 18 weeks of
- * matchups, and both playoff brackets on top of `LeagueWithUsers`.
+ * matchups, both playoff brackets, draft picks, and weekly transactions
+ * on top of `LeagueWithUsers`.
  *
  * Mirrors the legacy `loadSeasonDetails()` shape (index.html lines
  * 749-783); the heavy fetches happen once at the provider layer so
@@ -72,13 +81,20 @@ export type LeagueWithUsers = League & { users: User[] };
  *
  * `weeklyMatchups[i]` holds week `i + 1`'s matchups; missing weeks are
  * empty arrays (legacy code coerces fetch errors to `[]` in the same
- * spot).
+ * spot). `transactions[i]` follows the same convention — week `i + 1`'s
+ * transactions, empty-array on fetch failure.
+ *
+ * `draftPicks` is empty when the league hasn't drafted yet, when the
+ * draft endpoint failed, or when no drafts exist for the league
+ * (mirroring the legacy `try/catch` swallow at lines 763-769).
  */
 export type SeasonDetails = LeagueWithUsers & {
   rosters: Roster[];
   weeklyMatchups: Matchup[][];
   winnersBracket: BracketMatch[];
   losersBracket: BracketMatch[];
+  draftPicks: DraftPick[];
+  transactions: Transaction[][];
 };
 
 /**

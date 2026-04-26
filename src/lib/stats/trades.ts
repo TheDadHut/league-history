@@ -440,7 +440,7 @@ function buildSingleTrade(
  *   - A trade with |wrMargin| < 2 counts as a tie for both parties
  *     rather than a clean win/loss — preserves the "wash" intuition.
  */
-function buildOwnerStats(trades: Trade[], ownerIndex: OwnerIndex): TradeStatsByOwner {
+export function buildOwnerStats(trades: Trade[], ownerIndex: OwnerIndex): TradeStatsByOwner {
   const stats: TradeStatsByOwner = {};
   for (const key of Object.keys(ownerIndex)) {
     stats[key] = {

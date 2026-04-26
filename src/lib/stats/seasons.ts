@@ -1051,6 +1051,38 @@ export function gpaToGradeLetter(gpa: number): GradeLetter {
   return 'F';
 }
 
+/**
+ * Assign letter grades on a fixed percentile curve. Shared by
+ * `selectDraftGrades` (DCE / RP / PWR) and `selectWaiverProfile`
+ * (volume / selection / vob / timing / integration / persistence).
+ *
+ * Sorting is "higher score = better grade". Bands match the legacy
+ * thresholds verbatim — top 10% = A+, next 15% = A, next 25% = B,
+ * next 25% = C, next 15% = D, bottom 10% = F.
+ *
+ * The single-entry case grades as A+ (the legacy code uses a special
+ * `pct = 0` branch when `n === 1`). The empty-input case returns an
+ * empty Map.
+ */
+export function assignGradesByCurve<K>(scoresByKey: ReadonlyMap<K, number>): Map<K, GradeLetter> {
+  const result = new Map<K, GradeLetter>();
+  const sorted = [...scoresByKey.entries()].sort((a, b) => b[1] - a[1]);
+  const n = sorted.length;
+  if (n === 0) return result;
+  sorted.forEach(([key], i) => {
+    const pct = n === 1 ? 0 : i / (n - 1);
+    let grade: GradeLetter;
+    if (pct <= 0.1) grade = 'A+';
+    else if (pct <= 0.25) grade = 'A';
+    else if (pct <= 0.5) grade = 'B';
+    else if (pct <= 0.75) grade = 'C';
+    else if (pct <= 0.9) grade = 'D';
+    else grade = 'F';
+    result.set(key, grade);
+  });
+  return result;
+}
+
 /** One row in the per-season draft grades table. */
 export interface DraftGradeRow {
   ownerKey: string;
@@ -1264,26 +1296,15 @@ export function selectDraftGrades(
     }
   }
 
-  // Letter grades on a curve — same boundaries as legacy.
+  // Letter grades on a curve — delegates to the shared percentile helper.
+  // Filtering on `pickCount > 0` mirrors legacy: only owners with picks
+  // should land on the curve.
   const assignGrades = (metric: 'dce' | 'rp' | 'pwr'): Map<string, GradeLetter> => {
-    const result = new Map<string, GradeLetter>();
-    const sorted = [...byOwner.entries()]
-      .filter(([, v]) => v.pickCount > 0)
-      .sort((a, b) => b[1][metric] - a[1][metric]);
-    const n = sorted.length;
-    if (n === 0) return result;
-    sorted.forEach(([key], i) => {
-      const pct = n === 1 ? 0 : i / (n - 1);
-      let grade: GradeLetter;
-      if (pct <= 0.1) grade = 'A+';
-      else if (pct <= 0.25) grade = 'A';
-      else if (pct <= 0.5) grade = 'B';
-      else if (pct <= 0.75) grade = 'C';
-      else if (pct <= 0.9) grade = 'D';
-      else grade = 'F';
-      result.set(key, grade);
-    });
-    return result;
+    const scores = new Map<string, number>();
+    for (const [key, v] of byOwner) {
+      if (v.pickCount > 0) scores.set(key, v[metric]);
+    }
+    return assignGradesByCurve(scores);
   };
 
   const dceGrades = assignGrades('dce');
@@ -1635,27 +1656,16 @@ export function selectWaiverProfile(
     });
   }
 
-  // Letter grades on a curve. Six metrics; same percentile bands as draft grades.
+  // Letter grades on a curve — delegates to the shared percentile
+  // helper. Filtering on `volume > 0` mirrors legacy: owners who
+  // never made a pickup don't land on the curve.
   type Metric = 'volume' | 'selection' | 'vob' | 'timing' | 'integration' | 'persistence';
   const assign = (metric: Metric): Map<string, GradeLetter> => {
-    const result = new Map<string, GradeLetter>();
-    const sorted = [...derived.entries()]
-      .filter(([, v]) => v.volume > 0)
-      .sort((a, b) => b[1][metric] - a[1][metric]);
-    const n = sorted.length;
-    if (n === 0) return result;
-    sorted.forEach(([key], i) => {
-      const pct = n === 1 ? 0 : i / (n - 1);
-      let grade: GradeLetter;
-      if (pct <= 0.1) grade = 'A+';
-      else if (pct <= 0.25) grade = 'A';
-      else if (pct <= 0.5) grade = 'B';
-      else if (pct <= 0.75) grade = 'C';
-      else if (pct <= 0.9) grade = 'D';
-      else grade = 'F';
-      result.set(key, grade);
-    });
-    return result;
+    const scores = new Map<string, number>();
+    for (const [key, v] of derived) {
+      if (v.volume > 0) scores.set(key, v[metric]);
+    }
+    return assignGradesByCurve(scores);
   };
   const volumeGrades = assign('volume');
   const selectionGrades = assign('selection');

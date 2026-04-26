@@ -135,8 +135,12 @@
 }
 
 /* `.num` is applied to both `th` and `td` so alignment + monospace
- * styling stay consistent between header and cell. */
-.num {
+ * styling stay consistent between header and cell. The chained
+ * `.table thead th.num, .table tbody td.num` selector wins specificity
+ * against the `.table thead th { text-align: left }` rule above —
+ * mirrors the legacy `thead th.num, tbody td.num` from `index.html`. */
+.table thead th.num,
+.table tbody td.num {
   text-align: right;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;

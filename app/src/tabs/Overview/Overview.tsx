@@ -15,7 +15,7 @@
 // only.
 
 import { useMemo, useState } from 'react';
-import { useLeagueData } from '../../lib/leagueData';
+import { useLeagueData, type PlayerIndex } from '../../lib/leagueData';
 import type { OwnerIndex, SeasonDetails } from '../../lib/owners';
 import {
   selectAllTimeStandings,
@@ -23,16 +23,31 @@ import {
   selectPulseTiles,
   type StandingsRow,
 } from '../../lib/stats/overview';
+import { buildTrades } from '../../lib/stats/trades';
 import styles from './Overview.module.css';
 
 export default function Overview() {
   const state = useLeagueData();
 
-  // `core-ready` means lean league data is loaded but per-season details
-  // (rosters, matchups, brackets) are still in flight — Overview needs
-  // those, so we keep showing the loading state until at least
-  // `seasons-ready` (the player DB doesn't gate Overview).
-  if (state.status === 'loading' || state.status === 'core-ready') {
+  // Two of the Pulse tiles depend on the player DB (`Top Player ·
+  // Single Week`, `Top Player · Full Season`) and two on the trade
+  // fairness analysis (`Best Trader`, `Worst Trader`). The trades
+  // builder runs purely on per-season transactions + the owner index,
+  // so it would be available at `seasons-ready` — but the player DB
+  // requires the full `'ready'` tier. Rather than render half the
+  // pulse grid early and pop the player tiles in later, gate the
+  // whole tab on `'ready'`. The legacy `renderPulse` had every tile
+  // populated on a single render too, so this matches user expectation.
+  if (state.status !== 'ready') {
+    if (state.status === 'error') {
+      return (
+        <section className={styles.section}>
+          <p className={`${styles.status} ${styles.error}`} role="alert">
+            {state.message}
+          </p>
+        </section>
+      );
+    }
     return (
       <section className={styles.section} aria-busy="true">
         <p className={styles.status}>Loading…</p>
@@ -40,17 +55,13 @@ export default function Overview() {
     );
   }
 
-  if (state.status === 'error') {
-    return (
-      <section className={styles.section}>
-        <p className={`${styles.status} ${styles.error}`} role="alert">
-          {state.message}
-        </p>
-      </section>
-    );
-  }
-
-  return <OverviewReady seasons={state.seasons} ownerIndex={state.ownerIndex} />;
+  return (
+    <OverviewReady
+      seasons={state.seasons}
+      ownerIndex={state.ownerIndex}
+      players={state.players}
+    />
+  );
 }
 
 // -------------------------------------------------------------------
@@ -61,18 +72,27 @@ export default function Overview() {
 interface OverviewReadyProps {
   seasons: SeasonDetails[];
   ownerIndex: OwnerIndex;
+  players: PlayerIndex;
 }
 
-function OverviewReady({ seasons, ownerIndex }: OverviewReadyProps) {
+function OverviewReady({ seasons, ownerIndex, players }: OverviewReadyProps) {
   // Each selector is pure — memoize against the provider state so we
   // don't recompute on every unrelated render (Suspense + tab switches).
   const champions = useMemo(
     () => selectChampions(seasons, ownerIndex),
     [seasons, ownerIndex],
   );
-  const tiles = useMemo(
-    () => selectPulseTiles(seasons, ownerIndex),
+  // Trade stats power the Best/Worst Trader pulse tiles. The Trades tab
+  // also derives this; the cost is one walk over `seasons[].transactions`
+  // which is cheap relative to the player-DB walks the Pulse tiles
+  // already do.
+  const tradeStats = useMemo(
+    () => buildTrades(seasons, ownerIndex).statsByOwner,
     [seasons, ownerIndex],
+  );
+  const tiles = useMemo(
+    () => selectPulseTiles(seasons, ownerIndex, players, tradeStats),
+    [seasons, ownerIndex, players, tradeStats],
   );
   const standings = useMemo(
     () => selectAllTimeStandings(seasons, ownerIndex),

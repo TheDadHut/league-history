@@ -116,7 +116,7 @@ function TradesReady({ seasons, ownerIndex, players }: TradesReadyProps) {
   if (trades.length === 0) {
     return (
       <>
-        <header className={`${styles.sectionHeader}`}>
+        <header className={styles.sectionHeader}>
           <span className={styles.sectionBar} aria-hidden="true" />
           <h2 className={styles.sectionTitleLarge}>Trade History</h2>
         </header>

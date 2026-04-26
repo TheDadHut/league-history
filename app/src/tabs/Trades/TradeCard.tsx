@@ -17,16 +17,12 @@
 // top-10 lopsided lists; `null` (the default) hides it for the
 // chronological view.
 
-import type { CSSProperties } from 'react';
 import type { OwnerIndex } from '../../lib/owners';
 import type { PlayerIndex } from '../../lib/leagueData';
+import type { OwnerColorStyle } from '../../lib/components/TeamChip';
 import { playerDisplay } from '../../lib/players';
 import type { Trade, TradeParty } from '../../lib/stats/trades';
 import styles from './Trades.module.css';
-
-// Strict TS rejects raw `--*` keys on `CSSProperties`; reuse the same
-// alias the lifted TeamChip module uses.
-type OwnerColorStyle = CSSProperties & { '--owner-color': string };
 
 interface TradeCardProps {
   trade: Trade;

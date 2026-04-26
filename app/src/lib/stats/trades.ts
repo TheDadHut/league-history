@@ -200,7 +200,10 @@ interface PerSeasonPlayerWeek {
  * both teams scored 0 (incomplete/future weeks). We replicate that
  * filter so the WR/ST math matches the legacy output for old trades.
  */
-function buildSeasonPlayerWeekIndex(season: SeasonDetails): PerSeasonPlayerWeek {
+function buildSeasonPlayerWeekIndex(
+  season: SeasonDetails,
+  rosterToOwner: Map<number, string>,
+): PerSeasonPlayerWeek {
   const pointsByWeek = new Map<string, Map<number, number>>();
   const ownerByWeek = new Map<string, Map<number, number>>();
 
@@ -222,6 +225,14 @@ function buildSeasonPlayerWeekIndex(season: SeasonDetails): PerSeasonPlayerWeek 
       if (pair.length !== 2) continue;
       const [a, b] = pair;
       if (!a || !b) continue;
+      // Legacy `buildAllMatchups` (index.html line 869) drops matchup
+      // pairs where either roster lacks a known owner — commissioner
+      // /deleted accounts shouldn't contribute to per-player ownership
+      // attribution. Mirror it here so WR points stay aligned with the
+      // legacy output.
+      if (!rosterToOwner.get(a.roster_id) || !rosterToOwner.get(b.roster_id)) {
+        continue;
+      }
       const scoreA = a.points || 0;
       const scoreB = b.points || 0;
       if (scoreA === 0 && scoreB === 0) continue;
@@ -282,7 +293,7 @@ function buildSeasonTrades(season: SeasonDetails): Trade[] {
   if (!season.transactions || season.transactions.length === 0) return [];
 
   const rosterToOwner = buildRosterToOwnerKey(season);
-  const playerWeek = buildSeasonPlayerWeekIndex(season);
+  const playerWeek = buildSeasonPlayerWeekIndex(season, rosterToOwner);
 
   // Flatten weekly transactions into one list, filter to completed trades,
   // and order chronologically so per-trade indexing stays stable.

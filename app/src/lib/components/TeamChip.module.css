@@ -45,7 +45,7 @@
  * stays compact. The team name and color dot remain. Mirrors the
  * legacy mobile override that lived inside each per-tab module CSS
  * before this lift. */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .teamOwner {
     display: none;
   }

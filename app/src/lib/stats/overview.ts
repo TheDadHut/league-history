@@ -23,6 +23,12 @@
 // layout; real numbers land when the Records and Trades tabs migrate.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
+import type { PlayerIndex } from '../leagueData';
+import {
+  selectPlayerSeasonHighs,
+  selectPlayerSingleWeekHighs,
+} from './records';
+import type { TradeStatsByOwner } from './trades';
 import { buildAllMatchups, buildRosterToOwnerKey } from './util';
 
 // `buildAllMatchups` + `buildRosterToOwnerKey` (and their `FlatMatchup`
@@ -229,28 +235,33 @@ export interface PulseTile {
 /**
  * Returns the legacy Pulse-grid tiles in display order.
  *
- * Mirrors `renderPulse()` (lines 1916-2011). Tiles whose data lives in
- * the loaded provider state get real values; tiles that depend on the
- * player DB or trade-fairness analysis (which arrive with the Records
- * and Trades tab migrations) render with em-dash placeholders so the
- * grid matches the legacy layout exactly.
+ * Mirrors `renderPulse()` (lines 1916-2011) one-for-one — every tile
+ * is now populated from real data:
  *
- *   1. All-Time Wins Leader              (real)
- *   2. League High Single Game           (real)
- *   3. Most Points For (Season)          (real)
- *   4. Unluckiest (Most PA)              (real)
- *   5. Total Regular Season Games        (real)
- *   6. Active Owners                     (real)
- *   7. Top Player · Single Week          (placeholder — fills in with Records / player DB)
- *   8. Top Player · Full Season          (placeholder — fills in with Records / player DB)
- *   9. Best Trader                       (placeholder — fills in with Trades migration)
- *  10. Worst Trader                      (placeholder — fills in with Trades migration)
+ *   1. All-Time Wins Leader              (standings)
+ *   2. League High Single Game           (matchup walk)
+ *   3. Most Points For (Season)          (matchup walk)
+ *   4. Unluckiest (Most PA)              (matchup walk)
+ *   5. Total Regular Season Games        (matchup count)
+ *   6. Active Owners                     (owner index size)
+ *   7. Top Player · Single Week          (player DB; needs `'ready'` tier)
+ *   8. Top Player · Full Season          (player DB; needs `'ready'` tier)
+ *   9. Best Trader                       (trade stats; dropped if no qualifying trader)
+ *  10. Worst Trader                      (trade stats; dropped if no qualifying trader)
+ *
+ * `tradeStats` is required (the Trades tab also derives it from the same
+ * `seasons` payload, so passing it in keeps both consumers on one
+ * `useMemo`). The Best/Worst Trader tiles mirror the legacy guards:
+ * `tradeCount >= 2`, and `netWR > 0` for Best / `netWR < 0` for Worst —
+ * when no owner qualifies the tile is **dropped from the grid**, not
+ * rendered as a placeholder. This matches `renderPulse()` lines
+ * 1980 / 1992, which only `tiles.push(...)` when the guards pass.
  */
-/** Placeholder used for any pulse tile whose data hasn't been loaded yet. Em-dash, U+2014. */
-const PULSE_PLACEHOLDER = '—';
 export function selectPulseTiles(
   seasons: SeasonDetails[],
   ownerIndex: OwnerIndex,
+  players: PlayerIndex,
+  tradeStats: TradeStatsByOwner,
 ): PulseTile[] {
   const tiles: PulseTile[] = [];
   const matchups = buildAllMatchups(seasons);
@@ -354,33 +365,93 @@ export function selectPulseTiles(
     sub: 'All-time',
   });
 
-  // 7-10. Placeholder tiles. Their data lives in tabs that haven't
-  // migrated yet — the player DB (Records) and the trade-fairness
-  // analysis (Trades). Em-dash placeholders preserve grid parity with
-  // the legacy layout without fabricating numbers.
-  // 'Top Player · Single/Full Season' fill in when Records lands the
-  // player-DB integration. 'Best/Worst Trader' fill in when Trades
-  // migrates and trade-fairness analysis runs.
-  tiles.push({
-    label: 'Top Player · Single Week',
-    value: PULSE_PLACEHOLDER,
-    sub: PULSE_PLACEHOLDER,
-  });
-  tiles.push({
-    label: 'Top Player · Full Season',
-    value: PULSE_PLACEHOLDER,
-    sub: PULSE_PLACEHOLDER,
-  });
-  tiles.push({
-    label: 'Best Trader',
-    value: PULSE_PLACEHOLDER,
-    sub: PULSE_PLACEHOLDER,
-  });
-  tiles.push({
-    label: 'Worst Trader',
-    value: PULSE_PLACEHOLDER,
-    sub: PULSE_PLACEHOLDER,
-  });
+  // 7. Top Player · Single Week — highest single-week starter score
+  //    across all regular-season games and seasons. Reuses the Records
+  //    selector with `limit = 1`; the underlying matchup walk is the
+  //    same one Records uses, so the tab-level `useMemo` keeps it cheap
+  //    and we don't repeat the player-display formatting here.
+  //    Mirrors `renderPulse()` lines 1957-1962.
+  const [topPlayerWeek] = selectPlayerSingleWeekHighs(seasons, ownerIndex, players, 1);
+  if (topPlayerWeek) {
+    tiles.push({
+      label: 'Top Player · Single Week',
+      value: topPlayerWeek.player.name.toUpperCase(),
+      sub: `${topPlayerWeek.points.toFixed(2)} · ${topPlayerWeek.season} W${topPlayerWeek.week}`,
+    });
+  }
+
+  // 8. Top Player · Full Season — highest single-season starter total
+  //    across all (season, owner, player) triples. Same selector reuse
+  //    as above. Note the legacy site formats this with **one** decimal
+  //    (line 1968 `topSeason.pts.toFixed(1)`), unlike the two-decimal
+  //    single-week tile.
+  const [topPlayerSeason] = selectPlayerSeasonHighs(seasons, ownerIndex, players, 1);
+  if (topPlayerSeason) {
+    tiles.push({
+      label: 'Top Player · Full Season',
+      value: topPlayerSeason.player.name.toUpperCase(),
+      sub: `${topPlayerSeason.points.toFixed(1)} · ${topPlayerSeason.season}`,
+    });
+  }
+
+  // 9 & 10. Best / Worst Trader — derived from `tradeStats`. Legacy
+  //    guards: `tradeCount >= 2` (only owners who participated in at
+  //    least two trades qualify) and `netWR > 0` for Best / `netWR < 0`
+  //    for Worst. When the guard fails the tile is **dropped**, not
+  //    placeholder-rendered. The two tiles draw from a single
+  //    netWR-sorted ranking and skip the worst tile when its owner is
+  //    the same as the best (only one qualifying trader).
+  const tradeRanked = Object.entries(tradeStats)
+    .filter(([, s]) => s.tradeCount >= 2)
+    .sort((a, b) => b[1].netWR - a[1].netWR);
+
+  if (tradeRanked.length > 0) {
+    const [bestKey, bestStats] = tradeRanked[0];
+    const bestOwner = ownerIndex[bestKey];
+    if (bestOwner && bestStats.netWR > 0) {
+      tiles.push({
+        label: 'Best Trader',
+        value: bestOwner.displayName.toUpperCase(),
+        sub: traderSubLine(bestStats, /* signed */ true),
+      });
+    }
+
+    const [worstKey, worstStats] = tradeRanked[tradeRanked.length - 1];
+    const worstOwner = ownerIndex[worstKey];
+    if (worstOwner && worstStats.netWR < 0 && worstKey !== bestKey) {
+      tiles.push({
+        label: 'Worst Trader',
+        value: worstOwner.displayName.toUpperCase(),
+        sub: traderSubLine(worstStats, /* signed */ false),
+      });
+    }
+  }
 
   return tiles;
+}
+
+/**
+ * Sub-line for the Best / Worst Trader tiles. Mirrors `renderPulse()`
+ * lines 1981-1988 / 1993-1999:
+ *
+ *   - Optional `wins-losses[-ties]` prefix when any of the W/L/T
+ *     counters is non-zero (legacy gates the prefix on
+ *     `wins || losses || ties`).
+ *   - `+N WR` for the best tile (explicit plus sign — the legacy
+ *     prepends `+` because positive numbers don't carry one); raw
+ *     `-N WR` for the worst tile (the negative number already shows
+ *     its own minus, so no prefix).
+ *   - `· N trade(s)` suffix with naive pluralization.
+ */
+function traderSubLine(
+  stats: { wins: number; losses: number; ties: number; netWR: number; tradeCount: number },
+  signed: boolean,
+): string {
+  const recordStr =
+    stats.wins || stats.losses || stats.ties
+      ? `${stats.wins}-${stats.losses}${stats.ties ? `-${stats.ties}` : ''} · `
+      : '';
+  const wr = `${signed ? '+' : ''}${stats.netWR.toFixed(0)} WR`;
+  const tradeWord = stats.tradeCount === 1 ? 'trade' : 'trades';
+  return `${recordStr}${wr} · ${stats.tradeCount} ${tradeWord}`;
 }

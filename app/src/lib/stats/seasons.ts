@@ -1344,12 +1344,21 @@ export function selectWaiverProfile(
       const ptsMap = matchupPlayerPoints(m);
       for (const pid of m.players ?? []) {
         if (!pid || pid === '0') continue;
-        let weekPts = playerWeeklyPoints.get(pid);
-        if (!weekPts) {
-          weekPts = new Map();
-          playerWeeklyPoints.set(pid, weekPts);
+        // `m.players_points` only contains entries for the players on
+        // *this* roster's row. Each player appears in exactly one
+        // roster's `m.players` per week, so unconditional writes for
+        // owner/started are safe; but `weekPts` must be guarded —
+        // otherwise the second matchup row in the week (whose
+        // `players_points` doesn't include this player) overwrites the
+        // correct value with 0.
+        if (ptsMap.has(pid)) {
+          let weekPts = playerWeeklyPoints.get(pid);
+          if (!weekPts) {
+            weekPts = new Map();
+            playerWeeklyPoints.set(pid, weekPts);
+          }
+          weekPts.set(weekNum, ptsMap.get(pid)!);
         }
-        weekPts.set(weekNum, ptsMap.get(pid) ?? 0);
 
         let weekOwner = playerWeeklyOwner.get(pid);
         if (!weekOwner) {

@@ -20,3 +20,5 @@ npm run preview  # serve dist/ locally to spot-check the prod build
 - `vite.config.ts` sets `base: '/league-history/'` so the prod build matches the GitHub Pages subpath. The dev server at `localhost:5173` serves at that subpath too.
 - Routing uses `HashRouter` to keep deep links working on Pages without a SPA-fallback workflow.
 - TypeScript is strict (`tsconfig.app.json` and `tsconfig.node.json` both set `strict: true`).
+
+test

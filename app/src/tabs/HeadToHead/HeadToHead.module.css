@@ -205,11 +205,11 @@
 }
 
 .winner .winsBig {
-  color: #4ade80;
+  color: var(--color-win);
 }
 
 .loser .winsBig {
-  color: #f87171;
+  color: var(--color-loss);
 }
 
 .vsText {
@@ -264,11 +264,11 @@
 }
 
 .score.win {
-  color: #4ade80;
+  color: var(--color-win);
 }
 
 .score.lose {
-  color: #f87171;
+  color: var(--color-loss);
 }
 
 .dash {

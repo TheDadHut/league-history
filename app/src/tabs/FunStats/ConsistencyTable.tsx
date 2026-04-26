@@ -55,19 +55,27 @@ export default function ConsistencyTable({ rows, variant }: ConsistencyTableProp
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={row.ownerKey}>
-                <td className={rankClass(i)}>{i + 1}</td>
-                <td>
-                  <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className={styles.emptyCell}>
+                  Not enough games yet.
                 </td>
-                <td className={styles.num}>{row.avg.toFixed(2)}</td>
-                <td className={`${styles.num} ${stdDevClass}`}>
-                  {row.stdDev.toFixed(2)}
-                </td>
-                <td className={styles.num}>{row.games}</td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row, i) => (
+                <tr key={row.ownerKey}>
+                  <td className={rankClass(i)}>{i + 1}</td>
+                  <td>
+                    <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
+                  </td>
+                  <td className={styles.num}>{row.avg.toFixed(2)}</td>
+                  <td className={`${styles.num} ${stdDevClass}`}>
+                    {row.stdDev.toFixed(2)}
+                  </td>
+                  <td className={styles.num}>{row.games}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

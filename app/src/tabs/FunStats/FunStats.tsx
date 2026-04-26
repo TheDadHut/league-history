@@ -205,8 +205,13 @@ interface SectionHeaderProps {
 
 function SectionHeader({ emoji, title, countLabel, barClass }: SectionHeaderProps) {
   const slug = slugify(title);
+  // `<div role="group">` rather than `<header>` so the eleven Fun Stats
+  // sub-sections don't each register as a banner landmark — screen
+  // readers would otherwise announce eleven extra navigation targets
+  // for a single page. The `aria-labelledby` still ties the title to
+  // the grouped content beneath.
   return (
-    <header className={styles.sectionHeader} aria-labelledby={slug}>
+    <div className={styles.sectionHeader} role="group" aria-labelledby={slug}>
       <span
         className={`${styles.sectionBar} ${barClass ?? ''}`.trim()}
         aria-hidden="true"
@@ -220,7 +225,7 @@ function SectionHeader({ emoji, title, countLabel, barClass }: SectionHeaderProp
         {title}
       </h2>
       {countLabel ? <span className={styles.countPill}>{countLabel}</span> : null}
-    </header>
+    </div>
   );
 }
 

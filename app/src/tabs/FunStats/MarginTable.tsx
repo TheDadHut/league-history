@@ -45,32 +45,40 @@ export default function MarginTable({ rows, showPlusSign }: MarginTableProps) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr
-                key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}
-              >
-                <td className={rankClass(i)}>{i + 1}</td>
-                <td>
-                  <TeamChipCompact name={row.winnerTeamName} color={row.winnerColor} />
-                </td>
-                <td className={`${styles.num} ${styles.scoreWin}`}>
-                  {row.winnerScore.toFixed(2)}
-                </td>
-                <td>
-                  <TeamChipCompact name={row.loserTeamName} color={row.loserColor} />
-                </td>
-                <td className={`${styles.num} ${styles.scoreLose}`}>
-                  {row.loserScore.toFixed(2)}
-                </td>
-                <td className={`${styles.num} ${styles.numAccent}`}>
-                  {showPlusSign ? '+' : ''}
-                  {row.margin.toFixed(2)}
-                </td>
-                <td>
-                  {row.season} W{row.week}
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className={styles.emptyCell}>
+                  No completed games yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row, i) => (
+                <tr
+                  key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}
+                >
+                  <td className={rankClass(i)}>{i + 1}</td>
+                  <td>
+                    <TeamChipCompact name={row.winnerTeamName} color={row.winnerColor} />
+                  </td>
+                  <td className={`${styles.num} ${styles.scoreWin}`}>
+                    {row.winnerScore.toFixed(2)}
+                  </td>
+                  <td>
+                    <TeamChipCompact name={row.loserTeamName} color={row.loserColor} />
+                  </td>
+                  <td className={`${styles.num} ${styles.scoreLose}`}>
+                    {row.loserScore.toFixed(2)}
+                  </td>
+                  <td className={`${styles.num} ${styles.numAccent}`}>
+                    {showPlusSign ? '+' : ''}
+                    {row.margin.toFixed(2)}
+                  </td>
+                  <td>
+                    {row.season} W{row.week}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

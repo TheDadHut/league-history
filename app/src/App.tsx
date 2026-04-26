@@ -9,6 +9,7 @@ const Overview = lazy(() => import('./tabs/Overview/Overview'));
 const Records = lazy(() => import('./tabs/Records/Records'));
 const HeadToHead = lazy(() => import('./tabs/HeadToHead/HeadToHead'));
 const Seasons = lazy(() => import('./tabs/Seasons/Seasons'));
+const FunStats = lazy(() => import('./tabs/FunStats/FunStats'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -26,6 +27,7 @@ const TABS: readonly TabDef[] = [
   { path: 'records', label: 'Records' },
   { path: 'head-to-head', label: 'Head-to-Head' },
   { path: 'seasons', label: 'Seasons' },
+  { path: 'fun-stats', label: 'Fun Stats' },
   { path: 'founders', label: 'Founders' },
 ];
 
@@ -66,6 +68,7 @@ function App() {
               <Route path="/records" element={<Records />} />
               <Route path="/head-to-head" element={<HeadToHead />} />
               <Route path="/seasons" element={<Seasons />} />
+              <Route path="/fun-stats" element={<FunStats />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

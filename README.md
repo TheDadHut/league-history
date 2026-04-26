@@ -1,47 +1,59 @@
 # Gaming Disability League · History
 
-A single-page, zero-build fantasy football history site for the **Gaming Disability League** (GDL).
-All league data is pulled live from the [Sleeper API](https://docs.sleeper.com/) on page load —
-champions, matchups, rosters, drafts, trades, and transactions are walked backwards through every
+A fantasy football history site for the **Gaming Disability League** (GDL), built
+as a single-page React app. All league data is pulled live from the
+[Sleeper API](https://docs.sleeper.com/) on page load — champions, matchups,
+rosters, drafts, trades, and transactions are walked backwards through every
 previous season via `previous_league_id`.
 
-No server, no framework, no package manager. Just an HTML file.
+Live site: <https://thedadhut.github.io/league-history/>
+
+## Stack
+
+Vite + React 19 + TypeScript. The app lives in `app/` and is deployed to
+GitHub Pages from `app/dist/` by `.github/workflows/deploy.yml` on every push
+to `main` that touches `app/**`.
 
 ## Files
 
-| File | Purpose |
+| Path | Purpose |
 | --- | --- |
-| `index.html` | The entire app — HTML, CSS, and all analytics JS in one file. |
-| `highlights.json` | Manually curated season-by-season highlights (optional). Loaded at runtime. |
+| `app/` | The Vite + React + TS app — all source, config, and the per-app `README`. |
+| `app/public/highlights.json` | Manually curated season-by-season highlights. Loaded at runtime. |
+| `.github/workflows/` | `validate-highlights.yml` (PR JSON check), `ci.yml` (PR typecheck + build), `deploy.yml` (push to `main` → Pages). |
 
-## Running it
-
-Open `index.html` in a browser, or serve the folder with any static host:
+## Running it locally
 
 ```bash
-python3 -m http.server 8000
-# then visit http://localhost:8000
+cd app
+npm install
+npm run dev      # dev server at http://localhost:5173/league-history/
+npm run build    # type-check + production build into app/dist/
+npm run preview  # serve app/dist/ locally to spot-check the prod build
 ```
 
-Data is fetched on every load and cached in `sessionStorage` for the Sleeper player DB (~5MB).
-A cache-busting query string is appended to `highlights.json` so edits appear immediately.
+Use Node 20 (see `.nvmrc`).
+
+Data is fetched on every load and cached in `sessionStorage` for the Sleeper
+player DB (~5MB).
 
 ## Configuration
 
-Everything is at the top of the `<script>` block in `index.html`:
+Everything is in `app/src/config.ts`:
 
-- `CURRENT_LEAGUE_ID` — the Sleeper league ID for the most recent season. The app walks
-  backwards from here through `previous_league_id` to build the full history. Update this
-  at the start of each new season.
-- `OWNER_COLORS` — substring-matched owner color preferences (e.g. any display name
-  containing "alex" gets the red accent).
-- `FALLBACK_PALETTE` — 12 distinct hues used for any owners without an explicit color.
-  Every owner is guaranteed a unique color until the palette runs out.
+- `CURRENT_LEAGUE_ID` — the Sleeper league ID for the most recent season. The
+  app walks backwards from here through `previous_league_id` to build the full
+  history. Update this at the start of each new season.
+- `OWNER_COLORS` — substring-matched owner color preferences (e.g. any display
+  name containing "alex" gets the red accent).
+- `FALLBACK_PALETTE` — 12 distinct hues used for any owners without an explicit
+  color. Every owner is guaranteed a unique color until the palette runs out.
 
 ## Highlights
 
-`highlights.json` holds hand-written notes that appear on each season's archive page.
-Three formats are supported (all can be mixed within the same season array):
+`app/public/highlights.json` holds hand-written notes that appear on each
+season's archive page. Three formats are supported (all can be mixed within
+the same season array):
 
 ```json
 {
@@ -60,6 +72,7 @@ Three formats are supported (all can be mixed within the same season array):
 ```
 
 Newest entries go first within each season array. Unknown keys are ignored.
+The file is JSON-validated on every PR by `validate-highlights.yml`.
 
 ## What's in the app
 
@@ -83,8 +96,9 @@ Nine tabs, all computed client-side from Sleeper data:
 ## Notes
 
 - Keyboard shortcut `Ctrl+Shift+D` toggles a debug overlay.
-- Waiver grades and draft capital efficiency are computed locally — the formulas are
-  commented inline in `index.html` near the `buildWaiverGrades` and DCE sections.
-- Trade fairness is measured two ways: **WR** (points scored while the receiving team still
-  rostered the player) and **ST** (all remaining post-trade season points). Draft-pick-only
-  trades are shown without a winner since pick value can't be evaluated from Sleeper data alone.
+- Waiver grades and draft capital efficiency are computed locally — the formulas
+  live alongside the stat modules in `app/src/lib/stats/`.
+- Trade fairness is measured two ways: **WR** (points scored while the receiving
+  team still rostered the player) and **ST** (all remaining post-trade season
+  points). Draft-pick-only trades are shown without a winner since pick value
+  can't be evaluated from Sleeper data alone.

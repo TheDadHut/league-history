@@ -10,7 +10,7 @@
 - [ ] Docs / README
 
 ## Test plan
-- [ ] Opened `index.html` locally and clicked through affected tab(s)
+- [ ] Ran `npm run dev` from `app/` and clicked through affected tab(s)
 - [ ] Checked at least one prior season still renders (history walk intact)
 - [ ] Console is clean (no errors / Sleeper API failures)
 

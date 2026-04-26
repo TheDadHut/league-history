@@ -1,0 +1,523 @@
+/* Owner Stats tab — visual parity with the legacy site:
+ *   - section-header / section-bar (index.html lines 105-109)
+ *   - .card / .card-header / .card-body (lines 111-115)
+ *   - .stat-grid / .stat-tile (lines 147-151)
+ *   - .grade-pill family (lines 276-298)
+ *   - .table / .table-scroll (lines 116-128)
+ *   - .team-chip (shared via TeamChip.module.css)
+ *
+ * Colors and typography are inherited from `:root` in `index.css`.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 36px 0 16px;
+  flex-wrap: wrap;
+}
+
+.sectionHeader:first-child {
+  margin-top: 0;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Per-section accent variants — owner banner uses the picked owner's
+ * color (injected via the `--owner-color` custom property), draft uses
+ * gold, waiver uses the league's accent-blue. */
+.sectionBarOwner {
+  background: var(--owner-color, var(--accent));
+}
+
+.sectionBarGold {
+  background: var(--gold);
+}
+
+.sectionBarBlue {
+  background: var(--accent-blue);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* The owner banner sits a little tighter to the stat tiles below than
+ * the standard 36/16 rhythm. */
+.ownerHeader {
+  margin-top: 20px;
+  margin-bottom: 16px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error + empty placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+.empty {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Card frame (used for both the picker card and the data cards)
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  background: linear-gradient(90deg, #000 0%, var(--panel) 100%);
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.cardBody {
+  padding: 20px;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Owner picker — styled like the H2H / Seasons selects, capped at the
+ * legacy `max-width: 300px` (index.html line 592).
+ * ------------------------------------------------------------------- */
+
+.pickerLabel {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.picker {
+  appearance: none;
+  width: 100%;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+  border-radius: 3px;
+  padding: 10px 36px 10px 14px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+    linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  transition: border-color 0.15s;
+}
+
+.picker:hover,
+.picker:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .pickerLabel {
+    max-width: none;
+  }
+}
+
+/* -------------------------------------------------------------------
+ * Stat grid + tile — mirrors `.stat-grid` / `.stat-tile` from
+ * `index.html` lines 147-181.
+ * ------------------------------------------------------------------- */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.statTile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  padding: 16px 18px;
+}
+
+/* Variant tiles — Nemesis (red), Favorite (green), Trade (blue). The
+ * top stripe color is the only difference. */
+.statTileRed {
+  border-top-color: var(--accent-red);
+}
+
+.statTileGreen {
+  border-top-color: var(--color-win);
+}
+
+.statTileBlue {
+  border-top-color: var(--accent-blue);
+}
+
+.statLabel {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.statValue {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+/* The Net Trade Value tile renders a slightly smaller value because
+ * the ` WR` unit chip needs room beside the number. Mirrors the legacy
+ * `style="font-size: 22px;"` override at line 2797. */
+.statValueSmall {
+  font-size: 20px;
+}
+
+.statValueDim {
+  font-size: 14px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.statValueUnit {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.statSub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* -------------------------------------------------------------------
+ * Headline block — the "All-Time Draft Grade" + "Waiver Identity"
+ * panel that sits above each table. Centered card with a big grade
+ * pill on top and a dim GPA / archetype line below.
+ * ------------------------------------------------------------------- */
+
+.headlineBlock {
+  padding: 28px 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.headlineEyebrow {
+  color: var(--text-muted);
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 3px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.headlineSub {
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+.headlineDivider {
+  width: 50px;
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+.headlineArchetype {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.headlineArchetypeDesc {
+  color: var(--text-dim);
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Tables — mirrors `.table-scroll` / `.table` (index.html lines 116-128).
+ * ------------------------------------------------------------------- */
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 500px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+  vertical-align: top;
+}
+
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* The season cell uses Oswald so the year reads like a header rather
+ * than a data point. Matches the legacy `<td style="font-family:
+ * 'Oswald'...">` at line 2840. */
+.seasonCell {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+}
+
+.archetypeCell {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+/* H2H breakdown column — small monospace, slightly different colors
+ * for reg / playoff segments. Mirrors the inline styles at lines
+ * 2939-2940. */
+.breakdownCell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.breakdownDim {
+  color: var(--text-dim);
+}
+
+.breakdownSep {
+  color: var(--text-muted);
+}
+
+.breakdownPo {
+  color: var(--gold);
+}
+
+.recordWin {
+  color: var(--color-win);
+  font-weight: 700;
+}
+
+.recordLoss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+
+.pctCell {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.unknownOpponent {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Grade pills — mirror `.grade-pill` (index.html lines 276-298) and
+ * the small dim numeric below each pill.
+ * ------------------------------------------------------------------- */
+
+.gradePill {
+  display: inline-block;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  min-width: 32px;
+  text-align: center;
+  color: #fff;
+}
+
+.gradePillHeadline {
+  font-size: 32px;
+  padding: 12px 20px;
+}
+
+.gradeAPlus {
+  background: #10b981;
+}
+
+.gradeA {
+  background: #22c55e;
+}
+
+.gradeB {
+  background: #3b82f6;
+}
+
+.gradeC {
+  background: #eab308;
+  color: #000;
+}
+
+.gradeD {
+  background: #f97316;
+}
+
+.gradeF {
+  background: #ef4444;
+}
+
+.gradeUnder {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity (matches the legacy `@media (max-width: 640px)` rules
+ * at index.html lines 224-231).
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .gradePillHeadline {
+    font-size: 28px;
+    padding: 10px 16px;
+  }
+
+  .headlineArchetype {
+    font-size: 26px;
+  }
+
+  .ownerHeader,
+  .sectionHeader {
+    margin-top: 24px;
+  }
+}

@@ -1,0 +1,97 @@
+name: Weekly recap
+
+# GitHub Actions cron is always UTC. 14:00 UTC ≈ 10:00 ET during EDT and
+# 09:00 ET during EST — the trigger shifts by an hour at DST boundaries.
+# Tuesday after Monday Night Football, late enough that final scores are
+# settled.
+on:
+  schedule:
+    - cron: '0 14 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r tools/requirements.txt
+
+      - name: Generate recap
+        id: generate
+        run: |
+          set -euo pipefail
+          recap_path="$(python3 tools/weekly_recap.py --auto-write-to-recaps-dir)"
+          if [ -z "$recap_path" ]; then
+            echo "Off-season — no recap written."
+            echo "recap_path=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Wrote recap to $recap_path"
+            echo "recap_path=$recap_path" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Parse season and week from path
+        id: meta
+        if: steps.generate.outputs.recap_path != ''
+        run: |
+          set -euo pipefail
+          recap_path='${{ steps.generate.outputs.recap_path }}'
+          # recaps/<season>/week-<NN>.md
+          season="$(echo "$recap_path" | awk -F/ '{print $2}')"
+          week="$(echo "$recap_path" | sed -E 's|.*/week-([0-9]+)\.md$|\1|')"
+          echo "season=$season" >> "$GITHUB_OUTPUT"
+          echo "week=$week" >> "$GITHUB_OUTPUT"
+
+      - name: Commit recap
+        if: steps.generate.outputs.recap_path != ''
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add '${{ steps.generate.outputs.recap_path }}'
+          git diff --staged --quiet || git commit -m "Weekly recap: ${{ steps.meta.outputs.season }} week ${{ steps.meta.outputs.week }}"
+          git push
+
+      - name: Post teaser to webhook
+        if: ${{ steps.generate.outputs.recap_path != '' && secrets.RECAP_WEBHOOK_URL != '' }}
+        env:
+          RECAP_WEBHOOK_URL: ${{ secrets.RECAP_WEBHOOK_URL }}
+          RECAP_WEBHOOK_FORMAT: ${{ vars.RECAP_WEBHOOK_FORMAT }}
+        run: |
+          set -euo pipefail
+          teaser="$(python3 tools/weekly_recap.py --week '${{ steps.meta.outputs.week }}' --season '${{ steps.meta.outputs.season }}' --teaser)"
+          link="https://github.com/${{ github.repository }}/blob/main/${{ steps.generate.outputs.recap_path }}"
+          format="${RECAP_WEBHOOK_FORMAT:-discord}"
+
+          # Compose message and verify it fits the platform cap.
+          message="$teaser"$'\n\n'"Full recap: $link"
+          case "$format" in
+            slack)
+              cap=4000
+              ;;
+            discord|*)
+              cap=2000
+              ;;
+          esac
+          if [ "${#message}" -gt "$cap" ]; then
+            echo "Teaser+link is ${#message} chars, exceeds $format cap of $cap" >&2
+            exit 1
+          fi
+
+          # jq -Rs reads stdin as a single JSON-escaped string.
+          if [ "$format" = "slack" ]; then
+            payload="$(printf '%s' "$message" | jq -Rs '{text: .}')"
+          else
+            payload="$(printf '%s' "$message" | jq -Rs '{content: .}')"
+          fi
+          curl -fsS -X POST -H 'Content-Type: application/json' -d "$payload" "$RECAP_WEBHOOK_URL"

@@ -729,10 +729,8 @@ export function selectDraftBoard(
         ? owner.teamNamesBySeason[league.season] || owner.displayName
         : 'Unknown';
       // Legacy: `p.metadata?.first_name ? `${p.metadata.first_name} ${p.metadata.last_name}` : 'Unknown'`.
-      // The metadata field is loosely typed; narrow defensively.
-      const meta = (p as { metadata?: { first_name?: string; last_name?: string } }).metadata;
-      const playerName = meta?.first_name
-        ? `${meta.first_name} ${meta.last_name ?? ''}`.trim()
+      const playerName = p.metadata?.first_name
+        ? `${p.metadata.first_name} ${p.metadata.last_name ?? ''}`.trim()
         : 'Unknown';
       return { pickNo: p.pick_no, playerName, color, teamName };
     });

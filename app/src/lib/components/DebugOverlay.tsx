@@ -28,6 +28,16 @@ import { useLeagueData } from '../leagueData';
 import { explicitColorFor, type Owner } from '../owners';
 import styles from './DebugOverlay.module.css';
 
+// Module-scope guard so the console announcement fires exactly once per
+// page load. A per-instance `useRef` would re-init when StrictMode
+// unmounts/remounts the component on first mount, double-firing the log.
+// Hoisting the flag up here ties it to the module's lifetime instead of
+// the component's, matching the legacy code's "log once when the owner
+// index resolves" semantics. (HMR re-evaluates the module and resets
+// this in dev, which is fine — a fresh module is conceptually a fresh
+// page load.)
+let consoleAnnounced = false;
+
 interface OwnerDebugRow {
   key: string;
   displayName: string;
@@ -82,6 +92,13 @@ function OverlayBody({ rows, onClose }: OverlayBodyProps) {
     // Re-run if the owner list itself changes (e.g. provider re-hydrates
     // mid-session). The rows array reference is stable across opens
     // unless the underlying owner index changed, so this is cheap.
+    return () => {
+      // Drop ref entries on cleanup so a shorter rows list doesn't leave
+      // stale pointers to detached probe nodes hanging around in the
+      // ref array. The ref callbacks below repopulate this on the next
+      // render.
+      probeRefs.current = [];
+    };
   }, [rows]);
 
   return (
@@ -142,12 +159,12 @@ export function DebugOverlay() {
   // Console announcement, fired once per page load when the owner
   // index lands. Mirrors the legacy log line at index.html line 839 so
   // devs landing in the new app discover the shortcut the same way
-  // they did before.
-  const announced = useRef(false);
+  // they did before. Guard lives at module scope (see top of file) so
+  // StrictMode's double-mount in dev doesn't fire the log twice.
   useEffect(() => {
-    if (announced.current) return;
+    if (consoleAnnounced) return;
     if (!rows) return;
-    announced.current = true;
+    consoleAnnounced = true;
     // eslint-disable-next-line no-console -- intentional dev-discovery line.
     console.log(
       '%c[GDL] Owner colors assigned. Press Ctrl+Shift+D to inspect.',

@@ -1,0 +1,52 @@
+/* ===================================================================
+ * Shared TeamChip styles
+ * ===================================================================
+ *
+ * Lifted out of the per-tab module CSS files (Seasons, Fun Stats,
+ * Records) once the third tab to consume the chip — Trades — landed.
+ * Mirrors the legacy `.team-chip` / `.team-dot` / `.team-owner`
+ * (index.html lines 133-135).
+ *
+ * `--owner-color` is a CSS custom property the React layer sets per
+ * row so the dot and team-name color stay in sync without sprinkling
+ * inline `style` props across every cell.
+ */
+
+.teamChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.teamDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  background: var(--owner-color);
+}
+
+.teamName {
+  color: var(--owner-color);
+}
+
+.teamOwner {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+/* Phone-sized viewports — hide the secondary owner sub-line so the chip
+ * stays compact. The team name and color dot remain. Mirrors the
+ * legacy mobile override that lived inside each per-tab module CSS
+ * before this lift. */
+@media (max-width: 600px) {
+  .teamOwner {
+    display: none;
+  }
+}

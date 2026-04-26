@@ -23,6 +23,14 @@
   --silver: #c0c7d4;
   --bronze: #cd7f32;
 
+  /* Win / loss tints — the "good" green and "bad" red used everywhere
+   * a tab needs to mark a positive vs negative number (margins, net
+   * gains, win-vs-loss lines, streaks, etc.). Lifted here once the
+   * Trades tab's third use site landed. Existing per-tab CSS is being
+   * migrated to these tokens incrementally. */
+  --color-win: #4ade80;
+  --color-loss: #f87171;
+
   /* Named colors for known owners — each is a distinct hue. Substring-matched
    * in OWNER_COLORS (config.ts). */
   --c-alex: #d32f2f;

@@ -1,0 +1,462 @@
+/* Trades tab — visual parity with the legacy site:
+ *   - section-header / section-bar / count-pill (index.html lines 105-109)
+ *   - .card / .card-header / .card-body (lines 111-115)
+ *   - Per-section colored bars (legacy inline `style="background:..."`
+ *     on the Grand Larceny WR + ST headers and the chronological
+ *     accent header).
+ *   - The trade card markup mirrors the legacy `renderTradeCard()`
+ *     (index.html lines 2410-2487): rank badge, season + week
+ *     metadata, optional date stamp, side-by-side party blocks for
+ *     2-party trades, and a compact stack for 3+-way trades.
+ *
+ * Colors and typography are inherited from `:root` in `index.css`.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 36px 0 16px;
+  flex-wrap: wrap;
+}
+
+.sectionHeader:first-child {
+  margin-top: 0;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.barRed {
+  background: var(--accent-red);
+}
+
+.barAccent {
+  background: var(--accent);
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* The top-of-tab "Trade History" header is bigger than the per-card
+ * sub-headers, matching the legacy `<h2>` at line 544 (no font-size
+ * override) versus the `<h2 style="font-size: 18px;">` overrides at
+ * lines 546, 552, 558. */
+.sectionTitleLarge {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Visually-hidden label text for the filter + sort selects. The card
+ * title says "All Trades, Chronological" so the controls are
+ * self-describing in context, but screen readers still need the
+ * input/label association. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------
+ * Card frame
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  background: linear-gradient(90deg, #000 0%, var(--panel) 100%);
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.cardHint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* The chronological card header has filter + sort selects on the right
+ * — give them a small horizontal gap so they don't crash into each
+ * other on phones. */
+.cardControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardControl {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border-bright);
+  padding: 6px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.cardControl:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Caveat / methodology box at the bottom of the tab. Mirrors the
+ * legacy `<div class="card">` with the `border-left: 3px solid var(--accent)`
+ * accent and dim body text (lines 576-584).
+ * ------------------------------------------------------------------- */
+
+.methodology {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 18px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 24px;
+}
+
+.methodology strong {
+  color: var(--text);
+}
+
+.methodology em {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* "WR" / "ST" inline labels inside the methodology paragraph. */
+.methodologyLabel {
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------------
+ * Trade card
+ * ------------------------------------------------------------------- */
+
+.tradeCard {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tradeCard:last-child {
+  border-bottom: none;
+}
+
+/* Pick-only variant — slimmer, no party blocks. */
+.tradeCardPicks {
+  padding: 16px 20px;
+}
+
+.tradeMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tradeMetaLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tradeSeasonWeek {
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tradeDate {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Rank badge for the top-10 lists. The legacy version sets a per-rank
+ * background color on `'larceny'` variant (red) — we keep the same
+ * red here because both Grand Larceny tables use it. */
+.rankBadge {
+  background: var(--accent-red);
+  color: #000;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Pure-pick trade body — just the slate of picks.
+ * ------------------------------------------------------------------- */
+
+.picksOnlyLabel {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.picksOnlyBody {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* -------------------------------------------------------------------
+ * Trade-card body — parties laid out side-by-side (2-way) or stacked
+ * (3+-way). Each party block lists received players + draft picks +
+ * WR/ST net deltas.
+ * ------------------------------------------------------------------- */
+
+.partiesRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.party {
+  flex: 1;
+  min-width: 0;
+}
+
+.partyHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.partyDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  background: var(--owner-color);
+}
+
+.partyName {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--owner-color);
+  font-size: 15px;
+}
+
+.partyAssets {
+  margin-bottom: 6px;
+}
+
+.partyPlayer {
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.partyPlayerName {
+  color: var(--text);
+}
+
+.partyPlayerPos {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.partyPick {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 1px 0;
+}
+
+.partyEmpty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.partyMetrics {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.metricLabel {
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.metricValue {
+  font-weight: 700;
+}
+
+.metricPositive {
+  color: var(--color-win);
+}
+
+.metricNegative {
+  color: var(--color-loss);
+}
+
+.metricNeutral {
+  color: var(--text-dim);
+}
+
+/* The ⇄ between two parties on a 2-way trade. */
+.tradeArrow {
+  color: var(--accent-red);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  padding: 0 8px;
+  align-self: center;
+}
+
+/* The vertical separator between three+ parties — a slim divider line. */
+.partySeparator {
+  width: 1px;
+  background: var(--border);
+  margin: 0 12px;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity (matches the legacy `@media (max-width: 640px)` rules
+ * at index.html lines 224-231).
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .sectionTitle {
+    font-size: 16px;
+  }
+
+  .sectionTitleLarge {
+    font-size: 20px;
+  }
+
+  .tradeCard,
+  .tradeCardPicks {
+    padding: 14px 14px;
+  }
+
+  /* Stack the side-by-side parties vertically — flex already wraps,
+   * but kill the swap arrow + thin separator visuals so the stack
+   * reads cleanly without horizontal cruft between blocks. */
+  .partiesRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tradeArrow,
+  .partySeparator {
+    display: none;
+  }
+
+  /* Filter + sort selects need full width on phones so the touch
+   * target is comfortable and the controls don't overflow the card
+   * header on the smallest viewports. */
+  .cardControls {
+    width: 100%;
+  }
+
+  .cardControl {
+    flex: 1;
+  }
+}

@@ -16,10 +16,10 @@
 // composition + markup only.
 
 import { useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { useLeagueData } from '../../lib/leagueData';
 import type { PlayerIndex } from '../../lib/leagueData';
 import type { OwnerIndex, SeasonDetails } from '../../lib/owners';
+import { TeamChip, TeamChipCompact } from '../../lib/components/TeamChip';
 import {
   selectPlayerSeasonHighs,
   selectPlayerSingleWeekHighs,
@@ -30,11 +30,6 @@ import {
   type TeamScoreRecord,
 } from '../../lib/stats/records';
 import styles from './Records.module.css';
-
-// CSS custom property used to inject the per-row owner color into the
-// team-chip dot + name without per-cell inline styles. TypeScript
-// requires the `--*` form so we attach it via a typed alias.
-type OwnerColorStyle = CSSProperties & { '--owner-color': string };
 
 export default function Records() {
   const state = useLeagueData();
@@ -319,42 +314,8 @@ function PlayerSeasonsSection({ rows }: PlayerSeasonsSectionProps) {
 }
 
 // -------------------------------------------------------------------
-// Shared chips / helpers
+// Local helpers (chips lifted to `app/src/lib/components/TeamChip`)
 // -------------------------------------------------------------------
-
-interface TeamChipProps {
-  name: string;
-  owner: string;
-  color: string;
-}
-
-/** Full team chip — color dot + team name (in owner color) + dim owner sub-name. */
-function TeamChip({ name, owner, color }: TeamChipProps) {
-  const style: OwnerColorStyle = { '--owner-color': color };
-  return (
-    <span className={styles.teamChip} style={style}>
-      <span className={styles.teamDot} aria-hidden="true" />
-      <span className={styles.teamName}>{name}</span>
-      <span className={styles.teamOwner}>{owner}</span>
-    </span>
-  );
-}
-
-interface TeamChipCompactProps {
-  name: string;
-  color: string;
-}
-
-/** Compact team chip — color dot + team name only (no owner sub). */
-function TeamChipCompact({ name, color }: TeamChipCompactProps) {
-  const style: OwnerColorStyle = { '--owner-color': color };
-  return (
-    <span className={styles.teamChip} style={style}>
-      <span className={styles.teamDot} aria-hidden="true" />
-      <span className={styles.teamName}>{name}</span>
-    </span>
-  );
-}
 
 /** Gold/silver/bronze tinting for the top three rows; default for the rest. */
 function rankClass(idx: number): string {

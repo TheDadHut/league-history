@@ -35,7 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 1
+          # peter-evans/create-pull-request needs full history to detect
+          # whether the head branch already exists and rebase against it.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
@@ -84,7 +86,7 @@ jobs:
       - name: Open or update recap PR
         id: pr
         if: steps.generate.outputs.recap_path != ''
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           # Deterministic branch name per (season, week). Re-running for the
           # same week updates the existing PR rather than opening a new one.

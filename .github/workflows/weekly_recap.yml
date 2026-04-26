@@ -66,9 +66,17 @@ jobs:
           if [ -z "$recap_path" ]; then
             echo "Off-season — no recap written."
             echo "recap_path=" >> "$GITHUB_OUTPUT"
+            echo "recap_temp=" >> "$GITHUB_OUTPUT"
           else
             echo "Wrote recap to $recap_path"
+            # Stash a copy in RUNNER_TEMP because peter-evans/create-pull-request
+            # resets the workspace to base after committing — by the time the
+            # webhook step runs, the file at $recap_path is gone. RUNNER_TEMP is
+            # untouched by checkout / PR actions.
+            recap_temp="$RUNNER_TEMP/recap.md"
+            cp "$recap_path" "$recap_temp"
             echo "recap_path=$recap_path" >> "$GITHUB_OUTPUT"
+            echo "recap_temp=$recap_temp" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Parse season and week from path
@@ -109,7 +117,7 @@ jobs:
         if: ${{ steps.generate.outputs.recap_path != '' && steps.pr.outputs.pull-request-number != '' && env.RECAP_WEBHOOK_URL != '' }}
         run: |
           python3 tools/post_recap.py \
-            --path "${{ steps.generate.outputs.recap_path }}" \
+            --path "${{ steps.generate.outputs.recap_temp }}" \
             --webhook-url "$RECAP_WEBHOOK_URL" \
             --webhook-format "${RECAP_WEBHOOK_FORMAT:-discord}" \
             --link "${{ steps.pr.outputs.pull-request-url }}"

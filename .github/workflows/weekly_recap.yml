@@ -8,6 +8,17 @@ on:
   schedule:
     - cron: '0 14 * * 2'
   workflow_dispatch:
+    inputs:
+      week:
+        description: 'NFL week (1-18). Leave blank to auto-detect via /v1/state/nfl.'
+        required: false
+        type: string
+        default: ''
+      season:
+        description: 'Season year (e.g. 2024). Leave blank for the current league season.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -34,9 +45,21 @@ jobs:
 
       - name: Generate recap
         id: generate
+        env:
+          # Empty strings on schedule triggers; populated when the user provides
+          # them via workflow_dispatch. Explicit values override auto-detection.
+          INPUT_WEEK: ${{ inputs.week }}
+          INPUT_SEASON: ${{ inputs.season }}
         run: |
           set -euo pipefail
-          recap_path="$(python3 tools/weekly_recap.py --auto-write-to-recaps-dir)"
+          args=(--auto-write-to-recaps-dir)
+          if [ -n "${INPUT_WEEK:-}" ]; then
+            args+=(--week "$INPUT_WEEK")
+          fi
+          if [ -n "${INPUT_SEASON:-}" ]; then
+            args+=(--season "$INPUT_SEASON")
+          fi
+          recap_path="$(python3 tools/weekly_recap.py "${args[@]}")"
           if [ -z "$recap_path" ]; then
             echo "Off-season — no recap written."
             echo "recap_path=" >> "$GITHUB_OUTPUT"

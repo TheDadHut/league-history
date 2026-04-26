@@ -648,7 +648,7 @@ const FALLBACK_PALETTE = [
   'var(--c-p8)', 'var(--c-p9)', 'var(--c-p10)', 'var(--c-p11)'
 ];
 
-// Manual highlights — edit highlights.json in the same folder as this file.
+// Manual highlights — edit highlights.json under app/public/ (single source of truth).
 // Format: { "2024": ["Highlight one.", "Highlight two."], "2025": [...] }
 // For a note/sub-line under a highlight, use this form instead of a string:
 //   { "text": "Main highlight", "sub": "Extra detail shown indented below" }
@@ -676,7 +676,7 @@ function normalizeHighlight(item) {
 
 async function loadHighlights() {
   try {
-    const res = await fetch('highlights.json?t=' + Date.now()); // cache-bust
+    const res = await fetch('app/public/highlights.json?t=' + Date.now()); // cache-bust
     if (!res.ok) return;
     const data = await res.json();
     Object.keys(data).forEach(season => {

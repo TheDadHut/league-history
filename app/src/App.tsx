@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { LeagueDataProvider } from './lib/leagueData';
+import { DebugOverlay } from './lib/components/DebugOverlay';
 import './App.css';
 
 // Each tab is dynamically imported so Vite emits its own chunk; per the
@@ -80,6 +81,9 @@ function App() {
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>
+          {/* Mounted inside the provider so it can read the owner
+           * index. Renders nothing until the user hits Ctrl+Shift+D. */}
+          <DebugOverlay />
         </LeagueDataProvider>
       </main>
 

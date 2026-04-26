@@ -5,7 +5,7 @@
 // Tab-local helpers: GradePill / GradeCell (Seasons-specific letter
 // grades) and rankClass (gold/silver/bronze tinting for the top three
 // rows). The TeamChip + TeamChipCompact + OwnerColorStyle exports were
-// lifted to `app/src/lib/components/TeamChip` once the third tab to
+// lifted to `src/lib/components/TeamChip` once the third tab to
 // consume them landed; we re-export from this module so the existing
 // import sites in the Seasons tab keep working without churn.
 

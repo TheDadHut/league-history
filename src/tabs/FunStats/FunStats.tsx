@@ -23,7 +23,7 @@
 // at `seasons-ready`, but waiting for `ready` keeps the tab from
 // painting half-empty and then popping in two more cards a few
 // hundred ms later. Pure stat selectors live in
-// `app/src/lib/stats/funstats.ts`; this file is composition + markup
+// `src/lib/stats/funstats.ts`; this file is composition + markup
 // only.
 
 import { useMemo } from 'react';

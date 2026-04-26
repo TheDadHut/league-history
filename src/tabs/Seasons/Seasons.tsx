@@ -26,7 +26,7 @@
 // board, steals/busts, best pickups, etc.), so we wait for the
 // terminal `ready` tier — earlier tiers (`core-ready`, `seasons-ready`)
 // would render half the panel as anonymized rows. Pure stat selectors
-// live in `app/src/lib/stats/seasons.ts`; this file is composition +
+// live in `src/lib/stats/seasons.ts`; this file is composition +
 // markup only.
 
 import { useMemo, useState } from 'react';

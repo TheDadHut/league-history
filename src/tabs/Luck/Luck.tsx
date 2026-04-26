@@ -14,7 +14,7 @@
 // `seasons-ready` (or terminal `ready`) tier — the player DB isn't
 // needed here; everything is computed off the flat-matchups view.
 //
-// Pure stat selectors live in `app/src/lib/stats/luck.ts`; this file
+// Pure stat selectors live in `src/lib/stats/luck.ts`; this file
 // is composition + markup only.
 
 import { useMemo } from 'react';

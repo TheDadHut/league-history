@@ -200,7 +200,7 @@
 }
 
 /* -------------------------------------------------------------------
- * (Team chip styles lifted to `app/src/lib/components/TeamChip.module.css`
+ * (Team chip styles lifted to `src/lib/components/TeamChip.module.css`
  * — every tab that surfaces an owner row reads from there now.)
  * ------------------------------------------------------------------- */
 
@@ -217,7 +217,7 @@
   }
 
   /* (The team-chip mobile rule moved with the chip styles to
-   * `app/src/lib/components/TeamChip.module.css`.) */
+   * `src/lib/components/TeamChip.module.css`.) */
 
   /* The position cell is already tiny; let it wrap if a multi-letter
    * abbreviation lands next to a long player name. */

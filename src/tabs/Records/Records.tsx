@@ -12,7 +12,7 @@
 //
 // Reads from the shared `LeagueDataProvider` and waits for the `ready`
 // state because the player tables need the Sleeper player DB. The pure
-// stat selectors live in `app/src/lib/stats/records.ts`; this file is
+// stat selectors live in `src/lib/stats/records.ts`; this file is
 // composition + markup only.
 
 import { useMemo } from 'react';
@@ -285,7 +285,7 @@ function PlayerSeasonsSection({ rows }: PlayerSeasonsSectionProps) {
 }
 
 // -------------------------------------------------------------------
-// Local helpers (chips lifted to `app/src/lib/components/TeamChip`)
+// Local helpers (chips lifted to `src/lib/components/TeamChip`)
 // -------------------------------------------------------------------
 
 /** Gold/silver/bronze tinting for the top three rows; default for the rest. */

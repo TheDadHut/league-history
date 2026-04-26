@@ -17,7 +17,7 @@
 // Reads from the shared `LeagueDataProvider` and waits for the `ready`
 // state because every party block surfaces individual player names +
 // positions out of the Sleeper player DB. Pure stat selectors live in
-// `app/src/lib/stats/trades.ts`; this file is composition + markup
+// `src/lib/stats/trades.ts`; this file is composition + markup
 // only.
 
 import { useMemo, useState } from 'react';

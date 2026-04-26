@@ -336,7 +336,7 @@
 }
 
 /* -------------------------------------------------------------------
- * (Team chip styles lifted to `app/src/lib/components/TeamChip.module.css`
+ * (Team chip styles lifted to `src/lib/components/TeamChip.module.css`
  * — every tab that surfaces an owner row reads from there now.)
  * ------------------------------------------------------------------- */
 
@@ -415,7 +415,7 @@
   }
 
   /* (The team-chip mobile rule moved with the chip styles to
-   * `app/src/lib/components/TeamChip.module.css`.) */
+   * `src/lib/components/TeamChip.module.css`.) */
 
   /* Narrow column needs smaller position abbreviation styling. */
   .position {

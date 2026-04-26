@@ -7,7 +7,7 @@
  *     on the bars at lines 511, 520, 529, 535).
  *
  * Colors and typography are inherited from `:root` in `index.css`.
- * Team-chip styles live in `app/src/lib/components/TeamChip.module.css`.
+ * Team-chip styles live in `src/lib/components/TeamChip.module.css`.
  */
 
 /* -------------------------------------------------------------------

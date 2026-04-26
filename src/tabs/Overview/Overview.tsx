@@ -11,7 +11,7 @@
 //
 // All data comes from the shared `LeagueDataProvider` so we don't
 // re-walk history per tab. The pure stat selectors live in
-// `app/src/lib/stats/overview.ts`; this file is composition + markup
+// `src/lib/stats/overview.ts`; this file is composition + markup
 // only.
 
 import { useMemo, useState } from 'react';

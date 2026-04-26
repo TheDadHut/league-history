@@ -16,7 +16,7 @@
 //
 // Reads from the shared `LeagueDataProvider` and renders against the
 // `seasons-ready` tier — the H2H view doesn't need the Sleeper player
-// DB. The pure stat selectors live in `app/src/lib/stats/h2h.ts`;
+// DB. The pure stat selectors live in `src/lib/stats/h2h.ts`;
 // this file is composition + markup only.
 
 import { useMemo, useState } from 'react';

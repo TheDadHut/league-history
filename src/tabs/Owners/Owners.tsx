@@ -27,7 +27,7 @@
 // `ready` tier because Draft History and Waiver History both need
 // `selectDraftGrades` / `selectWaiverProfile`, which both consume the
 // Sleeper player DB. Pure selectors live in
-// `app/src/lib/stats/owners.ts`; this file is composition + markup
+// `src/lib/stats/owners.ts`; this file is composition + markup
 // only.
 
 import { useMemo, useState } from 'react';

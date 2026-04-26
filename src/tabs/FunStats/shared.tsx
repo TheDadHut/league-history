@@ -4,7 +4,7 @@
 //
 // Tab-local helper: rankClass (gold/silver/bronze tinting for the top
 // three rows). The TeamChip + TeamChipCompact + OwnerColorStyle
-// exports were lifted to `app/src/lib/components/TeamChip` once the
+// exports were lifted to `src/lib/components/TeamChip` once the
 // third tab to consume them landed; we re-export from this module so
 // the existing import sites in the Fun Stats tab keep working without
 // churn.

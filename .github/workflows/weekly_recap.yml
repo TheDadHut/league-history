@@ -15,6 +15,11 @@ permissions:
 jobs:
   recap:
     runs-on: ubuntu-latest
+    # Hoisted so step-level `if:` conditions can reference `env.RECAP_WEBHOOK_URL`.
+    # GitHub Actions disallows direct `secrets.X` references in step `if:`.
+    env:
+      RECAP_WEBHOOK_URL: ${{ secrets.RECAP_WEBHOOK_URL }}
+      RECAP_WEBHOOK_FORMAT: ${{ vars.RECAP_WEBHOOK_FORMAT }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -63,10 +68,7 @@ jobs:
           git push
 
       - name: Post teaser to webhook
-        if: ${{ steps.generate.outputs.recap_path != '' && secrets.RECAP_WEBHOOK_URL != '' }}
-        env:
-          RECAP_WEBHOOK_URL: ${{ secrets.RECAP_WEBHOOK_URL }}
-          RECAP_WEBHOOK_FORMAT: ${{ vars.RECAP_WEBHOOK_FORMAT }}
+        if: ${{ steps.generate.outputs.recap_path != '' && env.RECAP_WEBHOOK_URL != '' }}
         run: |
           set -euo pipefail
           teaser="$(python3 tools/weekly_recap.py --week '${{ steps.meta.outputs.week }}' --season '${{ steps.meta.outputs.season }}' --teaser)"

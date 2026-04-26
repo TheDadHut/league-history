@@ -21,16 +21,15 @@
   margin-top: 0;
 }
 
+/* `.section` owns the vertical rhythm between sub-panels; the header is
+ * just the flex row inside it. Mirrors the Records / Luck convention so
+ * margins don't compound (36px section + 36px header = 72px top). */
 .sectionHeader {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 36px 0 16px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-}
-
-.sectionHeader:first-child {
-  margin-top: 0;
 }
 
 .sectionBar {
@@ -516,8 +515,9 @@
     font-size: 26px;
   }
 
-  .ownerHeader,
-  .sectionHeader {
+  /* `.section` owns the top margin; only the bespoke `.ownerHeader`
+   * (which has its own margin-top) needs to be tightened on mobile. */
+  .ownerHeader {
     margin-top: 24px;
   }
 }

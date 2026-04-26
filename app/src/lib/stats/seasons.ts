@@ -979,6 +979,24 @@ export function selectDraftValue(
 
 export type GradeLetter = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
 
+/**
+ * Map a numeric GPA to a letter grade using the same fixed thresholds
+ * the legacy renderer used inline (`numToGrade`, index.html lines 2814
+ * and 2873). This is the "stable" reverse mapping — no curve — used to
+ * collapse a per-season GPA average back to a single composite letter.
+ *
+ * Used by `selectDraftGrades` (overallGrade per season) and by the
+ * Owner Stats tab's all-time draft / waiver composites.
+ */
+export function gpaToGradeLetter(gpa: number): GradeLetter {
+  if (gpa >= 4.15) return 'A+';
+  if (gpa >= 3.5) return 'A';
+  if (gpa >= 2.5) return 'B';
+  if (gpa >= 1.5) return 'C';
+  if (gpa >= 0.5) return 'D';
+  return 'F';
+}
+
 /** One row in the per-season draft grades table. */
 export interface DraftGradeRow {
   ownerKey: string;
@@ -1224,14 +1242,6 @@ export function selectDraftGrades(
     D: 1.0,
     F: 0.0,
   };
-  const numToGrade = (gpa: number): GradeLetter => {
-    if (gpa >= 4.15) return 'A+';
-    if (gpa >= 3.5) return 'A';
-    if (gpa >= 2.5) return 'B';
-    if (gpa >= 1.5) return 'C';
-    if (gpa >= 0.5) return 'D';
-    return 'F';
-  };
 
   const rows: DraftGradeRow[] = [];
   for (const [key, v] of byOwner) {
@@ -1254,7 +1264,7 @@ export function selectDraftGrades(
       dceGrade: dceG,
       rpGrade: rpG,
       pwrGrade: pwrG,
-      overallGrade: numToGrade(gpa),
+      overallGrade: gpaToGradeLetter(gpa),
       gpa,
     });
   }

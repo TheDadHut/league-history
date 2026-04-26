@@ -54,6 +54,7 @@ import type {
   WaiverArchetype,
   WaiverProfileRow,
 } from './seasons';
+import { gpaToGradeLetter } from './seasons';
 import type { FlatMatchup } from './util';
 
 // ===================================================================
@@ -152,13 +153,21 @@ export function selectAllPlayoffResumes(
       if (typeof game.t2 === 'number') rosters.push(game.t2);
       for (const rid of rosters) seasonAppearances.add(rid);
 
-      // Per-game W/L attribution. Mirrors the legacy `g.w === rid` /
-      // `g.l === rid` branches at lines 2715-2716.
-      if (game.w != null) {
+      // Per-game W/L attribution. Legacy gates on
+      // `g.t1 === rid || g.t2 === rid` *before* checking `g.w === rid` /
+      // `g.l === rid` (index.html:2712-2716), so games where this owner
+      // is reached only via a `{w: matchId}` bracket reference (the
+      // standard semifinal→final advancement) don't double-count.
+      // Without that filter, a finalist gets credited for a "win" /
+      // "loss" on the championship game once for the bracket entry and
+      // again for the advancement reference. Per port-first, we mirror
+      // legacy here even though legacy is technically undercounting.
+      if (rosters.length === 0) continue;
+      if (game.w != null && rosters.includes(game.w)) {
         const winnerKey = rosterToOwner.get(game.w);
         if (winnerKey && out[winnerKey]) out[winnerKey].wins++;
       }
-      if (game.l != null) {
+      if (game.l != null && rosters.includes(game.l)) {
         const loserKey = rosterToOwner.get(game.l);
         if (loserKey && out[loserKey]) out[loserKey].losses++;
       }
@@ -212,9 +221,17 @@ export interface OwnerH2HRow {
   wins: number;
   /** Combined losses. */
   losses: number;
-  /** Total games (W + L). Ties are not counted on either side, matching the legacy code. */
+  /**
+   * Total games played, including ties. Mirrors the legacy
+   * `h2h[opp].games++` increment that fires on every matchup regardless
+   * of outcome (index.html:2670).
+   */
   games: number;
-  /** `wins / games`, or 0 when no games. */
+  /**
+   * `wins / (wins + losses)`. Ties are excluded from the denominator so
+   * a 1W-1T owner reads as 1.000 rather than .500 — same convention as
+   * the legacy renderer (totalGames in lines 2683-2688 only sums W+L).
+   */
   pct: number;
   /** True when at least one playoff game has happened. */
   hasPlayoff: boolean;
@@ -260,6 +277,11 @@ export function selectOwnerH2HRecords(
       accum.set(oppKey, row);
     }
 
+    // Legacy increments `h2h[opp].games++` unconditionally (index.html:2670)
+    // — every matchup counts as a game, including ties. The W/L
+    // attribution below is what gates on `myScore > oppScore`.
+    row.games++;
+
     if (m.isPlayoff) {
       row.hasPlayoff = true;
       if (myScore > oppScore) row.poW++;
@@ -275,10 +297,14 @@ export function selectOwnerH2HRecords(
   for (const r of rows) {
     r.wins = r.regW + r.poW;
     r.losses = r.regL + r.poL;
-    r.games = r.wins + r.losses;
-    r.pct = r.games > 0 ? r.wins / r.games : 0;
+    // PCT is computed against W+L (ties excluded from the denominator)
+    // so a 1W-1T row reads as 1.000 — same convention as the legacy
+    // renderer (lines 2683-2688). `games` itself includes ties.
+    const decided = r.wins + r.losses;
+    r.pct = decided > 0 ? r.wins / decided : 0;
   }
-  rows.sort((a, b) => b.pct - a.pct || b.games - a.games);
+  // Legacy sorts by PCT desc only (line 2932) — no secondary tiebreak.
+  rows.sort((a, b) => b.pct - a.pct);
   return rows;
 }
 
@@ -458,7 +484,7 @@ export function selectOwnerDraftHistory(
   return {
     rows,
     avgGpa,
-    avgLetter: gpaToLetter(avgGpa),
+    avgLetter: gpaToGradeLetter(avgGpa),
   };
 }
 
@@ -569,7 +595,7 @@ export function selectOwnerWaiverHistory(
       ? impactSeasons.reduce((sum, r) => sum + GRADE_TO_GPA[r.impactGrade], 0) /
         impactSeasons.length
       : 0;
-  const avgImpactLetter = impactSeasons.length > 0 ? gpaToLetter(avgImpactGpa) : null;
+  const avgImpactLetter = impactSeasons.length > 0 ? gpaToGradeLetter(avgImpactGpa) : null;
 
   return {
     rows,
@@ -579,21 +605,3 @@ export function selectOwnerWaiverHistory(
   };
 }
 
-// ===================================================================
-// Helpers
-// ===================================================================
-
-/**
- * Map a numeric GPA to a letter grade. Mirrors the inline `numToGrade`
- * helper used in two places in the legacy renderer (lines 2814 and
- * 2873). Same thresholds, no curve — this is the "stable" reverse
- * mapping that `gradeFromCurve` writes into in the per-season selectors.
- */
-function gpaToLetter(gpa: number): GradeLetter {
-  if (gpa >= 4.15) return 'A+';
-  if (gpa >= 3.5) return 'A';
-  if (gpa >= 2.5) return 'B';
-  if (gpa >= 1.5) return 'C';
-  if (gpa >= 0.5) return 'D';
-  return 'F';
-}

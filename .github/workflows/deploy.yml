@@ -10,6 +10,7 @@ on:
       - index.html
       - package.json
       - package-lock.json
+      - .nvmrc
       - vite.config.ts
       - tsconfig.json
       - tsconfig.app.json

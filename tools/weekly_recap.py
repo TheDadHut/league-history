@@ -178,14 +178,24 @@ def pair_matchups(matchups: list[Matchup]) -> list[tuple[Matchup, Matchup]]:
     return pairs
 
 
-def compute_standings(
+def compute_standings_and_history(
     league_id: str, through_week: int, team_names: dict[int, str]
-) -> list[dict[str, Any]]:
-    """Compute W-L-T, PF, PA across weeks 1..through_week."""
+) -> tuple[list[dict[str, Any]], dict[int, list[str]]]:
+    """Compute W-L-T, PF, PA and per-roster outcome history across weeks 1..through_week.
+
+    Returns (standings_rows, history) where history maps roster_id to a list of
+    "W" / "L" / "T" outcomes ordered by week ascending. Outcomes are only
+    appended for weeks where the roster actually played a paired matchup, so
+    bye weeks don't pollute the streak.
+
+    Walking weeks 1..through_week here is the same loop the standings already
+    needed; computing streaks alongside is free (no extra Sleeper calls).
+    """
     standings: dict[int, dict[str, Any]] = {
         rid: {"team": name, "w": 0, "l": 0, "t": 0, "pf": 0.0, "pa": 0.0}
         for rid, name in team_names.items()
     }
+    history: dict[int, list[str]] = {rid: [] for rid in team_names}
 
     for week in range(1, through_week + 1):
         try:
@@ -206,16 +216,58 @@ def compute_standings(
             if pa > pb:
                 standings[ra]["w"] += 1
                 standings[rb]["l"] += 1
+                history[ra].append("W")
+                history[rb].append("L")
             elif pb > pa:
                 standings[rb]["w"] += 1
                 standings[ra]["l"] += 1
+                history[rb].append("W")
+                history[ra].append("L")
             else:
                 standings[ra]["t"] += 1
                 standings[rb]["t"] += 1
+                history[ra].append("T")
+                history[rb].append("T")
 
     rows = list(standings.values())
     rows.sort(key=lambda r: (-r["w"], -r["pf"]))
-    return rows
+    return rows, history
+
+
+def compute_active_streaks(
+    history: dict[int, list[str]], team_names: dict[int, str]
+) -> list[dict[str, Any]]:
+    """Compute current consecutive W/L streak per roster from outcome history.
+
+    Skips ties (a tie breaks any streak — the most recent outcome must be W
+    or L). Returns rows with team, length, and kind ("W"|"L"). Length-1
+    streaks are excluded; the caller decides whether to render the section.
+    Sorted by length descending, then by team name for stability.
+    """
+    out: list[dict[str, Any]] = []
+    for rid, results in history.items():
+        if not results:
+            continue
+        last = results[-1]
+        if last not in ("W", "L"):
+            continue
+        length = 1
+        for i in range(len(results) - 2, -1, -1):
+            if results[i] == last:
+                length += 1
+            else:
+                break
+        if length < 2:
+            continue
+        out.append(
+            {
+                "team": team_names.get(rid, f"Roster {rid}"),
+                "length": length,
+                "kind": last,
+            }
+        )
+    out.sort(key=lambda r: (-r["length"], r["team"]))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -252,10 +304,24 @@ def render_standings(standings: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
-def render_recap(season: str, week: int, league: League, matchups: list[Matchup],
-                 team_names: dict[int, str], standings: list[dict[str, Any]]) -> str:
+def _section_break(lines: list[str]) -> None:
+    """Append a horizontal-rule separator between major sections."""
+    lines.append("---")
+    lines.append("")
+
+
+def render_recap(
+    season: str,
+    week: int,
+    league: League,
+    matchups: list[Matchup],
+    team_names: dict[int, str],
+    standings: list[dict[str, Any]],
+    streaks: list[dict[str, Any]],
+) -> str:
     lines: list[str] = []
     lines.extend(render_header(season, week, league))
+    _section_break(lines)
     lines.extend(render_standings(standings))
 
     # Per-week stats from this week's matchups
@@ -268,49 +334,81 @@ def render_recap(season: str, week: int, league: League, matchups: list[Matchup]
         if m.get("matchup_id") is not None
     ]
 
-    if pairs:
-        # Margins
-        margins = [
-            (a, b, abs(float(a.get("points") or 0) - float(b.get("points") or 0)))
-            for a, b in pairs
-        ]
-        biggest = max(margins, key=lambda t: t[2])
-        closest = min(margins, key=lambda t: t[2])
+    def matchup_summary(a: Matchup, b: Matchup) -> tuple[Matchup, Matchup, float, float, float]:
+        """Return (winner, loser, winner_score, loser_score, margin)."""
+        ap = float(a.get("points") or 0)
+        bp = float(b.get("points") or 0)
+        if ap >= bp:
+            return a, b, ap, bp, abs(ap - bp)
+        return b, a, bp, ap, abs(ap - bp)
 
-        def matchup_line(a: Matchup, b: Matchup, margin: float) -> str:
-            ap = float(a.get("points") or 0)
-            bp = float(b.get("points") or 0)
-            if ap >= bp:
-                winner, loser, ws, ls = a, b, ap, bp
-            else:
-                winner, loser, ws, ls = b, a, bp, ap
+    if pairs:
+        summaries = [matchup_summary(a, b) for a, b in pairs]
+
+        # All games — sorted by margin descending so closest games are at the bottom.
+        _section_break(lines)
+        lines.append("### All games")
+        lines.append("")
+        for winner, loser, ws, ls, _margin in sorted(
+            summaries, key=lambda s: -s[4]
+        ):
             wn = team_names.get(winner["roster_id"], f"Roster {winner['roster_id']}")
             ln = team_names.get(loser["roster_id"], f"Roster {loser['roster_id']}")
-            return f"**{wn}** {fmt_score(ws)} — {fmt_score(ls)} {ln} (margin {fmt_score(margin)})"
+            lines.append(
+                f"- **{wn}** {fmt_score(ws)} — {fmt_score(ls)} **{ln}**"
+            )
+        lines.append("")
 
+        biggest = max(summaries, key=lambda s: s[4])
+        closest = min(summaries, key=lambda s: s[4])
+
+        def matchup_line(summary: tuple[Matchup, Matchup, float, float, float]) -> str:
+            winner, loser, ws, ls, margin = summary
+            wn = team_names.get(winner["roster_id"], f"Roster {winner['roster_id']}")
+            ln = team_names.get(loser["roster_id"], f"Roster {loser['roster_id']}")
+            return (
+                f"**{wn}** {fmt_score(ws)} — {fmt_score(ls)} **{ln}** "
+                f"(margin {fmt_score(margin)})"
+            )
+
+        _section_break(lines)
         lines.append("### Biggest blowout")
         lines.append("")
-        lines.append(matchup_line(*biggest))
+        lines.append(matchup_line(biggest))
         lines.append("")
+
+        _section_break(lines)
         lines.append("### Closest game")
         lines.append("")
-        lines.append(matchup_line(*closest))
+        lines.append(matchup_line(closest))
         lines.append("")
 
     if scored:
         high_rid, high_pts = max(scored, key=lambda t: t[1])
         low_rid, low_pts = min(scored, key=lambda t: t[1])
+        high_name = team_names.get(high_rid, f"Roster {high_rid}")
+        low_name = team_names.get(low_rid, f"Roster {low_rid}")
+
+        _section_break(lines)
         lines.append("### Highest scorer")
         lines.append("")
-        lines.append(
-            f"{team_names.get(high_rid, f'Roster {high_rid}')} — {fmt_score(high_pts)}"
-        )
+        lines.append(f"**{high_name}** — {fmt_score(high_pts)}")
         lines.append("")
+
+        _section_break(lines)
         lines.append("### Lowest scorer")
         lines.append("")
-        lines.append(
-            f"{team_names.get(low_rid, f'Roster {low_rid}')} — {fmt_score(low_pts)}"
-        )
+        lines.append(f"**{low_name}** — {fmt_score(low_pts)}")
+        lines.append("")
+
+    if streaks:
+        _section_break(lines)
+        lines.append("### Streaks")
+        lines.append("")
+        for row in streaks:
+            lines.append(
+                f"- **{row['team']}** — {row['length']}-game {row['kind']} streak"
+            )
         lines.append("")
 
     return "\n".join(lines)
@@ -442,9 +540,12 @@ def main() -> int:
     rosters = get_rosters(league_id)
     team_names = build_team_name_map(users, rosters)
 
-    standings = compute_standings(league_id, week, team_names)
+    standings, history = compute_standings_and_history(league_id, week, team_names)
+    streaks = compute_active_streaks(history, team_names)
 
-    full_recap = render_recap(resolved_season, week, league, matchups, team_names, standings)
+    full_recap = render_recap(
+        resolved_season, week, league, matchups, team_names, standings, streaks
+    )
 
     if auto_dir:
         target = Path("recaps") / resolved_season / f"week-{week}.md"

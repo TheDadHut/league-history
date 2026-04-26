@@ -103,35 +103,13 @@ jobs:
           author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
 
-      - name: Post teaser to webhook
+      - name: Post recap to webhook
         # Only post when (a) a recap was written, (b) the PR action did
         # something (created or updated), and (c) the webhook secret is set.
         if: ${{ steps.generate.outputs.recap_path != '' && steps.pr.outputs.pull-request-number != '' && env.RECAP_WEBHOOK_URL != '' }}
         run: |
-          set -euo pipefail
-          teaser="$(python3 tools/weekly_recap.py --week '${{ steps.meta.outputs.week }}' --season '${{ steps.meta.outputs.season }}' --teaser)"
-          link="${{ steps.pr.outputs.pull-request-url }}"
-          format="${RECAP_WEBHOOK_FORMAT:-discord}"
-
-          # Compose message and verify it fits the platform cap.
-          message="$teaser"$'\n\n'"Full recap: $link"
-          case "$format" in
-            slack)
-              cap=4000
-              ;;
-            discord|*)
-              cap=2000
-              ;;
-          esac
-          if [ "${#message}" -gt "$cap" ]; then
-            echo "Teaser+link is ${#message} chars, exceeds $format cap of $cap" >&2
-            exit 1
-          fi
-
-          # jq -Rs reads stdin as a single JSON-escaped string.
-          if [ "$format" = "slack" ]; then
-            payload="$(printf '%s' "$message" | jq -Rs '{text: .}')"
-          else
-            payload="$(printf '%s' "$message" | jq -Rs '{content: .}')"
-          fi
-          curl -fsS -X POST -H 'Content-Type: application/json' -d "$payload" "$RECAP_WEBHOOK_URL"
+          python3 tools/post_recap.py \
+            --path "${{ steps.generate.outputs.recap_path }}" \
+            --webhook-url "$RECAP_WEBHOOK_URL" \
+            --webhook-format "${RECAP_WEBHOOK_FORMAT:-discord}" \
+            --link "${{ steps.pr.outputs.pull-request-url }}"

@@ -12,6 +12,7 @@ const Seasons = lazy(() => import('./tabs/Seasons/Seasons'));
 const FunStats = lazy(() => import('./tabs/FunStats/FunStats'));
 const Luck = lazy(() => import('./tabs/Luck/Luck'));
 const Trades = lazy(() => import('./tabs/Trades/Trades'));
+const Owners = lazy(() => import('./tabs/Owners/Owners'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
 interface TabDef {
@@ -21,9 +22,8 @@ interface TabDef {
   label: string;
 }
 
-// Final order should match the legacy nav (index.html lines 332-343):
+// Order matches the legacy nav (index.html lines 332-343):
 // Overview -> Records -> Head-to-Head -> Seasons -> Fun Stats -> Luck & Streaks -> Trades -> Owner Stats -> Founders.
-// Tabs are added in migration order today and will be reordered before the Phase 5 cutover.
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
   { path: 'records', label: 'Records' },
@@ -32,6 +32,7 @@ const TABS: readonly TabDef[] = [
   { path: 'fun-stats', label: 'Fun Stats' },
   { path: 'luck', label: 'Luck & Streaks' },
   { path: 'trades', label: 'Trades' },
+  { path: 'owners', label: 'Owner Stats' },
   { path: 'founders', label: 'Founders' },
 ];
 
@@ -75,6 +76,7 @@ function App() {
               <Route path="/fun-stats" element={<FunStats />} />
               <Route path="/luck" element={<Luck />} />
               <Route path="/trades" element={<Trades />} />
+              <Route path="/owners" element={<Owners />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>
           </Suspense>

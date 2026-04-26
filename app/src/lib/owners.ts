@@ -57,6 +57,26 @@ export function teamNameFor(user: User): string {
   return user.metadata?.team_name || user.display_name || 'Unknown';
 }
 
+/**
+ * The most recent team name we know for an owner. Mirrors the legacy
+ * `teamChip(key)` (no `season` argument) which falls back to
+ * `teamNames[latestSeason]` then `displayName`. Season keys are
+ * year-strings, so a lexicographic max is also a chronological max.
+ *
+ * Lifted here once the third tab to consume it (Owner Stats) landed —
+ * the previous private copies in `stats/luck.ts` and inline lookups
+ * elsewhere are being migrated to call this directly.
+ */
+export function latestTeamName(owner: Owner): string {
+  const seasons = Object.keys(owner.teamNamesBySeason);
+  if (seasons.length === 0) return owner.displayName;
+  let latest = seasons[0] as string;
+  for (const s of seasons) {
+    if (s > latest) latest = s;
+  }
+  return owner.teamNamesBySeason[latest] || owner.displayName;
+}
+
 /** Substring match against `OWNER_COLORS`; returns the first matching color or `null`. */
 function explicitColorFor(key: string): string | null {
   if (!key) return null;

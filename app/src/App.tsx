@@ -10,6 +10,7 @@ const Records = lazy(() => import('./tabs/Records/Records'));
 const HeadToHead = lazy(() => import('./tabs/HeadToHead/HeadToHead'));
 const Seasons = lazy(() => import('./tabs/Seasons/Seasons'));
 const FunStats = lazy(() => import('./tabs/FunStats/FunStats'));
+const Luck = lazy(() => import('./tabs/Luck/Luck'));
 const Trades = lazy(() => import('./tabs/Trades/Trades'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
 
@@ -29,6 +30,7 @@ const TABS: readonly TabDef[] = [
   { path: 'head-to-head', label: 'Head-to-Head' },
   { path: 'seasons', label: 'Seasons' },
   { path: 'fun-stats', label: 'Fun Stats' },
+  { path: 'luck', label: 'Luck & Streaks' },
   { path: 'trades', label: 'Trades' },
   { path: 'founders', label: 'Founders' },
 ];
@@ -71,6 +73,7 @@ function App() {
               <Route path="/head-to-head" element={<HeadToHead />} />
               <Route path="/seasons" element={<Seasons />} />
               <Route path="/fun-stats" element={<FunStats />} />
+              <Route path="/luck" element={<Luck />} />
               <Route path="/trades" element={<Trades />} />
               <Route path="/founders" element={<Founders />} />
             </Routes>

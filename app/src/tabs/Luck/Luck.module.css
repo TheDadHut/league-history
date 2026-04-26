@@ -1,0 +1,282 @@
+/* Luck & Streaks tab — visual parity with the legacy site:
+ *   - section-header / section-bar / count-pill (index.html lines 105-109)
+ *   - .card / .card-header / .card-body (lines 111-115)
+ *   - .table-scroll / table (lines 117-128)
+ *   - .rank / .rank-1/2/3 (lines 130-131)
+ *   - Per-section colored section bars (inline `style="background:..."`
+ *     on the bars at lines 511, 520, 529, 535).
+ *
+ * Colors and typography are inherited from `:root` in `index.css`.
+ * Team-chip styles live in `app/src/lib/components/TeamChip.module.css`.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+/* `.section` owns the vertical rhythm between sub-panels; the header is
+ * just the flex row inside it. Mirrors the Records convention rather
+ * than duplicating the `36px 0 16px` rule on both. */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Per-section accent colors. The legacy site sets these inline on each
+ * `.section-bar`; the React component picks the right modifier per
+ * section header. Names match the FunStats module so the next lift can
+ * be done in one move. */
+.barRed {
+  background: var(--accent-red);
+}
+.barGreen {
+  background: var(--color-win);
+}
+.barGold {
+  background: var(--gold);
+}
+
+/* The legacy site uses a smaller heading on the sub-panels inside the
+ * Luck tab (`style="font-size: 18px;"` at lines 511, 520, 529, 535).
+ * Mirrors the FunStats `.sectionTitle` rule rather than the larger
+ * Records 24px variant. */
+.sectionTitleSm {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+/* -------------------------------------------------------------------
+ * Card + table
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 500px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+/* `.num` is applied to both `th` and `td` so alignment + monospace
+ * styling stay consistent between header and cell. */
+.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Win / loss / neutral tints on numeric cells. The win/loss tokens are
+ * the shared `--color-win` / `--color-loss` palette tokens; neutral
+ * mirrors the legacy `var(--text-dim)` on the Expected column. */
+.numWin {
+  color: var(--color-win);
+  font-weight: 700;
+}
+
+.numLoss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+
+.numNeutral {
+  color: var(--text-dim);
+}
+
+/* The Actual column packs three spans into one cell: `wins-dash-losses`.
+ * Mirrors the legacy inline `<span class="wins">` / `<span class="losses">`
+ * styling at lines 2540. */
+.recordWin {
+  color: var(--color-win);
+  font-weight: 700;
+}
+
+.recordLoss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+
+.recordDash {
+  color: var(--text-muted);
+}
+
+/* The streak number in the Current Streaks table renders larger (16px)
+ * with the icon prefixed. Mirrors the legacy inline
+ * `style="font-size: 16px;"` at line 2586. */
+.streakBig {
+  font-size: 16px;
+}
+
+/* "Since" and From/To week labels — dim monospace, matches the legacy
+ * `style="color: var(--text-dim); font-family:'JetBrains Mono';"` at
+ * lines 2587, 2633, 2641. */
+.weekLabel {
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Empty-state cell for the all-time tables when no streaks have
+ * happened yet. Matches the legacy fallback row at lines 2635, 2643. */
+.emptyCell {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Rank pill
+ * ------------------------------------------------------------------- */
+
+.rank {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 36px;
+  font-size: 16px;
+}
+
+.rank1 {
+  color: var(--gold);
+}
+
+.rank2 {
+  color: var(--silver);
+}
+
+.rank3 {
+  color: var(--bronze);
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity (matches the legacy `@media (max-width: 640px)` rules
+ * at index.html lines 224-231).
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}

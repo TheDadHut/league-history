@@ -343,12 +343,12 @@
 }
 
 .wins {
-  color: #4ade80;
+  color: var(--color-win);
   font-weight: 700;
 }
 
 .losses {
-  color: #f87171;
+  color: var(--color-loss);
   font-weight: 700;
 }
 

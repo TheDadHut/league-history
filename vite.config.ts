@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -5,4 +6,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: '/league-history/',
   plugins: [react()],
+  test: {
+    // Pure stat selectors only need a Node environment. Add jsdom on
+    // demand if a future test renders React components.
+    environment: 'node',
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+  },
 });

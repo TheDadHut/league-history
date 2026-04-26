@@ -78,7 +78,7 @@ export function latestTeamName(owner: Owner): string {
 }
 
 /** Substring match against `OWNER_COLORS`; returns the first matching color or `null`. */
-function explicitColorFor(key: string): string | null {
+export function explicitColorFor(key: string): string | null {
   if (!key) return null;
   const lower = key.toLowerCase();
   for (const [matchKey, color] of Object.entries(OWNER_COLORS)) {

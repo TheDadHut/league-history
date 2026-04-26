@@ -150,6 +150,18 @@ export interface DraftPick {
   roster_id: number;
   /** Drafted player's ID; null/undefined for skipped picks. */
   player_id: string | null;
+  /**
+   * Sleeper attaches the drafted player's name to the pick at draft
+   * time. The legacy site reads `first_name` + `last_name` directly off
+   * the pick (rather than the player DB) so the draft board shows the
+   * name a player was drafted under. Only those two fields are read in
+   * this codebase — keep the type minimal.
+   */
+  metadata?: {
+    first_name?: string;
+    last_name?: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 

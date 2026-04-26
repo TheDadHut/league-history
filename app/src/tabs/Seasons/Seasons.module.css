@@ -296,6 +296,439 @@
 }
 
 /* -------------------------------------------------------------------
+ * Count pill — secondary count chip in the section header (e.g., "TOP 5",
+ * "{N} ROUNDS"). Mirrors `.count-pill` (index.html line 109).
+ * ------------------------------------------------------------------- */
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Optional accent color overrides for the section bar (steals = green,
+ * busts = red, waiver = blue, draft grades = gold, etc.). Components set
+ * the color via `--accent-bar` so we keep one CSS class for the bar. */
+.sectionBarSteals {
+  background: #4ade80;
+}
+
+.sectionBarBusts {
+  background: var(--accent-red);
+}
+
+.sectionBarWaiver {
+  background: var(--accent-blue);
+}
+
+.sectionBarGold {
+  background: var(--gold);
+}
+
+/* Card-header hint text — matches `.card-header .hint` (line 114). */
+.hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.cardHeaderTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------
+ * Awards row — `.awards` / `.award` (index.html lines 153-161).
+ *
+ * A responsive grid of mini stat cards with a colored left border per
+ * award type. The four tints (gold / blue / green / brown) match the
+ * legacy modifier classes verbatim.
+ * ------------------------------------------------------------------- */
+
+.awards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.award {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-left: 3px solid var(--accent-red);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.awardGold {
+  border-left-color: var(--gold);
+}
+
+.awardBlue {
+  border-left-color: var(--accent-blue);
+}
+
+.awardGreen {
+  border-left-color: #4ade80;
+}
+
+.awardBrown {
+  border-left-color: #8d6e63;
+}
+
+.awardLabel {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.awardWinner {
+  font-family: 'Oswald', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.awardWinnerColored {
+  color: var(--owner-color);
+}
+
+.awardDetail {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* -------------------------------------------------------------------
+ * Draft board — `.draft-grid` / `.draft-pick` / `.draft-round-header`
+ * (index.html lines 207-214).
+ * ------------------------------------------------------------------- */
+
+.draftRoundHeader {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 20px 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.draftRoundHeaderFirst {
+  margin-top: 0;
+}
+
+.draftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.draftPick {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 4px solid var(--owner-color, var(--border-bright));
+}
+
+.pickNum {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--accent);
+  min-width: 28px;
+}
+
+.pickInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.playerName {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.teamSmall {
+  font-size: 12px;
+  color: var(--owner-color);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.draftFooter {
+  text-align: center;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Draft value tables — Steals / Busts / Waiver Heroes share the same
+ * column layout (rank · player · pos · owner · drafted · finished ·
+ * value? · points). Player-name and position cells reuse the same
+ * typography as Records.
+ * ------------------------------------------------------------------- */
+
+.dvPlayerName {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.dvPosition {
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+/* Drafted-pick cell — dim monospaced "#27" / italic "UNDRAFTED". */
+.dvPick {
+  color: var(--text-dim);
+}
+
+.dvUndrafted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Steal / bust value cell — green on positive, red on negative. */
+.dvValuePositive {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.dvValueNegative {
+  color: #f87171;
+  font-weight: 700;
+}
+
+/* Positional finish + points columns. */
+.dvFinish {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.dvPoints {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------------
+ * Grade pills — `.grade-pill` family (index.html lines 276-298).
+ *
+ * Letter-grade chips used by the draft grades + waiver profile tables.
+ * Background colors derive from the letter; the grading curve is
+ * computed in the stat layer.
+ * ------------------------------------------------------------------- */
+
+.gradePill {
+  display: inline-block;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  min-width: 32px;
+  text-align: center;
+  color: #fff;
+}
+
+.gradePillLarge {
+  font-size: 20px;
+  padding: 8px 14px;
+  min-width: 48px;
+}
+
+.gradeAPlus {
+  background: #10b981;
+}
+
+.gradeA {
+  background: #22c55e;
+}
+
+.gradeB {
+  background: #3b82f6;
+}
+
+.gradeC {
+  background: #eab308;
+  color: #000;
+}
+
+.gradeD {
+  background: #f97316;
+}
+
+.gradeF {
+  background: #ef4444;
+}
+
+/* The numeric breakdown under each grade pill (the legacy site uses
+ * a small dim monospace number under the chip, e.g., the DCE delta
+ * under the DCE pill). */
+.gradeUnder {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------
+ * Waiver archetype — name on top in accent, descriptor below.
+ * ------------------------------------------------------------------- */
+
+.archetypeName {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.archetypeDesc {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------
+ * Card footer — explainer block at the bottom of the draft and waiver
+ * grade tables. Mirrors the inline-styled `<div>` at line 3377.
+ * ------------------------------------------------------------------- */
+
+.tableFooter {
+  padding: 14px 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.tableFooter strong {
+  color: var(--text-dim);
+}
+
+.tableFooter em {
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------------
+ * Best Pickups — uses the same shared table styling but with its own
+ * accent column for points-while-rostered.
+ * ------------------------------------------------------------------- */
+
+.bpPoints {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.bpWeek {
+  color: var(--text-dim);
+}
+
+/* -------------------------------------------------------------------
+ * Season highlights — `.highlights` / `.highlight-item` /
+ * `.highlight-children` / `.highlight-sub` (index.html lines 163-185).
+ *
+ * The numbered list uses a CSS counter so we don't need to compute
+ * indices in React. Sub-items are recursively styled in three tiers
+ * (border color + size + italic).
+ * ------------------------------------------------------------------- */
+
+.highlights {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  counter-reset: highlight;
+}
+
+.highlightItem {
+  padding: 16px 20px 16px 56px;
+  border-bottom: 1px solid var(--border);
+  font-size: 16px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.highlightItem:last-child {
+  border-bottom: none;
+}
+
+.highlightItem::before {
+  content: counter(highlight, decimal-leading-zero);
+  counter-increment: highlight;
+  position: absolute;
+  left: 20px;
+  top: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.highlightChildren {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.highlightSub {
+  padding: 4px 0 4px 14px;
+  border-left: 2px solid var(--accent);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.highlightSub .highlightChildren {
+  margin-top: 6px;
+}
+
+.highlightSub .highlightSub {
+  border-left-color: var(--border-bright);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.highlightSub .highlightSub .highlightSub {
+  border-left-color: var(--border);
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
  * Mobile parity — matches the legacy `@media (max-width: 640px)`
  * rules at index.html lines 224-231.
  * ------------------------------------------------------------------- */

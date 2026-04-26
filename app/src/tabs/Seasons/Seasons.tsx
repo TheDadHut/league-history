@@ -3,53 +3,73 @@
 // ===================================================================
 //
 // Per-season archive view. Mirrors the legacy `#seasons` panel
-// (index.html lines 410-417 markup, lines 3023-3141 logic):
+// (index.html lines 410-417 markup, lines 3023-3494 logic):
 //
-//   1. A season picker that lists every season newest first, with an
-//      "(In Progress)" suffix on any league whose status isn't yet
-//      `'complete'`.
-//   2. The selected season's regular-season standings — wins, losses,
-//      PF, PA — sorted by wins (PF as tiebreaker).
+//   1. Season picker (newest first; "(In Progress)" suffix on active).
+//   2. Awards row (completed seasons only): Champion, Finals MVP,
+//      Season MVP, Champion's Best Player (if distinct), Highest PF,
+//      Most PA, Toilet Bowl Winner.
+//   3. Regular-season standings — wins, losses, PF, PA.
+//   4. Draft Board — first two rounds inline, footer linking out for
+//      rounds 3+ to the Sleeper app.
+//   5. Draft value — Steals / Busts / Waiver Wire Heroes (top-5 each).
+//   6. Draft Grades — DCE / RP / PWR with letter grades on a per-season
+//      curve, plus an Overall composite.
+//   7. Waiver Wire Profile — six-metric grades + archetype.
+//   8. Best Pickups — top 10 individual waiver pickups by
+//      points-while-rostered.
+//   9. Season Highlights — recursive renderer for the manually-curated
+//      `highlights.json` entries.
 //
-// Reads from the shared `LeagueDataProvider` and renders against the
-// `seasons-ready` tier — like H2H, the standings panel doesn't need
-// the Sleeper player DB. The pure stat selectors live in
-// `app/src/lib/stats/seasons.ts`; this file is composition + markup
-// only.
-//
-// Scope note: The legacy Seasons tab also draws awards (champion,
-// finals MVP, season MVP, toilet bowl, etc.), a draft board, and
-// draft steals/busts/waiver heroes. Each depends on data that
-// migrates with the tab that owns it (player DB, toilet-bowl
-// computation, draft picks). Those land later — porting the standings
-// panel first preserves the migration plan's "small, reviewable, easy
-// to revert" cadence.
+// Reads from the shared `LeagueDataProvider`. The full Seasons surface
+// needs the Sleeper player DB (player names appear in awards, draft
+// board, steals/busts, best pickups, etc.), so we wait for the
+// terminal `ready` tier — earlier tiers (`core-ready`, `seasons-ready`)
+// would render half the panel as anonymized rows. Pure stat selectors
+// live in `app/src/lib/stats/seasons.ts`; this file is composition +
+// markup only.
 
 import { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { useLeagueData } from '../../lib/leagueData';
+import type { PlayerIndex } from '../../lib/leagueData';
 import type { OwnerIndex, SeasonDetails } from '../../lib/owners';
+import type { Highlights } from '../../lib/highlights';
 import {
+  buildPlayerSeasonStats,
+  selectChampion,
+  selectDraftBoard,
+  selectDraftGrades,
+  selectDraftValue,
+  selectSeasonAwards,
   selectSeasonOptions,
   selectSeasonStandings,
+  selectToiletBowlWinner,
+  selectWaiverProfile,
   type SeasonOption,
   type SeasonStandingsRow,
 } from '../../lib/stats/seasons';
+import AwardsRow from './AwardsRow';
+import BestPickups from './BestPickups';
+import DraftBoard from './DraftBoard';
+import DraftGradesTable from './DraftGradesTable';
+import DraftValueTables from './DraftValueTables';
+import SeasonHighlights from './SeasonHighlights';
+import WaiverProfile from './WaiverProfile';
+import { TeamChip, rankClass } from './shared';
 import styles from './Seasons.module.css';
-
-// CSS custom property used to inject the per-row owner color into the
-// team-chip dot + name without per-cell inline styles. TypeScript
-// requires the `--*` form so we attach it via a typed alias.
-type OwnerColorStyle = CSSProperties & { '--owner-color': string };
 
 export default function Seasons() {
   const state = useLeagueData();
 
-  // Seasons needs per-season details (rosters + matchups) but not the
-  // Sleeper player DB. Wait for `seasons-ready` (or the terminal
-  // `ready` state) before rendering. Earlier tiers (`core-ready`)
-  // don't have weekly matchups attached yet.
-  if (state.status === 'loading' || state.status === 'core-ready') {
+  // Seasons needs the Sleeper player DB (awards / draft board / draft
+  // grades / waiver / best pickups all surface player names). Wait for
+  // the terminal `ready` tier so we don't render with placeholder
+  // names that pop in moments later.
+  if (
+    state.status === 'loading' ||
+    state.status === 'core-ready' ||
+    state.status === 'seasons-ready'
+  ) {
     return (
       <section className={styles.section} aria-busy="true">
         <p className={styles.status}>Loading…</p>
@@ -67,7 +87,14 @@ export default function Seasons() {
     );
   }
 
-  return <SeasonsReady seasons={state.seasons} ownerIndex={state.ownerIndex} />;
+  return (
+    <SeasonsReady
+      seasons={state.seasons}
+      ownerIndex={state.ownerIndex}
+      players={state.players}
+      highlights={state.highlights}
+    />
+  );
 }
 
 // -------------------------------------------------------------------
@@ -78,9 +105,11 @@ export default function Seasons() {
 interface SeasonsReadyProps {
   seasons: SeasonDetails[];
   ownerIndex: OwnerIndex;
+  players: PlayerIndex;
+  highlights: Highlights;
 }
 
-function SeasonsReady({ seasons, ownerIndex }: SeasonsReadyProps) {
+function SeasonsReady({ seasons, ownerIndex, players, highlights }: SeasonsReadyProps) {
   // Picker options — newest first, stable across renders.
   const options = useMemo(() => selectSeasonOptions(seasons), [seasons]);
 
@@ -89,13 +118,86 @@ function SeasonsReady({ seasons, ownerIndex }: SeasonsReadyProps) {
   // don't churn the picker selection unless the user touches it.
   const [selected, setSelected] = useState<string>(() => options[0]?.season ?? '');
 
-  // Recompute standings only when the selection (or the underlying
-  // provider state) changes. The selector is pure and rebuilds the
-  // flat-matchups view internally — fast enough that we don't need to
-  // memoize the matchups separately at this point.
+  // Find the league record once per selection — many sub-selectors
+  // operate on a single `SeasonDetails` rather than the whole array, so
+  // hoist the lookup here.
+  const league = useMemo(
+    () => seasons.find((s) => s.season === selected) ?? null,
+    [seasons, selected],
+  );
+
+  // Standings drive the awards' Highest-PF / Most-PA derivations, so
+  // memoize them at the parent and share with both consumers.
   const standings = useMemo(
     () => (selected ? selectSeasonStandings(seasons, ownerIndex, selected) : []),
     [seasons, ownerIndex, selected],
+  );
+
+  // Heavy per-season player stats — shared across awards, steals/busts,
+  // and draft grades. Recompute only when the league reference changes.
+  const playerStats = useMemo(
+    () => (league ? buildPlayerSeasonStats(league) : null),
+    [league],
+  );
+
+  const champion = useMemo(
+    () => (league ? selectChampion(league, ownerIndex) : null),
+    [league, ownerIndex],
+  );
+
+  const toiletBowl = useMemo(
+    () => (league ? selectToiletBowlWinner(league, ownerIndex) : null),
+    [league, ownerIndex],
+  );
+
+  const awards = useMemo(
+    () =>
+      league && playerStats
+        ? selectSeasonAwards(
+            league,
+            ownerIndex,
+            players,
+            champion,
+            toiletBowl,
+            playerStats,
+            standings,
+          )
+        : [],
+    [league, ownerIndex, players, champion, toiletBowl, playerStats, standings],
+  );
+
+  const draftBoard = useMemo(
+    () => (league ? selectDraftBoard(league, ownerIndex) : null),
+    [league, ownerIndex],
+  );
+
+  const draftValue = useMemo(
+    () =>
+      league && playerStats
+        ? selectDraftValue(league, ownerIndex, players, playerStats)
+        : null,
+    [league, ownerIndex, players, playerStats],
+  );
+
+  const draftGrades = useMemo(
+    () =>
+      league && playerStats
+        ? selectDraftGrades(league, ownerIndex, players, playerStats)
+        : [],
+    [league, ownerIndex, players, playerStats],
+  );
+
+  const waiverProfile = useMemo(
+    () =>
+      league
+        ? selectWaiverProfile(league, ownerIndex, players)
+        : { rows: [], bestPickups: [] },
+    [league, ownerIndex, players],
+  );
+
+  const seasonHighlights = useMemo(
+    () => (selected ? highlights[selected] ?? [] : []),
+    [highlights, selected],
   );
 
   return (
@@ -122,7 +224,21 @@ function SeasonsReady({ seasons, ownerIndex }: SeasonsReadyProps) {
         </div>
       </section>
 
+      <AwardsRow awards={awards} />
+
       <StandingsSection standings={standings} season={selected} />
+
+      <DraftBoard data={draftBoard} />
+
+      <DraftValueTables data={draftValue} />
+
+      <DraftGradesTable rows={draftGrades} />
+
+      <WaiverProfile rows={waiverProfile.rows} />
+
+      <BestPickups rows={waiverProfile.bestPickups} />
+
+      <SeasonHighlights highlights={seasonHighlights} />
     </>
   );
 }
@@ -230,34 +346,4 @@ function StandingsSection({ standings, season }: StandingsSectionProps) {
       </div>
     </section>
   );
-}
-
-// -------------------------------------------------------------------
-// Shared chips / helpers
-// -------------------------------------------------------------------
-
-interface TeamChipProps {
-  name: string;
-  owner: string;
-  color: string;
-}
-
-/** Full team chip — color dot + team name (in owner color) + dim owner sub-name. */
-function TeamChip({ name, owner, color }: TeamChipProps) {
-  const style: OwnerColorStyle = { '--owner-color': color };
-  return (
-    <span className={styles.teamChip} style={style}>
-      <span className={styles.teamDot} aria-hidden="true" />
-      <span className={styles.teamName}>{name}</span>
-      <span className={styles.teamOwner}>{owner}</span>
-    </span>
-  );
-}
-
-/** Gold/silver/bronze tinting for the top three rows; default for the rest. */
-function rankClass(idx: number): string {
-  if (idx === 0) return `${styles.rank} ${styles.rank1}`;
-  if (idx === 1) return `${styles.rank} ${styles.rank2}`;
-  if (idx === 2) return `${styles.rank} ${styles.rank3}`;
-  return styles.rank;
 }

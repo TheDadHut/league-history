@@ -9,6 +9,10 @@ Usage
 -----
     python3 weekly_recap.py --week 15 --season 2024
     python3 weekly_recap.py --week 14   # season defaults to current league season
+    python3 weekly_recap.py             # auto-detect current week + season
+    python3 weekly_recap.py --week 17 --season 2024 --out recap.md
+    python3 weekly_recap.py --week 17 --season 2024 --teaser
+    python3 weekly_recap.py --auto-write-to-recaps-dir
 
 Known-good test invocation (used during development):
     python3 weekly_recap.py --week 14 --season 2024
@@ -22,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Any, TypedDict
 
 import requests
@@ -65,6 +70,12 @@ class Matchup(TypedDict, total=False):
     points: float
 
 
+class NflState(TypedDict, total=False):
+    week: int
+    season: str
+    season_type: str
+
+
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------
@@ -90,6 +101,10 @@ def get_rosters(league_id: str) -> list[Roster]:
 
 def get_matchups(league_id: str, week: int) -> list[Matchup]:
     return _get(f"{API_BASE}/league/{league_id}/matchups/{week}")
+
+
+def get_nfl_state() -> NflState:
+    return _get(f"{API_BASE}/state/nfl")
 
 
 # ---------------------------------------------------------------------------
@@ -212,16 +227,18 @@ def fmt_score(p: float) -> str:
     return f"{p:.2f}"
 
 
-def render_recap(season: str, week: int, league: League, matchups: list[Matchup],
-                 team_names: dict[int, str], standings: list[dict[str, Any]]) -> str:
+def render_header(season: str, week: int, league: League) -> list[str]:
     lines: list[str] = []
     lines.append(f"## Week {week} · {season} GDL Recap")
     lines.append("")
     league_name = league.get("name") or "Gaming Disability League"
     lines.append(f"_{league_name} — through week {week}_")
     lines.append("")
+    return lines
 
-    # Standings
+
+def render_standings(standings: list[dict[str, Any]]) -> list[str]:
+    lines: list[str] = []
     lines.append("### Standings")
     lines.append("")
     lines.append("| # | Team | W-L-T | PF | PA |")
@@ -232,6 +249,14 @@ def render_recap(season: str, week: int, league: League, matchups: list[Matchup]
             f"| {i} | {row['team']} | {record} | {fmt_score(row['pf'])} | {fmt_score(row['pa'])} |"
         )
     lines.append("")
+    return lines
+
+
+def render_recap(season: str, week: int, league: League, matchups: list[Matchup],
+                 team_names: dict[int, str], standings: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    lines.extend(render_header(season, week, league))
+    lines.extend(render_standings(standings))
 
     # Per-week stats from this week's matchups
     pairs = pair_matchups(matchups)
@@ -291,50 +316,154 @@ def render_recap(season: str, week: int, league: League, matchups: list[Matchup]
     return "\n".join(lines)
 
 
+def render_teaser(season: str, week: int, league: League,
+                  standings: list[dict[str, Any]]) -> str:
+    """Header + standings table only — used as a webhook teaser."""
+    lines: list[str] = []
+    lines.extend(render_header(season, week, league))
+    lines.extend(render_standings(standings))
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
+# Season types where auto-detection should produce a recap. Other values
+# (e.g. "pre", "off") cause an early clean exit when --week is omitted.
+ACTIVE_SEASON_TYPES = {"regular", "post"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="GDL weekly recap (markdown to stdout)")
-    parser.add_argument("--week", type=int, required=True, help="NFL week to summarize")
+    parser.add_argument(
+        "--week",
+        type=int,
+        default=None,
+        help="NFL week to summarize. If omitted, auto-detected from the Sleeper NFL state endpoint.",
+    )
     parser.add_argument(
         "--season",
         type=str,
         default=None,
         help="Season year (e.g. 2024). Defaults to the current league's season.",
     )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Write the full recap markdown to this file path instead of stdout.",
+    )
+    parser.add_argument(
+        "--teaser",
+        action="store_true",
+        help="Print only the header + standings table (used for webhook teasers).",
+    )
+    parser.add_argument(
+        "--auto-write-to-recaps-dir",
+        action="store_true",
+        help=(
+            "Auto-detect week+season, write the recap to recaps/<season>/week-<week>.md, "
+            "and print the path to stdout. Off-season exits cleanly with no output."
+        ),
+    )
     args = parser.parse_args()
 
-    if args.week < 1 or args.week > 18:
-        print(f"Week must be between 1 and 18 (got {args.week})", file=sys.stderr)
+    auto_dir = args.auto_write_to_recaps_dir
+
+    # --auto-write-to-recaps-dir forces auto-detection and owns its own output;
+    # combining it with --out or --teaser would be ambiguous.
+    if auto_dir and (args.out is not None or args.teaser):
+        print(
+            "--auto-write-to-recaps-dir cannot be combined with --out or --teaser",
+            file=sys.stderr,
+        )
+        return 2
+
+    week = args.week
+    season = args.season
+
+    # Auto-detect when --week is not supplied. Explicit --week always wins,
+    # even alongside --auto-write-to-recaps-dir (manual override path).
+    if week is None:
+        try:
+            state = get_nfl_state()
+        except requests.HTTPError as err:
+            print(f"Sleeper API error fetching NFL state: {err}", file=sys.stderr)
+            return 1
+
+        season_type = str(state.get("season_type") or "").lower()
+        if season_type not in ACTIVE_SEASON_TYPES:
+            # Off-season: exit clean, no stdout. The scheduled workflow uses
+            # empty stdout as the "skip downstream steps" signal.
+            print(
+                f"No regular- or post-season week active (season_type={season_type or 'unknown'}) — exiting",
+                file=sys.stderr,
+            )
+            return 0
+
+        state_week = state.get("week")
+        if not isinstance(state_week, int) or state_week < 1:
+            print(
+                f"Sleeper NFL state did not return a usable week (got {state_week!r})",
+                file=sys.stderr,
+            )
+            return 1
+        week = state_week
+
+        state_season = state.get("season")
+        if season is None and state_season:
+            season = str(state_season)
+
+    if week is None or week < 1 or week > 18:
+        print(f"Week must be between 1 and 18 (got {week})", file=sys.stderr)
         return 2
 
     try:
-        league_id, league = resolve_league_id_for_season(args.season)
+        league_id, league = resolve_league_id_for_season(season)
     except requests.HTTPError as err:
         print(f"Sleeper API error resolving league: {err}", file=sys.stderr)
         return 1
 
-    season = str(league.get("season") or args.season or "")
+    resolved_season = str(league.get("season") or season or "")
 
-    matchups = get_matchups(league_id, args.week)
+    matchups = get_matchups(league_id, week)
     if not matchups:
-        print(f"No matchup data for week {args.week} of {season}", file=sys.stderr)
+        print(f"No matchup data for week {week} of {resolved_season}", file=sys.stderr)
         return 1
 
     has_data = any(m.get("matchup_id") is not None for m in matchups)
     if not has_data:
-        print(f"No matchup data for week {args.week} of {season}", file=sys.stderr)
+        print(f"No matchup data for week {week} of {resolved_season}", file=sys.stderr)
         return 1
 
     users = get_users(league_id)
     rosters = get_rosters(league_id)
     team_names = build_team_name_map(users, rosters)
 
-    standings = compute_standings(league_id, args.week, team_names)
-    print(render_recap(season, args.week, league, matchups, team_names, standings))
+    standings = compute_standings(league_id, week, team_names)
+
+    full_recap = render_recap(resolved_season, week, league, matchups, team_names, standings)
+
+    if auto_dir:
+        target = Path("recaps") / resolved_season / f"week-{week}.md"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(full_recap + "\n", encoding="utf-8")
+        # Single line of stdout: the path the workflow should commit.
+        print(target.as_posix())
+        return 0
+
+    if args.out is not None:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(full_recap + "\n", encoding="utf-8")
+
+    if args.teaser:
+        teaser = render_teaser(resolved_season, week, league, standings)
+        print(teaser)
+    elif args.out is None:
+        print(full_recap)
+
     return 0
 
 

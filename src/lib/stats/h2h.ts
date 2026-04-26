@@ -173,8 +173,7 @@ export function selectH2HSeries(
     // Normalize scores so A is always the requesting `ownerAKey`.
     const scoreA = isAB ? m.scoreA : m.scoreB;
     const scoreB = isAB ? m.scoreB : m.scoreA;
-    const winner: H2HGame['winner'] =
-      scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
+    const winner: H2HGame['winner'] = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'tie';
 
     if (m.isPlayoff) {
       if (winner === 'A') poW++;
@@ -195,9 +194,7 @@ export function selectH2HSeries(
   }
 
   // Chronological order — matches the legacy sort exactly.
-  games.sort(
-    (x, y) => x.season.localeCompare(y.season) || x.week - y.week,
-  );
+  games.sort((x, y) => x.season.localeCompare(y.season) || x.week - y.week);
 
   const totalWinsA = regW + poW;
   const totalWinsB = regL + poL;

@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+
+# Hand-curated league content — leave its formatting alone.
+public/highlights.json
+
+# Lockfiles
+package-lock.json
+
+# Build artifacts / caches
+*.tsbuildinfo

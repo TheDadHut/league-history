@@ -51,9 +51,7 @@ const MAX_WEEK = 18;
  * draft hasn't started yet. Either way we end up with an empty
  * `draftPicks` array rather than a hard failure.
  */
-export async function loadSeasonDetails(
-  league: LeagueWithUsers,
-): Promise<SeasonDetails> {
+export async function loadSeasonDetails(league: LeagueWithUsers): Promise<SeasonDetails> {
   const rostersPromise = getRosters(league.league_id);
   const weeklyPromises = Array.from({ length: MAX_WEEK }, (_, i) =>
     getMatchups(league.league_id, i + 1).catch(() => []),

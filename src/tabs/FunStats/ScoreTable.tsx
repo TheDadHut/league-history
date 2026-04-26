@@ -62,9 +62,7 @@ export default function ScoreTable({ rows, variant }: ScoreTableProps) {
           {variant === 'hardluck' ? 'Highest Losing Scores' : 'Lowest Points in a Win'}
         </h3>
         <span className={styles.hint}>
-          {variant === 'hardluck'
-            ? 'Scored a ton and still lost'
-            : 'Won without showing up'}
+          {variant === 'hardluck' ? 'Scored a ton and still lost' : 'Won without showing up'}
         </span>
       </div>
       <div className={styles.tableScroll}>
@@ -87,16 +85,12 @@ export default function ScoreTable({ rows, variant }: ScoreTableProps) {
             {rows.map((row, i) => {
               const f = focal(row);
               return (
-                <tr
-                  key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}
-                >
+                <tr key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}>
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td>
                     <TeamChipCompact name={f.teamName} color={f.color} />
                   </td>
-                  <td className={`${styles.num} ${headlineClass}`}>
-                    {f.points.toFixed(2)}
-                  </td>
+                  <td className={`${styles.num} ${headlineClass}`}>{f.points.toFixed(2)}</td>
                   <td>
                     <TeamChipCompact name={f.oppTeamName} color={f.oppColor} />
                   </td>

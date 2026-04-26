@@ -61,11 +61,7 @@ export default function Records() {
   }
 
   return (
-    <RecordsReady
-      seasons={state.seasons}
-      ownerIndex={state.ownerIndex}
-      players={state.players}
-    />
+    <RecordsReady seasons={state.seasons} ownerIndex={state.ownerIndex} players={state.players} />
   );
 }
 
@@ -84,14 +80,8 @@ function RecordsReady({ seasons, ownerIndex, players }: RecordsReadyProps) {
   // Each selector is pure — memoize against the provider state so we
   // don't recompute on every unrelated render (Suspense, tab switches,
   // owner-context updates).
-  const highs = useMemo(
-    () => selectWeeklyHighs(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
-  const lows = useMemo(
-    () => selectWeeklyLows(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
+  const highs = useMemo(() => selectWeeklyHighs(seasons, ownerIndex), [seasons, ownerIndex]);
+  const lows = useMemo(() => selectWeeklyLows(seasons, ownerIndex), [seasons, ownerIndex]);
   const playerWeeks = useMemo(
     () => selectPlayerSingleWeekHighs(seasons, ownerIndex, players),
     [seasons, ownerIndex, players],
@@ -133,12 +123,7 @@ interface TeamScoresSectionProps {
   valueClass: string;
 }
 
-function TeamScoresSection({
-  title,
-  countLabel,
-  rows,
-  valueClass,
-}: TeamScoresSectionProps) {
+function TeamScoresSection({ title, countLabel, rows, valueClass }: TeamScoresSectionProps) {
   // ID stable + URL-safe: `Team Scores · Weekly Highs` →
   // `team-scores-weekly-highs`. Used to wire `aria-labelledby` on the
   // section back to its heading.
@@ -174,9 +159,7 @@ function TeamScoresSection({
                   <td>
                     <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
                   </td>
-                  <td className={`${styles.num} ${valueClass}`}>
-                    {row.points.toFixed(2)}
-                  </td>
+                  <td className={`${styles.num} ${valueClass}`}>{row.points.toFixed(2)}</td>
                   <td>{row.season}</td>
                   <td>Week {row.week}</td>
                 </tr>
@@ -201,10 +184,7 @@ function PlayerWeeksSection({ rows }: PlayerWeeksSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="player-week-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.sectionBarBlue}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.sectionBarBlue}`} aria-hidden="true" />
         <h2 id="player-week-heading" className={styles.sectionTitle}>
           Player High Scores · Single Week
         </h2>
@@ -228,18 +208,14 @@ function PlayerWeeksSection({ rows }: PlayerWeeksSectionProps) {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr
-                  key={`${i}-${row.playerId}-${row.ownerKey}-${row.season}-${row.week}`}
-                >
+                <tr key={`${i}-${row.playerId}-${row.ownerKey}-${row.season}-${row.week}`}>
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td className={styles.playerName}>{row.player.name}</td>
                   <td className={styles.position}>{row.player.position}</td>
                   <td>
                     <TeamChipCompact name={row.teamName} color={row.color} />
                   </td>
-                  <td className={`${styles.num} ${styles.numHigh}`}>
-                    {row.points.toFixed(2)}
-                  </td>
+                  <td className={`${styles.num} ${styles.numHigh}`}>{row.points.toFixed(2)}</td>
                   <td>
                     {row.season} W{row.week}
                   </td>
@@ -265,10 +241,7 @@ function PlayerSeasonsSection({ rows }: PlayerSeasonsSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="player-season-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.sectionBarBlue}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.sectionBarBlue}`} aria-hidden="true" />
         <h2 id="player-season-heading" className={styles.sectionTitle}>
           Player High Scores · Full Season
         </h2>
@@ -299,9 +272,7 @@ function PlayerSeasonsSection({ rows }: PlayerSeasonsSectionProps) {
                   <td>
                     <TeamChipCompact name={row.teamName} color={row.color} />
                   </td>
-                  <td className={`${styles.num} ${styles.numHigh}`}>
-                    {row.points.toFixed(1)}
-                  </td>
+                  <td className={`${styles.num} ${styles.numHigh}`}>{row.points.toFixed(1)}</td>
                   <td>{row.season}</td>
                 </tr>
               ))}

@@ -10,11 +10,7 @@
 // import sites in the Seasons tab keep working without churn.
 
 import type { ReactNode } from 'react';
-import {
-  TeamChip,
-  TeamChipCompact,
-  type OwnerColorStyle,
-} from '../../lib/components/TeamChip';
+import { TeamChip, TeamChipCompact, type OwnerColorStyle } from '../../lib/components/TeamChip';
 import type { GradeLetter } from '../../lib/stats/seasons';
 import styles from './Seasons.module.css';
 

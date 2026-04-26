@@ -24,10 +24,7 @@
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
 import type { PlayerIndex } from '../leagueData';
-import {
-  selectPlayerSeasonHighs,
-  selectPlayerSingleWeekHighs,
-} from './records';
+import { selectPlayerSeasonHighs, selectPlayerSingleWeekHighs } from './records';
 import type { TradeStatsByOwner } from './trades';
 import { buildAllMatchups, buildRosterToOwnerKey } from './util';
 
@@ -65,10 +62,7 @@ export interface ChampionEntry {
  * `'complete'`) are skipped — the legacy site shows "No champion
  * crowned yet" when the list comes up empty.
  */
-export function selectChampions(
-  seasons: SeasonDetails[],
-  ownerIndex: OwnerIndex,
-): ChampionEntry[] {
+export function selectChampions(seasons: SeasonDetails[], ownerIndex: OwnerIndex): ChampionEntry[] {
   const champions: ChampionEntry[] = [];
 
   for (const season of seasons) {
@@ -157,8 +151,7 @@ export function selectAllTimeStandings(
   const latestSeason = seasons.length > 0 ? seasons[seasons.length - 1]?.season : undefined;
 
   for (const owner of Object.values(ownerIndex)) {
-    const teamName =
-      (latestSeason && owner.teamNamesBySeason[latestSeason]) || owner.displayName;
+    const teamName = (latestSeason && owner.teamNamesBySeason[latestSeason]) || owner.displayName;
     rows.set(owner.key, {
       ownerKey: owner.key,
       displayName: owner.displayName,

@@ -197,9 +197,7 @@ function DraftValueRowView({
             (row.value ?? 0) > 0 ? styles.dvValuePositive : styles.dvValueNegative
           }`}
         >
-          {row.value == null
-            ? ''
-            : `${row.value > 0 ? '+' : ''}${row.value}`}
+          {row.value == null ? '' : `${row.value > 0 ? '+' : ''}${row.value}`}
         </td>
       ) : null}
       <td className={`${styles.num} ${styles.dvPoints}`}>{row.pts.toFixed(1)}</td>

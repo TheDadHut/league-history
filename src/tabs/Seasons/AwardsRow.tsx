@@ -71,10 +71,7 @@ function AwardCard({ award }: { award: SeasonAward }) {
 function TeamWinnerLine({ winnerLabel, color }: { winnerLabel: string; color: string }) {
   const style: CSSProperties & { '--owner-color': string } = { '--owner-color': color };
   return (
-    <span
-      className={`${styles.awardWinner} ${styles.awardWinnerColored}`}
-      style={style}
-    >
+    <span className={`${styles.awardWinner} ${styles.awardWinnerColored}`} style={style}>
       {winnerLabel}
     </span>
   );

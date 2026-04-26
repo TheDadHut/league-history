@@ -76,18 +76,14 @@ function teamMetaInSeason(
 }
 
 /** Cross-season team meta, no per-season team-name override (used for league-wide tables). */
-function teamMetaCrossSeason(
-  ownerK: string,
-  ownerIndex: OwnerIndex,
-): OwnerTeamMeta | null {
+function teamMetaCrossSeason(ownerK: string, ownerIndex: OwnerIndex): OwnerTeamMeta | null {
   const owner = ownerIndex[ownerK];
   if (!owner) return null;
   // Cross-season tables show the owner's *latest* team name (mirrors
   // legacy `teamChip` at lines 1844-1853).
   const seasons = Object.keys(owner.teamNamesBySeason).sort();
   const latest = seasons[seasons.length - 1];
-  const teamName =
-    (latest ? owner.teamNamesBySeason[latest] : undefined) || owner.displayName;
+  const teamName = (latest ? owner.teamNamesBySeason[latest] : undefined) || owner.displayName;
   return {
     displayName: owner.displayName,
     teamName,
@@ -160,10 +156,7 @@ export interface MarginGameRow {
   margin: number;
 }
 
-function decorateMarginGame(
-  g: GameWithMargin,
-  ownerIndex: OwnerIndex,
-): MarginGameRow | null {
+function decorateMarginGame(g: GameWithMargin, ownerIndex: OwnerIndex): MarginGameRow | null {
   const w = teamMetaInSeason(g.winnerKey, g.season, ownerIndex);
   const l = teamMetaInSeason(g.loserKey, g.season, ownerIndex);
   if (!w || !l) return null;
@@ -184,7 +177,11 @@ function decorateMarginGame(
   };
 }
 
-function takeTopN<T>(rows: T[], pickRow: (row: T) => MarginGameRow | null, limit: number): MarginGameRow[] {
+function takeTopN<T>(
+  rows: T[],
+  pickRow: (row: T) => MarginGameRow | null,
+  limit: number,
+): MarginGameRow[] {
   const out: MarginGameRow[] = [];
   for (const r of rows) {
     const decorated = pickRow(r);
@@ -219,8 +216,7 @@ export function selectClosestGames(
   ownerIndex: OwnerIndex,
   limit = 5,
 ): MarginGameRow[] {
-  const games = gamesWithMargin(buildAllMatchups(seasons))
-    .filter((g) => g.margin > 0);
+  const games = gamesWithMargin(buildAllMatchups(seasons)).filter((g) => g.margin > 0);
   games.sort((a, b) => a.margin - b.margin);
   return takeTopN(games, (g) => decorateMarginGame(g, ownerIndex), limit);
 }
@@ -399,8 +395,7 @@ export function selectConsistencyTables(
     if (scores.length < 5) continue;
     const sum = scores.reduce((acc, s) => acc + s, 0);
     const avg = sum / scores.length;
-    const variance =
-      scores.reduce((acc, s) => acc + (s - avg) ** 2, 0) / scores.length;
+    const variance = scores.reduce((acc, s) => acc + (s - avg) ** 2, 0) / scores.length;
     const stdDev = Math.sqrt(variance);
     const meta = teamMetaCrossSeason(key, ownerIndex);
     if (!meta) continue;
@@ -615,9 +610,7 @@ function buildBenchMatchups(seasons: SeasonDetails[]): BenchMatchup[] {
           players: m.players ?? [],
           starters: m.starters ?? [],
           pointsByPlayer:
-            m.players_points && !Array.isArray(m.players_points)
-              ? m.players_points
-              : {},
+            m.players_points && !Array.isArray(m.players_points) ? m.players_points : {},
         });
 
         out.push({
@@ -659,9 +652,7 @@ function computeOptimalLineup(
   pointsByPlayer: Record<string, number>,
   players: PlayerIndex,
 ): OptimalLineupResult {
-  const startingSlots = rosterPositions.filter(
-    (s) => s !== 'BN' && s !== 'IR' && s !== 'TAXI',
-  );
+  const startingSlots = rosterPositions.filter((s) => s !== 'BN' && s !== 'IR' && s !== 'TAXI');
   if (startingSlots.length === 0) {
     return { optimalTotal: 0, optimalStarterIds: new Set() };
   }
@@ -679,8 +670,7 @@ function computeOptimalLineup(
 
   // Sort slots by specificity (fewest eligible positions first). Index
   // tracking matches the legacy code shape.
-  const slotSpecificity = (slot: string): number =>
-    (SLOT_ELIGIBILITY[slot] ?? []).length;
+  const slotSpecificity = (slot: string): number => (SLOT_ELIGIBILITY[slot] ?? []).length;
   const slotsInOrder = startingSlots
     .map((slot, idx) => ({ slot, idx }))
     .sort((x, y) => slotSpecificity(x.slot) - slotSpecificity(y.slot));
@@ -911,4 +901,3 @@ export function selectBenchStats(
 
   return { totals, shoulda };
 }
-

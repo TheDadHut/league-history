@@ -55,9 +55,7 @@ export default function BenchTotalsTable({ rows }: BenchTotalsTableProps) {
                   <td>
                     <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
                   </td>
-                  <td className={`${styles.num} ${styles.numNegative}`}>
-                    {row.total.toFixed(2)}
-                  </td>
+                  <td className={`${styles.num} ${styles.numNegative}`}>{row.total.toFixed(2)}</td>
                   <td className={styles.num}>{row.perGame.toFixed(2)}</td>
                   <td className={styles.num}>{row.games}</td>
                 </tr>

@@ -74,10 +74,7 @@ export interface LuckRating {
  * header for the formula note. Mirrors `renderLuckRating()`
  * (index.html lines 2492-2545).
  */
-export function selectLuckRatings(
-  seasons: SeasonDetails[],
-  ownerIndex: OwnerIndex,
-): LuckRating[] {
+export function selectLuckRatings(seasons: SeasonDetails[], ownerIndex: OwnerIndex): LuckRating[] {
   // Group every owner's score for each (season, week) bucket. The
   // legacy code keeps both sides of every matchup in the same bucket,
   // which is exactly the all-play denominator we need below.
@@ -342,10 +339,8 @@ function groupOwnerGames(seasons: SeasonDetails[]): Map<string, OwnerGame[]> {
   const games = new Map<string, OwnerGame[]>();
   for (const m of matchups) {
     if (m.isPlayoff) continue;
-    const aRes: GameResult =
-      m.scoreA > m.scoreB ? 'W' : m.scoreA < m.scoreB ? 'L' : 'T';
-    const bRes: GameResult =
-      m.scoreB > m.scoreA ? 'W' : m.scoreB < m.scoreA ? 'L' : 'T';
+    const aRes: GameResult = m.scoreA > m.scoreB ? 'W' : m.scoreA < m.scoreB ? 'L' : 'T';
+    const bRes: GameResult = m.scoreB > m.scoreA ? 'W' : m.scoreB < m.scoreA ? 'L' : 'T';
     appendGame(games, m.ownerAKey, { season: m.season, week: m.week, result: aRes });
     appendGame(games, m.ownerBKey, { season: m.season, week: m.week, result: bRes });
   }

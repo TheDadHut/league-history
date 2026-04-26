@@ -16,12 +16,12 @@ to `main` that touches the app.
 
 ## Files
 
-| Path | Purpose |
-| --- | --- |
-| `src/` | All app code — tabs, shared components, stat selectors, Sleeper data layer, config. |
-| `public/highlights.json` | Manually curated season-by-season highlights. Loaded at runtime. |
-| `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js` | Build / type-check / lint config. |
-| `.github/workflows/` | `validate-highlights.yml` (PR JSON check), `ci.yml` (PR typecheck + build), `deploy.yml` (push to `main` → Pages). |
+| Path                                                                 | Purpose                                                                                                            |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `src/`                                                               | All app code — tabs, shared components, stat selectors, Sleeper data layer, config.                                |
+| `public/highlights.json`                                             | Manually curated season-by-season highlights. Loaded at runtime.                                                   |
+| `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js` | Build / type-check / lint config.                                                                                  |
+| `.github/workflows/`                                                 | `validate-highlights.yml` (PR JSON check), `ci.yml` (PR typecheck + build), `deploy.yml` (push to `main` → Pages). |
 
 ## Running it locally
 

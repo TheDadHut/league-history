@@ -87,9 +87,7 @@ function App() {
         </LeagueDataProvider>
       </main>
 
-      <footer className="app-footer">
-        Gaming Disability League · Powered by Sleeper API
-      </footer>
+      <footer className="app-footer">Gaming Disability League · Powered by Sleeper API</footer>
     </div>
   );
 }

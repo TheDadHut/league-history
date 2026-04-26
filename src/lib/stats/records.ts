@@ -152,9 +152,7 @@ interface RawTeamScore {
 }
 
 /** Both sides of every regular-season matchup as flat (owner, points, season, week) rows. */
-function regularSeasonScores(
-  matchups: FlatMatchupWithStarters[],
-): RawTeamScore[] {
+function regularSeasonScores(matchups: FlatMatchupWithStarters[]): RawTeamScore[] {
   const rows: RawTeamScore[] = [];
   for (const m of matchups) {
     if (m.isPlayoff) continue;
@@ -179,10 +177,7 @@ function teamNameInSeason(
   };
 }
 
-function decorateTeamScore(
-  raw: RawTeamScore,
-  ownerIndex: OwnerIndex,
-): TeamScoreRecord | null {
+function decorateTeamScore(raw: RawTeamScore, ownerIndex: OwnerIndex): TeamScoreRecord | null {
   const meta = teamNameInSeason(raw.ownerKey, raw.season, ownerIndex);
   if (!meta) return null;
   return {
@@ -302,7 +297,8 @@ export interface PlayerSeasonRecord {
 function collectPlayerWeekPerformances(
   matchups: FlatMatchupWithStarters[],
 ): { playerId: string; ownerKey: string; season: string; week: number; pts: number }[] {
-  const rows: { playerId: string; ownerKey: string; season: string; week: number; pts: number }[] = [];
+  const rows: { playerId: string; ownerKey: string; season: string; week: number; pts: number }[] =
+    [];
 
   for (const m of matchups) {
     if (m.isPlayoff) continue;

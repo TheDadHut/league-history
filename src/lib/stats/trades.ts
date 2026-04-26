@@ -139,10 +139,7 @@ export interface TradesResult {
  * per-owner totals. Pure: no I/O, no side effects, deterministic order
  * (chronological by `created`, ties broken by season then week).
  */
-export function buildTrades(
-  seasons: SeasonDetails[],
-  ownerIndex: OwnerIndex,
-): TradesResult {
+export function buildTrades(seasons: SeasonDetails[], ownerIndex: OwnerIndex): TradesResult {
   const trades: Trade[] = [];
 
   for (const season of seasons) {
@@ -238,10 +235,7 @@ function buildSeasonPlayerWeekIndex(
       if (scoreA === 0 && scoreB === 0) continue;
 
       for (const m of pair) {
-        const pts =
-          m.players_points && !Array.isArray(m.players_points)
-            ? m.players_points
-            : {};
+        const pts = m.players_points && !Array.isArray(m.players_points) ? m.players_points : {};
         for (const pid of m.players ?? []) {
           if (!pid || pid === '0') continue;
           let weekPts = pointsByWeek.get(pid);
@@ -393,10 +387,8 @@ function buildSingleTrade(
   const wrLoser = byWR.length >= 2 ? (byWR[byWR.length - 1] ?? null) : null;
   const stWinner = byST[0] ?? null;
   const stLoser = byST.length >= 2 ? (byST[byST.length - 1] ?? null) : null;
-  const wrMargin =
-    wrWinner && wrLoser && parties.length >= 2 ? wrWinner.wrNet - wrLoser.wrNet : 0;
-  const stMargin =
-    stWinner && stLoser && parties.length >= 2 ? stWinner.stNet - stLoser.stNet : 0;
+  const wrMargin = wrWinner && wrLoser && parties.length >= 2 ? wrWinner.wrNet - wrLoser.wrNet : 0;
+  const stMargin = stWinner && stLoser && parties.length >= 2 ? stWinner.stNet - stLoser.stNet : 0;
 
   const draftPicks: TradeDraftPick[] = draftPicksRaw.map((p) => ({
     season: p.season,
@@ -411,8 +403,7 @@ function buildSingleTrade(
   // commissioner moves) so consumers don't have to guard against it
   // separately — those trades render under the pick-only path.
   const hasOnlyDraftPicks =
-    parties.every((p) => p.received.length === 0 && p.gaveUp.length === 0) &&
-    draftPicks.length > 0;
+    parties.every((p) => p.received.length === 0 && p.gaveUp.length === 0) && draftPicks.length > 0;
 
   return {
     txId: tx.transaction_id,
@@ -449,10 +440,7 @@ function buildSingleTrade(
  *   - A trade with |wrMargin| < 2 counts as a tie for both parties
  *     rather than a clean win/loss — preserves the "wash" intuition.
  */
-function buildOwnerStats(
-  trades: Trade[],
-  ownerIndex: OwnerIndex,
-): TradeStatsByOwner {
+function buildOwnerStats(trades: Trade[], ownerIndex: OwnerIndex): TradeStatsByOwner {
   const stats: TradeStatsByOwner = {};
   for (const key of Object.keys(ownerIndex)) {
     stats[key] = {

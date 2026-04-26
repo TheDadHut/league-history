@@ -79,11 +79,7 @@ export default function FunStats() {
   }
 
   return (
-    <FunStatsReady
-      seasons={state.seasons}
-      ownerIndex={state.ownerIndex}
-      players={state.players}
-    />
+    <FunStatsReady seasons={state.seasons} ownerIndex={state.ownerIndex} players={state.players} />
   );
 }
 
@@ -101,26 +97,11 @@ interface FunStatsReadyProps {
 function FunStatsReady({ seasons, ownerIndex, players }: FunStatsReadyProps) {
   // Each selector is pure — memoize against the provider state so
   // unrelated re-renders don't re-walk the full matchup history.
-  const blowouts = useMemo(
-    () => selectBiggestBlowouts(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
-  const closest = useMemo(
-    () => selectClosestGames(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
-  const hardluck = useMemo(
-    () => selectHardLuckLosses(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
-  const lucky = useMemo(
-    () => selectLuckyWins(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
-  const rivalry = useMemo(
-    () => selectBiggestRivalry(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
+  const blowouts = useMemo(() => selectBiggestBlowouts(seasons, ownerIndex), [seasons, ownerIndex]);
+  const closest = useMemo(() => selectClosestGames(seasons, ownerIndex), [seasons, ownerIndex]);
+  const hardluck = useMemo(() => selectHardLuckLosses(seasons, ownerIndex), [seasons, ownerIndex]);
+  const lucky = useMemo(() => selectLuckyWins(seasons, ownerIndex), [seasons, ownerIndex]);
+  const rivalry = useMemo(() => selectBiggestRivalry(seasons, ownerIndex), [seasons, ownerIndex]);
   const consistency = useMemo(
     () => selectConsistencyTables(seasons, ownerIndex),
     [seasons, ownerIndex],
@@ -212,10 +193,7 @@ function SectionHeader({ emoji, title, countLabel, barClass }: SectionHeaderProp
   // the grouped content beneath.
   return (
     <div className={styles.sectionHeader} role="group" aria-labelledby={slug}>
-      <span
-        className={`${styles.sectionBar} ${barClass ?? ''}`.trim()}
-        aria-hidden="true"
-      />
+      <span className={`${styles.sectionBar} ${barClass ?? ''}`.trim()} aria-hidden="true" />
       <h2 id={slug} className={styles.sectionTitle}>
         {emoji ? (
           <>

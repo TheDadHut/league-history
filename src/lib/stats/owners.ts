@@ -48,12 +48,7 @@
 // unrelated re-renders.
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
-import type {
-  DraftGradeRow,
-  GradeLetter,
-  WaiverArchetype,
-  WaiverProfileRow,
-} from './seasons';
+import type { DraftGradeRow, GradeLetter, WaiverArchetype, WaiverProfileRow } from './seasons';
 import { gpaToGradeLetter } from './seasons';
 import type { FlatMatchup } from './util';
 
@@ -247,10 +242,7 @@ export interface OwnerH2HRow {
  * by total games desc — same as the legacy `[...allH2hRows].sort(...)`
  * at line 2932).
  */
-export function selectOwnerH2HRecords(
-  ownerKey: string,
-  matchups: FlatMatchup[],
-): OwnerH2HRow[] {
+export function selectOwnerH2HRecords(ownerKey: string, matchups: FlatMatchup[]): OwnerH2HRow[] {
   const accum = new Map<string, OwnerH2HRow>();
 
   for (const m of matchups) {
@@ -380,8 +372,7 @@ export function selectOwnerSummary(
   const qualifying = h2hRows.filter((r) => r.games >= 2);
   const sortedByPct = [...qualifying].sort((a, b) => a.pct - b.pct);
   const nemesis = sortedByPct.length > 0 ? (sortedByPct[0] ?? null) : null;
-  const favorite =
-    sortedByPct.length > 0 ? (sortedByPct[sortedByPct.length - 1] ?? null) : null;
+  const favorite = sortedByPct.length > 0 ? (sortedByPct[sortedByPct.length - 1] ?? null) : null;
 
   const resume = playoffResumes[ownerKey] ?? {
     appearances: 0,
@@ -589,7 +580,9 @@ export function selectOwnerWaiverHistory(
   const dominantArchetype = dominantEntry?.archetype ?? null;
 
   // Composite Impact GPA — only seasons with an Impact letter contribute.
-  const impactSeasons = rows.filter((r): r is OwnerWaiverSeason & { impactGrade: GradeLetter } => r.impactGrade !== null);
+  const impactSeasons = rows.filter(
+    (r): r is OwnerWaiverSeason & { impactGrade: GradeLetter } => r.impactGrade !== null,
+  );
   const avgImpactGpa =
     impactSeasons.length > 0
       ? impactSeasons.reduce((sum, r) => sum + GRADE_TO_GPA[r.impactGrade], 0) /
@@ -604,4 +597,3 @@ export function selectOwnerWaiverHistory(
     dominantArchetype,
   };
 }
-

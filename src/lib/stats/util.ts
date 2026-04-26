@@ -111,4 +111,3 @@ export function buildAllMatchups(seasons: SeasonDetails[]): FlatMatchup[] {
   }
   return all;
 }
-

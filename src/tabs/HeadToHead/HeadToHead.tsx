@@ -42,10 +42,7 @@ export default function HeadToHead() {
   // Sleeper player DB. Wait for `seasons-ready` (or the terminal
   // `ready` state) before rendering. Earlier tiers (`core-ready`)
   // don't have weekly matchups attached yet.
-  if (
-    state.status === 'loading' ||
-    state.status === 'core-ready'
-  ) {
+  if (state.status === 'loading' || state.status === 'core-ready') {
     return (
       <section className={styles.section} aria-busy="true">
         <p className={styles.status}>Loading…</p>
@@ -89,10 +86,7 @@ function HeadToHeadReady({ seasons, ownerIndex }: HeadToHeadReadyProps) {
   // Recompute the series when either selection changes. The selector
   // is pure and rebuilds the flat-matchups view internally — fast
   // enough that we don't need to memoize the matchups separately.
-  const series = useMemo(
-    () => selectH2HSeries(seasons, aKey, bKey),
-    [seasons, aKey, bKey],
-  );
+  const series = useMemo(() => selectH2HSeries(seasons, aKey, bKey), [seasons, aKey, bKey]);
 
   const ownerA = ownerIndex[aKey];
   const ownerB = ownerIndex[bKey];
@@ -109,9 +103,7 @@ function HeadToHeadReady({ seasons, ownerIndex }: HeadToHeadReadyProps) {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Select Two Teams</h3>
-          <span className={styles.hint}>
-            All-time, regular season + playoffs
-          </span>
+          <span className={styles.hint}>All-time, regular season + playoffs</span>
         </div>
         <div className={styles.cardBody}>
           <div className={styles.controls}>
@@ -193,11 +185,7 @@ function H2HOutput({
   // Defensive: if either picker resolves to an unknown owner (e.g.
   // the provider state is mid-update), bail to a friendly message.
   if (!ownerA || !ownerB || owners.length < 2) {
-    return (
-      <p className={styles.empty}>
-        Not enough owners to compare.
-      </p>
-    );
+    return <p className={styles.empty}>Not enough owners to compare.</p>;
   }
 
   // Legacy: `if (a === b) return "Pick two different teams."`.
@@ -207,11 +195,7 @@ function H2HOutput({
 
   // Legacy: `if (games.length === 0) return "No matchups found..."`.
   if (games.length === 0) {
-    return (
-      <p className={styles.empty}>
-        No matchups found between these two teams.
-      </p>
-    );
+    return <p className={styles.empty}>No matchups found between these two teams.</p>;
   }
 
   const aSideClass =
@@ -285,9 +269,7 @@ function GameRow({ game }: GameRowProps) {
         {game.season} W{game.week}
         {game.isPlayoff ? ' \u{1F3C6}' : ''}
       </span>
-      <span className={`${aClass} ${styles.scoreLeft}`}>
-        {game.scoreA.toFixed(2)}
-      </span>
+      <span className={`${aClass} ${styles.scoreLeft}`}>{game.scoreA.toFixed(2)}</span>
       <span className={styles.dash} aria-hidden="true">
         —
       </span>

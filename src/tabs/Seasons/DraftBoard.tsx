@@ -36,9 +36,7 @@ export default function DraftBoard({ data }: DraftBoardProps) {
       {rounds.map((round, i) => (
         <div key={round.round}>
           <div
-            className={`${styles.draftRoundHeader} ${
-              i === 0 ? styles.draftRoundHeaderFirst : ''
-            }`}
+            className={`${styles.draftRoundHeader} ${i === 0 ? styles.draftRoundHeaderFirst : ''}`}
           >
             Round {round.round}
           </div>

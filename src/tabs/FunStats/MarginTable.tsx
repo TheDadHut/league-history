@@ -53,9 +53,7 @@ export default function MarginTable({ rows, showPlusSign }: MarginTableProps) {
               </tr>
             ) : (
               rows.map((row, i) => (
-                <tr
-                  key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}
-                >
+                <tr key={`${row.season}-${row.week}-${row.winnerOwnerKey}-${row.loserOwnerKey}`}>
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td>
                     <TeamChipCompact name={row.winnerTeamName} color={row.winnerColor} />

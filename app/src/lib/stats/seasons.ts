@@ -443,6 +443,75 @@ export function buildPlayerSeasonStats(league: SeasonDetails): PlayerSeasonStats
 }
 
 // ===================================================================
+// Internal: legacy-compatible per-week "live rows" iterator
+// ===================================================================
+//
+// Several stat layers (waiver math, PWR) need to walk every roster's
+// per-week matchup row, but only for matchups that count under the
+// legacy `state.allMatchups` filtering rules. That means: pair rows
+// by `matchup_id`, drop rows with `matchup_id == null`, drop pairs
+// that aren't exactly two teams, drop pairs where both sides scored 0.
+//
+// `buildAllMatchups` in `stats/util.ts` produces a flat side-vs-side
+// view, but the consumers here need the underlying `Matchup` rows so
+// they can read `players` / `players_points` / `starters` /
+// `starters_points`. This helper preserves the same filter semantics
+// while yielding the raw rows.
+
+interface LiveMatchupWeek {
+  weekNum: number;
+  rows: Matchup[];
+}
+
+/**
+ * Yields per-week "live" matchup rows for a season, matching legacy
+ * `buildAllMatchups()` (index.html lines 851-890) filter semantics:
+ *
+ *   - Drops weeks with no data (empty array).
+ *   - Drops rows with `matchup_id == null` (byes / no-pair rows).
+ *   - Drops pairs that aren't exactly two teams (commish edits).
+ *   - Drops pairs where both sides scored 0 (Sleeper occasionally
+ *     returns these for unplayed weeks; in-progress seasons pre-fetch
+ *     future-week rows with `points: 0`).
+ *
+ * Both rows of a surviving pair are included in `rows`. The week index
+ * is 1-based (matching legacy `weekNum = idx + 1`).
+ *
+ * Used by `selectDraftGrades` (PWR walk) and `selectWaiverProfile`
+ * (per-week player index). Keeping it private to `seasons.ts` until a
+ * third consumer needs it; promote to `stats/util.ts` then.
+ */
+function liveMatchupWeeks(league: SeasonDetails): LiveMatchupWeek[] {
+  const out: LiveMatchupWeek[] = [];
+
+  league.weeklyMatchups.forEach((week, idx) => {
+    const weekNum = idx + 1;
+    if (!week || week.length === 0) return;
+
+    const byMatchup = new Map<number, Matchup[]>();
+    for (const m of week) {
+      if (m.matchup_id == null) continue;
+      const list = byMatchup.get(m.matchup_id) ?? [];
+      list.push(m);
+      byMatchup.set(m.matchup_id, list);
+    }
+
+    const rows: Matchup[] = [];
+    for (const pair of byMatchup.values()) {
+      if (pair.length !== 2) continue;
+      const [a, b] = pair;
+      if (!a || !b) continue;
+      if ((a.points || 0) === 0 && (b.points || 0) === 0) continue;
+      rows.push(a, b);
+    }
+
+    if (rows.length > 0) out.push({ weekNum, rows });
+  });
+
+  return out;
+}
+
+// ===================================================================
 // Awards row
 // ===================================================================
 
@@ -1184,13 +1253,19 @@ export function selectDraftGrades(
     }
   }
 
-  // PWR — walk every regular-season + playoff matchup in this season's
-  // weeklyMatchups, attribute each starter's points back to their
-  // original drafter if the drafter still rostered them that week.
-  league.weeklyMatchups.forEach((week, idx) => {
-    const weekNum = idx + 1;
-    if (!week || week.length === 0) return;
-    for (const m of week) {
+  // PWR — walk every "live" matchup row (regular-season + playoff)
+  // and attribute each starter's points back to their original drafter
+  // if the drafter still rostered them that week.
+  //
+  // Walking via `liveMatchupWeeks` (rather than `league.weeklyMatchups`
+  // directly) mirrors the legacy `buildDraftGrades` PWR loop, which
+  // iterates `state.allMatchups` — i.e., a view that has already been
+  // filtered by `matchup_id` pairing + 0-0 pair filtering. Without the
+  // filter, in-progress seasons over-credit drafters: future weeks pre-
+  // fetched with `points: 0` and `null` `matchup_id`, plus playoff weeks
+  // with non-paired commissioner-edited rows, would slip in.
+  for (const { weekNum, rows } of liveMatchupWeeks(league)) {
+    for (const m of rows) {
       const starters = m.starters ?? [];
       const starterPoints = m.starters_points ?? [];
       if (!Array.isArray(starters) || !Array.isArray(starterPoints)) continue;
@@ -1204,7 +1279,7 @@ export function selectDraftGrades(
         o.pwr += starterPoints[i] ?? 0;
       });
     }
-  });
+  }
 
   // Letter grades on a curve — same boundaries as legacy.
   const assignGrades = (
@@ -1365,30 +1440,42 @@ export function selectWaiverProfile(
   const rosterToOwner = buildRosterToOwnerKey(league);
 
   // Per-week per-player lookups (points / owner / started flag).
+  //
+  // Walk via `liveMatchupWeeks` to mirror the legacy `buildWaiverGrades`
+  // loop, which iterates `state.allMatchups` — a view that has already
+  // been filtered by `matchup_id` pairing + 0-0 pair filtering. Walking
+  // `league.weeklyMatchups` directly lets in pre-fetched rows for
+  // unplayed future weeks (in-progress seasons): the legacy filter drops
+  // them as 0-0 pairs, and the new code without the filter was
+  // over-counting `weeksRostered` (with `pts == 0`), which dragged
+  // Selection down, dragged Persistence up (productive pickups appeared
+  // held longer), dragged Integration down (extra unstarted weeks), and
+  // — for paired-but-orphan/null `matchup_id` rows that did have
+  // points — also lifted Impact. Best Pickups inherited the same drift
+  // (extra weeks rostered → extra points + extra weeks).
+  //
+  // Plus: only set `playerWeeklyPoints` from the same surviving rows
+  // (legacy unconditionally wrote `pts[pid] || 0`; we keep the
+  // `ptsMap.has(pid)` guard from PR #15 because a bye-week player is in
+  // `m.players` but missing from `m.players_points`, and writing 0 there
+  // would overwrite a real prior value if the same player appeared on
+  // two rows for the same week — practically impossible since a player
+  // is on one roster per week, but the guard is harmless and matches
+  // the prior intent).
   const playerWeeklyPoints = new Map<string, Map<number, number>>();
   const playerWeeklyOwner = new Map<string, Map<number, number>>();
   const playerWeeklyStarted = new Map<string, Map<number, boolean>>();
 
-  league.weeklyMatchups.forEach((week, idx) => {
-    const weekNum = idx + 1;
-    // The legacy site walks every matchup including playoffs here —
-    // they're not filtered out for the waiver math; the only filtering
-    // is at the per-pickup loop where we walk weeks ≤ 18 and stop when
-    // the player leaves the roster. Match that.
-    if (weekNum > 18) return;
-    if (!week || week.length === 0) return;
-    for (const m of week) {
+  for (const { weekNum, rows } of liveMatchupWeeks(league)) {
+    // The legacy site caps the per-pickup walk at week 18 (see below);
+    // skip indexing weeks beyond that here so the lookup tables stay
+    // bounded to the same range.
+    if (weekNum > 18) continue;
+    for (const m of rows) {
       const starterSet = new Set(m.starters ?? []);
       const ptsMap = matchupPlayerPoints(m);
       for (const pid of m.players ?? []) {
         if (!pid || pid === '0') continue;
-        // `m.players_points` only contains entries for the players on
-        // *this* roster's row. Each player appears in exactly one
-        // roster's `m.players` per week, so unconditional writes for
-        // owner/started are safe; but `weekPts` must be guarded —
-        // otherwise the second matchup row in the week (whose
-        // `players_points` doesn't include this player) overwrites the
-        // correct value with 0.
         if (ptsMap.has(pid)) {
           let weekPts = playerWeeklyPoints.get(pid);
           if (!weekPts) {
@@ -1413,7 +1500,7 @@ export function selectWaiverProfile(
         weekStarted.set(weekNum, starterSet.has(pid));
       }
     }
-  });
+  }
 
   // Collect non-trade adds in chronological order.
   interface Pickup {

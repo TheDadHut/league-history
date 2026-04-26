@@ -1,78 +1,37 @@
 # Gaming Disability League · History
 
-A fantasy football history site for the **Gaming Disability League** (GDL), built
-as a single-page React app. All league data is pulled live from the
-[Sleeper API](https://docs.sleeper.com/) on page load — champions, matchups,
-rosters, drafts, trades, and transactions are walked backwards through every
-previous season via `previous_league_id`.
+Fantasy football history site for the **Gaming Disability League** (GDL).
+Live data on every page load from the [Sleeper API](https://docs.sleeper.com/);
+no backend, no DB, no auth.
 
-Live site: <https://thedadhut.github.io/league-history/>
+Live: <https://thedadhut.github.io/league-history/>
 
-## Stack
+## Tech stack, with reasoning
 
-Vite + React 19 + TypeScript. The app lives at the repo root and is deployed
-to GitHub Pages from `dist/` by `.github/workflows/deploy.yml` on every push
-to `main` that touches the app.
+- **TypeScript (strict)** — Sleeper response shapes are non-trivial (matchups,
+  brackets, transactions, drafts, players). Strict-mode types caught real bugs
+  while porting from the legacy single-file site.
+- **React 19 + Vite** — modern frontend baseline; Vite for the build, hash
+  router so the GitHub Pages subpath (`/league-history/`) just works.
+- **Vitest** — unit tests for the pure stat selectors in `src/lib/stats/`.
+  The Sleeper layer and tab UIs are verified by browser; the math is verified
+  by tests.
+- **GitHub Pages** — static hosting matches the no-backend constraint;
+  deploys from `main` via `.github/workflows/deploy.yml`.
+- **Python `tools/`** — when the right tool isn't the browser. Currently a
+  single weekly-recap generator that pipes markdown to stdout.
 
-## Files
+## Architecture at a glance
 
-| Path                                                                 | Purpose                                                                                                            |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `src/`                                                               | All app code — tabs, shared components, stat selectors, Sleeper data layer, config.                                |
-| `public/highlights.json`                                             | Manually curated season-by-season highlights. Loaded at runtime.                                                   |
-| `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js` | Build / type-check / lint config.                                                                                  |
-| `.github/workflows/`                                                 | `validate-highlights.yml` (PR JSON check), `ci.yml` (PR typecheck + build), `deploy.yml` (push to `main` → Pages). |
-
-## Running it locally
-
-```bash
-npm install
-npm run dev      # dev server at http://localhost:5173/league-history/
-npm run build    # type-check + production build into dist/
-npm run preview  # serve dist/ locally to spot-check the prod build
-```
-
-Use Node 20 (see `.nvmrc`).
-
-Data is fetched on every load and cached in `sessionStorage` for the Sleeper
-player DB (~5MB).
-
-## Configuration
-
-Everything is in `src/config.ts`:
-
-- `CURRENT_LEAGUE_ID` — the Sleeper league ID for the most recent season. The
-  app walks backwards from here through `previous_league_id` to build the full
-  history. Update this at the start of each new season.
-- `OWNER_COLORS` — substring-matched owner color preferences (e.g. any display
-  name containing "alex" gets the red accent).
-- `FALLBACK_PALETTE` — 12 distinct hues used for any owners without an explicit
-  color. Every owner is guaranteed a unique color until the palette runs out.
-
-## Highlights
-
-`public/highlights.json` holds hand-written notes that appear on each
-season's archive page. Three formats are supported (all can be mixed within
-the same season array):
-
-```json
-{
-  "2024": [
-    "A plain string becomes one highlight.",
-    { "text": "An object with text.", "sub": "Adds one indented sub-line." },
-    {
-      "text": "Children can nest arbitrarily deep.",
-      "children": [
-        { "text": "First child." },
-        { "text": "Second child.", "children": [{ "text": "Grandchild." }] }
-      ]
-    }
-  ]
-}
-```
-
-Newest entries go first within each season array. Unknown keys are ignored.
-The file is JSON-validated on every PR by `validate-highlights.yml`.
+- **Browser app (`src/`)** — fetches the entire league history on every load
+  by walking `league.previous_league_id` back to the inaugural season.
+- **Stat selectors (`src/lib/stats/`)** — pure functions over normalized
+  Sleeper data; unit-tested with Vitest.
+- **Shared data layer (`src/lib/leagueData.tsx`)** — fetches once, exposes a
+  React context that every tab consumes. Player DB (~5MB) is cached in
+  `sessionStorage` to keep refresh cheap.
+- **Python sidecar (`tools/`)** — offline / scheduled work that doesn't
+  belong in the browser.
 
 ## What's in the app
 
@@ -80,25 +39,74 @@ Nine tabs, all computed client-side from Sleeper data:
 
 - **Overview** — Hall of Champs, league pulse, all-time regular-season standings.
 - **Records** — Weekly team highs/lows, single-week and full-season player records.
-- **Head-to-Head** — All-time record between any two owners (regular season + playoffs).
-- **Seasons** — Per-season standings, playoff bracket, draft recap, weekly matchups, and highlights.
-- **Fun Stats** — Blowouts, closest games, hard-luck losses, lucky wins, rivalries, consistency
-  vs. volatility, clutch index, blowout record, and benching analysis (points left on the bench
-  and the worst individual "shoulda started him" decisions).
-- **Luck & Streaks** — Luck rating (actual record vs. what you'd have with median scoring),
-  current streaks, and all-time longest win/loss streaks.
-- **Trades** — Grand Larceny leaderboards (both While Rostered and Season Total scoring),
-  full chronological trade history with filters, and draft-pick-aware caveats.
-- **Owner Stats** — Per-owner deep dive: titles, records, draft capital efficiency (DCE),
-  waiver archetype, and season-by-season waiver grades.
+- **Head-to-Head** — All-time record between any two owners (regular + playoffs).
+- **Seasons** — Per-season standings, playoff bracket, draft recap, weekly
+  matchups, and curated highlights.
+- **Fun Stats** — Blowouts, closest games, hard-luck losses, lucky wins,
+  rivalries, consistency vs. volatility, clutch index, and benching analysis.
+- **Luck & Streaks** — Median-scoring luck rating, current streaks, all-time
+  longest win/loss streaks.
+- **Trades** — Grand Larceny leaderboards (While Rostered + Season Total),
+  full chronological history with filters.
+- **Owner Stats** — Per-owner deep dive: titles, records, draft capital
+  efficiency, waiver archetype, season-by-season grades.
 - **Founders** — The inaugural-season roster.
 
-## Notes
+The site was rewritten from a single hand-edited HTML file to a Vite, React,
+and TypeScript app, one tab at a time.
 
-- Keyboard shortcut `Ctrl+Shift+D` toggles a debug overlay.
-- Waiver grades and draft capital efficiency are computed locally — the formulas
-  live alongside the stat modules in `src/lib/stats/`.
-- Trade fairness is measured two ways: **WR** (points scored while the receiving
-  team still rostered the player) and **ST** (all remaining post-trade season
-  points). Draft-pick-only trades are shown without a winner since pick value
-  can't be evaluated from Sleeper data alone.
+## Run it locally
+
+React app:
+
+```bash
+npm install
+npm run dev      # http://localhost:5173/league-history/
+npm run build    # type-check + production build into dist/
+npm run preview  # serve dist/ to spot-check the prod build
+```
+
+Tests:
+
+```bash
+npm run test:run
+```
+
+Python recap:
+
+```bash
+cd tools
+pip install -r requirements.txt
+python3 weekly_recap.py --week 14 --season 2024
+```
+
+Use Node 20 (see `.nvmrc`).
+
+### Configuration
+
+Everything app-side is in `src/config.ts`:
+
+- `CURRENT_LEAGUE_ID` — Sleeper league ID for the most recent season; the
+  app walks backwards from here. Bump at the start of each new season.
+- `OWNER_COLORS` — substring-matched owner color preferences.
+- `FALLBACK_PALETTE` — 12 distinct hues for owners without an explicit color.
+
+The Python tool also has `CURRENT_LEAGUE_ID` hard-coded at the top of
+`tools/weekly_recap.py`. Bump both together.
+
+## CI / deploy
+
+- Build, typecheck, lint, format-check, and tests run on every PR
+  (`.github/workflows/ci.yml`).
+- `public/highlights.json` is JSON-validated on PRs that touch it
+  (`.github/workflows/validate-highlights.yml`).
+- Push to `main` that touches app code triggers
+  `.github/workflows/deploy.yml` → GitHub Pages.
+- Dependabot watches npm and GitHub Actions.
+
+## Future ideas
+
+The Python sidecar is the obvious lever: scheduled weekly-recap posts to
+Slack/Discord, a draft-night helper that pulls live ADPs, an offseason
+player-projection diff. The browser app is where the league actually
+spends its time; everything else is sugar.

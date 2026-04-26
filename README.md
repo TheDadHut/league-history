@@ -10,26 +10,26 @@ Live site: <https://thedadhut.github.io/league-history/>
 
 ## Stack
 
-Vite + React 19 + TypeScript. The app lives in `app/` and is deployed to
-GitHub Pages from `app/dist/` by `.github/workflows/deploy.yml` on every push
-to `main` that touches `app/**`.
+Vite + React 19 + TypeScript. The app lives at the repo root and is deployed
+to GitHub Pages from `dist/` by `.github/workflows/deploy.yml` on every push
+to `main` that touches the app.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
-| `app/` | The Vite + React + TS app — all source, config, and the per-app `README`. |
-| `app/public/highlights.json` | Manually curated season-by-season highlights. Loaded at runtime. |
+| `src/` | All app code — tabs, shared components, stat selectors, Sleeper data layer, config. |
+| `public/highlights.json` | Manually curated season-by-season highlights. Loaded at runtime. |
+| `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js` | Build / type-check / lint config. |
 | `.github/workflows/` | `validate-highlights.yml` (PR JSON check), `ci.yml` (PR typecheck + build), `deploy.yml` (push to `main` → Pages). |
 
 ## Running it locally
 
 ```bash
-cd app
 npm install
 npm run dev      # dev server at http://localhost:5173/league-history/
-npm run build    # type-check + production build into app/dist/
-npm run preview  # serve app/dist/ locally to spot-check the prod build
+npm run build    # type-check + production build into dist/
+npm run preview  # serve dist/ locally to spot-check the prod build
 ```
 
 Use Node 20 (see `.nvmrc`).
@@ -39,7 +39,7 @@ player DB (~5MB).
 
 ## Configuration
 
-Everything is in `app/src/config.ts`:
+Everything is in `src/config.ts`:
 
 - `CURRENT_LEAGUE_ID` — the Sleeper league ID for the most recent season. The
   app walks backwards from here through `previous_league_id` to build the full
@@ -51,7 +51,7 @@ Everything is in `app/src/config.ts`:
 
 ## Highlights
 
-`app/public/highlights.json` holds hand-written notes that appear on each
+`public/highlights.json` holds hand-written notes that appear on each
 season's archive page. Three formats are supported (all can be mixed within
 the same season array):
 
@@ -97,7 +97,7 @@ Nine tabs, all computed client-side from Sleeper data:
 
 - Keyboard shortcut `Ctrl+Shift+D` toggles a debug overlay.
 - Waiver grades and draft capital efficiency are computed locally — the formulas
-  live alongside the stat modules in `app/src/lib/stats/`.
+  live alongside the stat modules in `src/lib/stats/`.
 - Trade fairness is measured two ways: **WR** (points scored while the receiving
   team still rostered the player) and **ST** (all remaining post-trade season
   points). Draft-pick-only trades are shown without a winner since pick value

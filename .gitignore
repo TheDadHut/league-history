@@ -5,12 +5,26 @@
 /.claude/
 /.mcp.json
 
-# Vite app build/dep dirs (also covered by app/.gitignore)
-/app/node_modules
-/app/dist
+# Vite app build/dep dirs
+/node_modules
+/dist
+/dist-ssr
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local env / overrides
+*.local
 
 # OS / editor noise
 .DS_Store
 .idea/
 .vscode/
 *.swp
+*.sw?

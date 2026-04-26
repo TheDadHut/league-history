@@ -5,7 +5,17 @@ on:
     branches:
       - main
     paths:
-      - app/**
+      - src/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - .nvmrc
+      - vite.config.ts
+      - tsconfig.json
+      - tsconfig.app.json
+      - tsconfig.node.json
+      - eslint.config.js
       - .github/workflows/deploy.yml
   workflow_dispatch:
 
@@ -21,21 +31,18 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: dist
 
   deploy:
     needs: build

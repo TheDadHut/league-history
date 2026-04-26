@@ -49,6 +49,7 @@ export function TeamChipCompact({ name, color }: { name: string; color: string }
 }
 
 /** Gold/silver/bronze tinting for the top three rows; default for the rest. */
+// eslint-disable-next-line react-refresh/only-export-components -- helper colocated with the chip + grade-pill components above; splitting into its own file would scatter the directory for a one-line utility.
 export function rankClass(idx: number): string {
   if (idx === 0) return `${styles.rank} ${styles.rank1}`;
   if (idx === 1) return `${styles.rank} ${styles.rank2}`;

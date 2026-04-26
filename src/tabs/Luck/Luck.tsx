@@ -69,10 +69,7 @@ interface LuckReadyProps {
 }
 
 function LuckReady({ seasons, ownerIndex }: LuckReadyProps) {
-  const ratings = useMemo(
-    () => selectLuckRatings(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
+  const ratings = useMemo(() => selectLuckRatings(seasons, ownerIndex), [seasons, ownerIndex]);
   const currentStreaks = useMemo(
     () => selectCurrentStreaks(seasons, ownerIndex),
     [seasons, ownerIndex],
@@ -120,10 +117,7 @@ function LuckRatingSection({ rows }: LuckRatingSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="luck-rating-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.barGold}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.barGold}`} aria-hidden="true" />
         <h2 id="luck-rating-heading" className={styles.sectionTitleSm}>
           <span aria-hidden="true">🍀</span> Luck Rating
         </h2>
@@ -142,9 +136,15 @@ function LuckRatingSection({ rows }: LuckRatingSectionProps) {
               <tr>
                 <th scope="col">#</th>
                 <th scope="col">Team</th>
-                <th scope="col" className={styles.num}>Actual</th>
-                <th scope="col" className={styles.num}>Expected</th>
-                <th scope="col" className={styles.num}>Luck</th>
+                <th scope="col" className={styles.num}>
+                  Actual
+                </th>
+                <th scope="col" className={styles.num}>
+                  Expected
+                </th>
+                <th scope="col" className={styles.num}>
+                  Luck
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -211,10 +211,7 @@ function CurrentStreaksSection({ rows }: CurrentStreaksSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="current-streaks-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.barGreen}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.barGreen}`} aria-hidden="true" />
         <h2 id="current-streaks-heading" className={styles.sectionTitleSm}>
           <span aria-hidden="true">🔥</span> Current Streaks
         </h2>
@@ -223,17 +220,19 @@ function CurrentStreaksSection({ rows }: CurrentStreaksSectionProps) {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Heating Up / Cooling Off</h3>
-          <span className={styles.hint}>
-            Most recent consecutive wins or losses
-          </span>
+          <span className={styles.hint}>Most recent consecutive wins or losses</span>
         </div>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
             <thead>
               <tr>
                 <th scope="col">Team</th>
-                <th scope="col" className={styles.num}>Streak</th>
-                <th scope="col" className={styles.num}>Since</th>
+                <th scope="col" className={styles.num}>
+                  Streak
+                </th>
+                <th scope="col" className={styles.num}>
+                  Since
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -259,8 +258,7 @@ function CurrentStreakRow({ row }: CurrentStreakRowProps) {
       : row.streakType === 'L'
         ? `${styles.streakBig} ${styles.numLoss}`
         : `${styles.streakBig} ${styles.numNeutral}`;
-  const icon =
-    row.streakType === 'W' ? '🔥' : row.streakType === 'L' ? '❄️' : '—';
+  const icon = row.streakType === 'W' ? '🔥' : row.streakType === 'L' ? '❄️' : '—';
 
   return (
     <tr>
@@ -343,11 +341,7 @@ function AllTimeStreakSection({
                   >
                     <td className={rankClass(i)}>{i + 1}</td>
                     <td>
-                      <TeamChip
-                        name={row.teamName}
-                        owner={row.displayName}
-                        color={row.color}
-                      />
+                      <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
                     </td>
                     <td className={`${styles.num} ${valueClass}`}>
                       {row.length}

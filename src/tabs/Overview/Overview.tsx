@@ -56,11 +56,7 @@ export default function Overview() {
   }
 
   return (
-    <OverviewReady
-      seasons={state.seasons}
-      ownerIndex={state.ownerIndex}
-      players={state.players}
-    />
+    <OverviewReady seasons={state.seasons} ownerIndex={state.ownerIndex} players={state.players} />
   );
 }
 
@@ -78,10 +74,7 @@ interface OverviewReadyProps {
 function OverviewReady({ seasons, ownerIndex, players }: OverviewReadyProps) {
   // Each selector is pure — memoize against the provider state so we
   // don't recompute on every unrelated render (Suspense + tab switches).
-  const champions = useMemo(
-    () => selectChampions(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
+  const champions = useMemo(() => selectChampions(seasons, ownerIndex), [seasons, ownerIndex]);
   // Trade stats power the Best/Worst Trader pulse tiles. The Trades tab
   // also derives this; the cost is one walk over `seasons[].transactions`
   // which is cheap relative to the player-DB walks the Pulse tiles

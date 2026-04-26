@@ -93,11 +93,7 @@ export default function Owners() {
   }
 
   return (
-    <OwnersReady
-      seasons={state.seasons}
-      ownerIndex={state.ownerIndex}
-      players={state.players}
-    />
+    <OwnersReady seasons={state.seasons} ownerIndex={state.ownerIndex} players={state.players} />
   );
 }
 
@@ -163,24 +159,17 @@ function OwnersReady({ seasons, ownerIndex, players }: OwnersReadyProps) {
   // ----- Per-selection slices -----
 
   const summary = useMemo(
-    () =>
-      selected
-        ? selectOwnerSummary(selected, seasons, matchups, playoffResumes)
-        : null,
+    () => (selected ? selectOwnerSummary(selected, seasons, matchups, playoffResumes) : null),
     [selected, seasons, matchups, playoffResumes],
   );
 
   const draftHistory = useMemo(
-    () =>
-      selected ? selectOwnerDraftHistory(selected, draftGradesBySeason) : null,
+    () => (selected ? selectOwnerDraftHistory(selected, draftGradesBySeason) : null),
     [selected, draftGradesBySeason],
   );
 
   const waiverHistory = useMemo(
-    () =>
-      selected
-        ? selectOwnerWaiverHistory(selected, waiverProfilesBySeason)
-        : null,
+    () => (selected ? selectOwnerWaiverHistory(selected, waiverProfilesBySeason) : null),
     [selected, waiverProfilesBySeason],
   );
 
@@ -202,11 +191,7 @@ function OwnersReady({ seasons, ownerIndex, players }: OwnersReadyProps) {
             <h3 className={styles.cardTitle}>Select Owner</h3>
           </div>
           <div className={styles.cardBody}>
-            <OwnerPicker
-              options={owners}
-              selected={selected}
-              onSelect={setSelected}
-            />
+            <OwnerPicker options={owners} selected={selected} onSelect={setSelected} />
           </div>
         </div>
       </section>
@@ -294,14 +279,8 @@ function OwnerHeadline({ owner, summary, tradeStats, ownerIndex }: OwnerHeadline
 
   return (
     <>
-      <header
-        className={`${styles.sectionHeader} ${styles.ownerHeader}`}
-        style={ownerColorStyle}
-      >
-        <span
-          className={`${styles.sectionBar} ${styles.sectionBarOwner}`}
-          aria-hidden="true"
-        />
+      <header className={`${styles.sectionHeader} ${styles.ownerHeader}`} style={ownerColorStyle}>
+        <span className={`${styles.sectionBar} ${styles.sectionBarOwner}`} aria-hidden="true" />
         <h2 className={styles.sectionTitle}>{owner.displayName}</h2>
       </header>
 
@@ -429,12 +408,7 @@ interface OpponentCalloutTileProps {
   tileClass: string;
 }
 
-function OpponentCalloutTile({
-  label,
-  row,
-  ownerIndex,
-  tileClass,
-}: OpponentCalloutTileProps) {
+function OpponentCalloutTile({ label, row, ownerIndex, tileClass }: OpponentCalloutTileProps) {
   const opp = ownerIndex[row.opponentKey];
   // If the opponent has been deleted from the index, fall back to a
   // neutral string rather than dropping the tile entirely.
@@ -486,13 +460,9 @@ function TradeNetTile({ stats }: TradeTileProps) {
   return (
     <div className={`${styles.statTile} ${styles.statTileBlue}`}>
       <div className={styles.statLabel}>{'\u{1F4CA} '}Net Trade Value</div>
-      <div
-        className={`${styles.statValue} ${styles.statValueSmall}`}
-        style={{ color: wrColor }}
-      >
+      <div className={`${styles.statValue} ${styles.statValueSmall}`} style={{ color: wrColor }}>
         {stats.netWR > 0 ? '+' : ''}
-        {stats.netWR.toFixed(0)}{' '}
-        <span className={styles.statValueUnit}>WR</span>
+        {stats.netWR.toFixed(0)} <span className={styles.statValueUnit}>WR</span>
       </div>
       <div className={styles.statSub}>
         {stats.netST > 0 ? '+' : ''}
@@ -526,10 +496,7 @@ function DraftHistorySection({ history }: DraftHistorySectionProps) {
   return (
     <section className={styles.section} aria-labelledby="owners-draft-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.sectionBarGold}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.sectionBarGold}`} aria-hidden="true" />
         <h2 id="owners-draft-heading" className={styles.sectionTitle}>
           Draft History
         </h2>
@@ -545,12 +512,8 @@ function DraftHistorySection({ history }: DraftHistorySectionProps) {
         </div>
 
         <div className={styles.headlineBlock}>
-          {history.avgLetter ? (
-            <GradePill grade={history.avgLetter} headline />
-          ) : null}
-          <div className={styles.headlineSub}>
-            GPA {history.avgGpa.toFixed(2)}
-          </div>
+          {history.avgLetter ? <GradePill grade={history.avgLetter} headline /> : null}
+          <div className={styles.headlineSub}>GPA {history.avgGpa.toFixed(2)}</div>
         </div>
 
         <div className={styles.tableScroll}>
@@ -615,10 +578,7 @@ function WaiverHistorySection({ history }: WaiverHistorySectionProps) {
   return (
     <section className={styles.section} aria-labelledby="owners-waiver-heading">
       <header className={styles.sectionHeader}>
-        <span
-          className={`${styles.sectionBar} ${styles.sectionBarBlue}`}
-          aria-hidden="true"
-        />
+        <span className={`${styles.sectionBar} ${styles.sectionBarBlue}`} aria-hidden="true" />
         <h2 id="owners-waiver-heading" className={styles.sectionTitle}>
           Waiver History
         </h2>
@@ -646,9 +606,7 @@ function WaiverHistorySection({ history }: WaiverHistorySectionProps) {
           ) : null}
 
           <div className={styles.headlineEyebrow}>DOMINANT ARCHETYPE</div>
-          <div className={styles.headlineArchetype}>
-            {history.dominantArchetype?.name ?? '—'}
-          </div>
+          <div className={styles.headlineArchetype}>{history.dominantArchetype?.name ?? '—'}</div>
           <div className={styles.headlineArchetypeDesc}>
             {history.dominantArchetype?.description ?? ''}
           </div>
@@ -719,16 +677,10 @@ function WaiverHistorySection({ history }: WaiverHistorySectionProps) {
                     <GradeCell grade={row.volumeGrade} value={row.volume} />
                   </td>
                   <td className={styles.num}>
-                    <GradeCell
-                      grade={row.selectionGrade}
-                      value={row.selection.toFixed(2)}
-                    />
+                    <GradeCell grade={row.selectionGrade} value={row.selection.toFixed(2)} />
                   </td>
                   <td className={styles.num}>
-                    <GradeCell
-                      grade={row.impactGrade}
-                      value={row.vob.toFixed(0)}
-                    />
+                    <GradeCell grade={row.impactGrade} value={row.vob.toFixed(0)} />
                   </td>
                   <td className={styles.num}>
                     <GradeCell
@@ -817,9 +769,7 @@ function H2HRecordsSection({ rows, ownerIndex }: H2HRecordsSectionProps) {
                       <td className={styles.num}>
                         <span className={styles.recordLoss}>{row.losses}</span>
                       </td>
-                      <td className={`${styles.num} ${styles.pctCell}`}>
-                        {formatPct(row.pct)}
-                      </td>
+                      <td className={`${styles.num} ${styles.pctCell}`}>{formatPct(row.pct)}</td>
                       <td className={`${styles.num} ${styles.breakdownCell}`}>
                         <span className={styles.breakdownDim}>regular season</span>
                       </td>
@@ -842,9 +792,7 @@ function H2HRecordsSection({ rows, ownerIndex }: H2HRecordsSectionProps) {
                     <td className={styles.num}>
                       <span className={styles.recordLoss}>{row.losses}</span>
                     </td>
-                    <td className={`${styles.num} ${styles.pctCell}`}>
-                      {formatPct(row.pct)}
-                    </td>
+                    <td className={`${styles.num} ${styles.pctCell}`}>{formatPct(row.pct)}</td>
                     <td className={`${styles.num} ${styles.breakdownCell}`}>
                       {row.hasPlayoff ? (
                         <>

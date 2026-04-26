@@ -31,12 +31,7 @@ import type { OwnerIndex, SeasonDetails } from '../owners';
 import { ownerKey } from '../owners';
 import type { PlayerIndex } from '../leagueData';
 import { playerDisplay } from '../players';
-import type {
-  BracketMatch,
-  DraftPick,
-  Matchup,
-  Transaction,
-} from '../../types/sleeper';
+import type { BracketMatch, DraftPick, Matchup, Transaction } from '../../types/sleeper';
 import { buildAllMatchups, buildRosterToOwnerKey } from './util';
 
 // ===================================================================
@@ -141,8 +136,7 @@ export function selectSeasonStandings(
     // stay stable across renames; team name comes from the user's
     // metadata for *this* season specifically.
     const displayName = owner?.displayName || user.display_name || user.username || 'Unknown';
-    const teamName =
-      owner?.teamNamesBySeason[season] || user.metadata?.team_name || displayName;
+    const teamName = owner?.teamNamesBySeason[season] || user.metadata?.team_name || displayName;
     const color = owner?.color ?? '';
 
     rows.set(key, {
@@ -188,9 +182,7 @@ export function selectSeasonStandings(
   }
 
   // Wins desc, then PF desc as the tiebreaker (legacy line 3047).
-  const standings = [...rows.values()].sort(
-    (x, y) => y.wins - x.wins || y.pf - x.pf,
-  );
+  const standings = [...rows.values()].sort((x, y) => y.wins - x.wins || y.pf - x.pf);
   return standings;
 }
 
@@ -279,8 +271,7 @@ export function selectToiletBowlWinner(
   // flag — ports verbatim.
   const finalMatches = league.losersBracket.filter((m) => m.p === 1);
   const finalGame: BracketMatch | undefined =
-    finalMatches[finalMatches.length - 1] ??
-    league.losersBracket[league.losersBracket.length - 1];
+    finalMatches[finalMatches.length - 1] ?? league.losersBracket[league.losersBracket.length - 1];
   if (!finalGame || !finalGame.w) return null;
 
   const ownerKeyForRoster = ownerKeyByRosterId(league, finalGame.w);
@@ -297,10 +288,7 @@ export function selectToiletBowlWinner(
 }
 
 /** Local helper — `roster_id` → owner key, with both lookup steps inlined. */
-function ownerKeyByRosterId(
-  league: SeasonDetails,
-  rosterId: number,
-): string | null {
+function ownerKeyByRosterId(league: SeasonDetails, rosterId: number): string | null {
   const roster = league.rosters.find((r) => r.roster_id === rosterId);
   if (!roster || roster.owner_id == null) return null;
   const user = league.users.find((u) => u.user_id === roster.owner_id);
@@ -558,9 +546,7 @@ export interface TeamAward {
   color: string;
 }
 
-export type SeasonAward =
-  | (PlayerAward & { kind: 'player' })
-  | (TeamAward & { kind: 'team' });
+export type SeasonAward = (PlayerAward & { kind: 'player' }) | (TeamAward & { kind: 'team' });
 
 export type AwardTint = 'gold' | 'blue' | 'green' | 'brown';
 
@@ -787,9 +773,7 @@ export function selectDraftBoard(
   const showRounds = sortedRoundNumbers.slice(0, roundsToShow);
 
   const rounds: DraftBoardRound[] = showRounds.map((roundNum) => {
-    const list = (byRound.get(roundNum) ?? [])
-      .slice()
-      .sort((a, b) => a.pick_no - b.pick_no);
+    const list = (byRound.get(roundNum) ?? []).slice().sort((a, b) => a.pick_no - b.pick_no);
     const picks: DraftBoardPick[] = list.map((p) => {
       const user = league.users.find((u) => u.user_id === p.picked_by);
       const owner = user ? ownerIndex[ownerKey(user)] : null;
@@ -1019,7 +1003,8 @@ export function selectDraftValue(
     K: 8,
     DEF: 10,
   };
-  const waiverHeroesRaw: { playerId: string; pts: number; ownerKey: string; posFinish: string }[] = [];
+  const waiverHeroesRaw: { playerId: string; pts: number; ownerKey: string; posFinish: string }[] =
+    [];
   for (const [pid, data] of playerSeasonByPlayer) {
     if (draftedPlayerIds.has(pid)) continue;
     if (data.pts <= 20) continue;
@@ -1202,9 +1187,7 @@ export function selectDraftGrades(
   const wasOwned = (pid: string, rosterId: number, week: number): boolean => {
     const windows = ownership.get(pid);
     if (!windows) return false;
-    return windows.some(
-      (w) => w.rosterId === rosterId && week >= w.fromWeek && week <= w.toWeek,
-    );
+    return windows.some((w) => w.rosterId === rosterId && week >= w.fromWeek && week <= w.toWeek);
   };
 
   // drafterOfPlayer — `playerId` → drafter's owner key + roster id.
@@ -1282,9 +1265,7 @@ export function selectDraftGrades(
   }
 
   // Letter grades on a curve — same boundaries as legacy.
-  const assignGrades = (
-    metric: 'dce' | 'rp' | 'pwr',
-  ): Map<string, GradeLetter> => {
+  const assignGrades = (metric: 'dce' | 'rp' | 'pwr'): Map<string, GradeLetter> => {
     const result = new Map<string, GradeLetter>();
     const sorted = [...byOwner.entries()]
       .filter(([, v]) => v.pickCount > 0)
@@ -1294,11 +1275,11 @@ export function selectDraftGrades(
     sorted.forEach(([key], i) => {
       const pct = n === 1 ? 0 : i / (n - 1);
       let grade: GradeLetter;
-      if (pct <= 0.10) grade = 'A+';
+      if (pct <= 0.1) grade = 'A+';
       else if (pct <= 0.25) grade = 'A';
-      else if (pct <= 0.50) grade = 'B';
+      else if (pct <= 0.5) grade = 'B';
       else if (pct <= 0.75) grade = 'C';
-      else if (pct <= 0.90) grade = 'D';
+      else if (pct <= 0.9) grade = 'D';
       else grade = 'F';
       result.set(key, grade);
     });
@@ -1599,10 +1580,12 @@ export function selectWaiverProfile(
     const postCap = p.week + Math.max(1, weeksRostered);
     const postWeeks = allWeeks.filter((w) => w >= p.week && w < postCap);
     if (preWeeks.length >= 1 && postWeeks.length >= 1) {
-      const preAvg = preWeeks.reduce((s, w) => s + (playerWeeklyPoints.get(p.playerId)?.get(w) ?? 0), 0)
-        / preWeeks.length;
-      const postAvg = postWeeks.reduce((s, w) => s + (playerWeeklyPoints.get(p.playerId)?.get(w) ?? 0), 0)
-        / postWeeks.length;
+      const preAvg =
+        preWeeks.reduce((s, w) => s + (playerWeeklyPoints.get(p.playerId)?.get(w) ?? 0), 0) /
+        preWeeks.length;
+      const postAvg =
+        postWeeks.reduce((s, w) => s + (playerWeeklyPoints.get(p.playerId)?.get(w) ?? 0), 0) /
+        postWeeks.length;
       o.timingEligible += 1;
       if (postAvg > preAvg) o.timingHits += 1;
     }
@@ -1626,26 +1609,29 @@ export function selectWaiverProfile(
   }
 
   // Derive ratio metrics.
-  const derived = new Map<string, {
-    volume: number;
-    selection: number;
-    vob: number;
-    timing: number;
-    integration: number;
-    persistence: number;
-  }>();
+  const derived = new Map<
+    string,
+    {
+      volume: number;
+      selection: number;
+      vob: number;
+      timing: number;
+      integration: number;
+      persistence: number;
+    }
+  >();
   for (const [key, o] of byOwner) {
     derived.set(key, {
       volume: o.volume,
       selection: o.totalWeeksRostered > 0 ? o.rpa / o.totalWeeksRostered : 0,
       vob: o.vob,
       timing: o.timingEligible > 0 ? o.timingHits / o.timingEligible : 0,
-      integration: o.totalPickupRosterWeeks > 0
-        ? o.startedRosterWeeks / o.totalPickupRosterWeeks
-        : 0,
-      persistence: o.productivePickupTenures.length > 0
-        ? o.productivePickupTenures.reduce((s, w) => s + w, 0) / o.productivePickupTenures.length
-        : 0,
+      integration:
+        o.totalPickupRosterWeeks > 0 ? o.startedRosterWeeks / o.totalPickupRosterWeeks : 0,
+      persistence:
+        o.productivePickupTenures.length > 0
+          ? o.productivePickupTenures.reduce((s, w) => s + w, 0) / o.productivePickupTenures.length
+          : 0,
     });
   }
 
@@ -1661,11 +1647,11 @@ export function selectWaiverProfile(
     sorted.forEach(([key], i) => {
       const pct = n === 1 ? 0 : i / (n - 1);
       let grade: GradeLetter;
-      if (pct <= 0.10) grade = 'A+';
+      if (pct <= 0.1) grade = 'A+';
       else if (pct <= 0.25) grade = 'A';
-      else if (pct <= 0.50) grade = 'B';
+      else if (pct <= 0.5) grade = 'B';
       else if (pct <= 0.75) grade = 'C';
-      else if (pct <= 0.90) grade = 'D';
+      else if (pct <= 0.9) grade = 'D';
       else grade = 'F';
       result.set(key, grade);
     });

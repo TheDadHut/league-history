@@ -135,10 +135,7 @@ function SeasonsReady({ seasons, ownerIndex, players, highlights }: SeasonsReady
 
   // Heavy per-season player stats — shared across awards, steals/busts,
   // and draft grades. Recompute only when the league reference changes.
-  const playerStats = useMemo(
-    () => (league ? buildPlayerSeasonStats(league) : null),
-    [league],
-  );
+  const playerStats = useMemo(() => (league ? buildPlayerSeasonStats(league) : null), [league]);
 
   const champion = useMemo(
     () => (league ? selectChampion(league, ownerIndex) : null),
@@ -173,30 +170,24 @@ function SeasonsReady({ seasons, ownerIndex, players, highlights }: SeasonsReady
 
   const draftValue = useMemo(
     () =>
-      league && playerStats
-        ? selectDraftValue(league, ownerIndex, players, playerStats)
-        : null,
+      league && playerStats ? selectDraftValue(league, ownerIndex, players, playerStats) : null,
     [league, ownerIndex, players, playerStats],
   );
 
   const draftGrades = useMemo(
     () =>
-      league && playerStats
-        ? selectDraftGrades(league, ownerIndex, players, playerStats)
-        : [],
+      league && playerStats ? selectDraftGrades(league, ownerIndex, players, playerStats) : [],
     [league, ownerIndex, players, playerStats],
   );
 
   const waiverProfile = useMemo(
     () =>
-      league
-        ? selectWaiverProfile(league, ownerIndex, players)
-        : { rows: [], bestPickups: [] },
+      league ? selectWaiverProfile(league, ownerIndex, players) : { rows: [], bestPickups: [] },
     [league, ownerIndex, players],
   );
 
   const seasonHighlights = useMemo(
-    () => (selected ? highlights[selected] ?? [] : []),
+    () => (selected ? (highlights[selected] ?? []) : []),
     [highlights, selected],
   );
 
@@ -215,11 +206,7 @@ function SeasonsReady({ seasons, ownerIndex, players, highlights }: SeasonsReady
             <h3 className={styles.cardTitle}>Select Season</h3>
           </div>
           <div className={styles.cardBody}>
-            <SeasonPicker
-              options={options}
-              selected={selected}
-              onSelect={setSelected}
-            />
+            <SeasonPicker options={options} selected={selected} onSelect={setSelected} />
           </div>
         </div>
       </section>
@@ -321,11 +308,7 @@ function StandingsSection({ standings, season }: StandingsSectionProps) {
                 <tr key={`${season}-${row.ownerKey}`}>
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td>
-                    <TeamChip
-                      name={row.teamName}
-                      owner={row.displayName}
-                      color={row.color}
-                    />
+                    <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
                   </td>
                   <td className={styles.num}>
                     <span className={styles.winsLosses}>

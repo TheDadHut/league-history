@@ -44,9 +44,7 @@ export default function TradeCard({ trade, rank, ownerIndex, players }: TradeCar
           <span className={styles.picksOnlyLabel}>DRAFT PICK TRADE</span>
         </div>
         <div className={styles.picksOnlyBody}>
-          {trade.draftPicks
-            .map((p) => `${p.season} Round ${p.round} pick`)
-            .join(' · ')}
+          {trade.draftPicks.map((p) => `${p.season} Round ${p.round} pick`).join(' · ')}
         </div>
       </div>
     );
@@ -114,12 +112,7 @@ function PartyAndSeparator({
 }: PartyAndSeparatorProps) {
   return (
     <>
-      <PartyBlock
-        party={party}
-        trade={trade}
-        ownerIndex={ownerIndex}
-        players={players}
-      />
+      <PartyBlock party={party} trade={trade} ownerIndex={ownerIndex} players={players} />
       {showSeparatorAfter ? (
         isThreeWay ? (
           <div className={styles.partySeparator} aria-hidden="true" />
@@ -179,10 +172,7 @@ function PartyBlock({ party, trade, ownerIndex, players }: PartyBlockProps) {
           <div className={styles.partyEmpty}>—</div>
         )}
         {picksReceived.map((p) => (
-          <div
-            key={`${p.season}-${p.round}-${p.fromRoster}`}
-            className={styles.partyPick}
-          >
+          <div key={`${p.season}-${p.round}-${p.fromRoster}`} className={styles.partyPick}>
             ↪ {p.season} R{p.round} pick
           </div>
         ))}

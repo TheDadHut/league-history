@@ -38,9 +38,7 @@ export default function WaiverProfile({ rows }: WaiverProfileProps) {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <h3 className={styles.cardHeaderTitle}>Multi-Dimensional Waiver Performance</h3>
-          <span className={styles.hint}>
-            Impact = headline · all six metrics graded on a curve
-          </span>
+          <span className={styles.hint}>Impact = headline · all six metrics graded on a curve</span>
         </div>
 
         <div className={styles.tableScroll}>
@@ -109,9 +107,7 @@ export default function WaiverProfile({ rows }: WaiverProfileProps) {
                   </td>
                   <td>
                     <div className={styles.archetypeName}>{row.archetype?.name ?? '—'}</div>
-                    <div className={styles.archetypeDesc}>
-                      {row.archetype?.description ?? ''}
-                    </div>
+                    <div className={styles.archetypeDesc}>{row.archetype?.description ?? ''}</div>
                   </td>
                   <td className={styles.num}>
                     <GradeCell grade={row.volumeGrade} value={row.volume} />
@@ -162,13 +158,16 @@ export default function WaiverProfile({ rows }: WaiverProfileProps) {
           <strong>TIM · Timing</strong> — % of pickups whose post-pickup avg beat their pre-pickup
           avg. Catching breakouts vs chasing them.
           <br />
-          <strong>INT · Integration</strong> — % of weeks rostered where the pickup was started.
-          Did you actually use them?
+          <strong>INT · Integration</strong> — % of weeks rostered where the pickup was started. Did
+          you actually use them?
           <br />
-          <strong>PER · Persistence</strong> — Avg weeks held when a pickup ended up productive
-          (5+ pts/wk avg). Patience with hits.
+          <strong>PER · Persistence</strong> — Avg weeks held when a pickup ended up productive (5+
+          pts/wk avg). Patience with hits.
           <br />
-          <em>Archetype is derived from Volume × Selection — describes your style, not your overall quality.</em>
+          <em>
+            Archetype is derived from Volume × Selection — describes your style, not your overall
+            quality.
+          </em>
         </div>
       </div>
     </section>

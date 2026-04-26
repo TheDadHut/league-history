@@ -66,11 +66,7 @@ export default function Trades() {
   }
 
   return (
-    <TradesReady
-      seasons={state.seasons}
-      ownerIndex={state.ownerIndex}
-      players={state.players}
-    />
+    <TradesReady seasons={state.seasons} ownerIndex={state.ownerIndex} players={state.players} />
   );
 }
 
@@ -89,10 +85,7 @@ function TradesReady({ seasons, ownerIndex, players }: TradesReadyProps) {
   // Build the full chronological trade list once; downstream selectors
   // are O(N) walks of a list that's at most a few hundred entries even
   // across the league's full history.
-  const { trades } = useMemo(
-    () => buildTrades(seasons, ownerIndex),
-    [seasons, ownerIndex],
-  );
+  const { trades } = useMemo(() => buildTrades(seasons, ownerIndex), [seasons, ownerIndex]);
 
   const lopsidedWR = useMemo(() => selectMostLopsidedByWR(trades), [trades]);
   const lopsidedST = useMemo(() => selectMostLopsidedByST(trades), [trades]);
@@ -238,22 +231,20 @@ function TradesReady({ seasons, ownerIndex, players }: TradesReadyProps) {
 
       {/* ----- Methodology / caveats ----- */}
       <div className={styles.methodology}>
-        <strong>How it&apos;s measured:</strong> For each player in a trade, we
-        sum points scored <em>after</em> the trade date. Two metrics shown:
+        <strong>How it&apos;s measured:</strong> For each player in a trade, we sum points scored{' '}
+        <em>after</em> the trade date. Two metrics shown:
         <br />
-        <span className={styles.methodologyLabel}>WR</span> (While Rostered) —
-        points scored only while the receiving team still had the player.
-        Rewards using what you got.
+        <span className={styles.methodologyLabel}>WR</span> (While Rostered) — points scored only
+        while the receiving team still had the player. Rewards using what you got.
         <br />
-        <span className={styles.methodologyLabel}>ST</span> (Season Total) — all
-        remaining season points regardless of later moves. Rewards pure talent
-        acquired.
+        <span className={styles.methodologyLabel}>ST</span> (Season Total) — all remaining season
+        points regardless of later moves. Rewards pure talent acquired.
         <br />
         <br />
-        <em>Caveats:</em> Draft pick trades can&apos;t be evaluated from Sleeper
-        data alone — they&apos;re shown but without a winner. Injuries,
-        collusion, and context aren&apos;t captured here. Don&apos;t take a
-        &ldquo;bad trade&rdquo; label personally... unless you deserve to.
+        <em>Caveats:</em> Draft pick trades can&apos;t be evaluated from Sleeper data alone —
+        they&apos;re shown but without a winner. Injuries, collusion, and context aren&apos;t
+        captured here. Don&apos;t take a &ldquo;bad trade&rdquo; label personally... unless you
+        deserve to.
       </div>
     </>
   );
@@ -272,13 +263,7 @@ interface TradeListProps {
   emptyMessage: string;
 }
 
-function TradeList({
-  trades,
-  ownerIndex,
-  players,
-  ranked,
-  emptyMessage,
-}: TradeListProps) {
+function TradeList({ trades, ownerIndex, players, ranked, emptyMessage }: TradeListProps) {
   if (trades.length === 0) {
     return <div className={styles.empty}>{emptyMessage}</div>;
   }

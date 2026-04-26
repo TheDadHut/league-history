@@ -51,9 +51,7 @@ export default function ShouldaStartedTable({ rows }: ShouldaStartedTableProps) 
               </tr>
             ) : (
               rows.map((row, i) => (
-                <tr
-                  key={`${row.season}-${row.week}-${row.ownerKey}-${row.benchPlayerId}`}
-                >
+                <tr key={`${row.season}-${row.week}-${row.ownerKey}-${row.benchPlayerId}`}>
                   <td className={rankClass(i)}>{i + 1}</td>
                   <td className={styles.playerName}>{row.benchPlayer.name}</td>
                   <td className={styles.position}>{row.benchPlayer.position}</td>
@@ -65,9 +63,7 @@ export default function ShouldaStartedTable({ rows }: ShouldaStartedTableProps) 
                   </td>
                   <td className={styles.shouldaStarter}>
                     started{' '}
-                    <span className={styles.shouldaStarterName}>
-                      {row.replacedPlayer.name}
-                    </span>{' '}
+                    <span className={styles.shouldaStarterName}>{row.replacedPlayer.name}</span>{' '}
                     <span className={styles.shouldaStarterPts}>
                       {row.replacedPoints.toFixed(2)}
                     </span>

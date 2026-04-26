@@ -48,27 +48,17 @@ export default function RivalryCard({ result }: RivalryCardProps) {
       <div className={styles.cardBody}>
         <div className={styles.rivalryGrid}>
           <div className={styles.rivalrySide}>
-            <div
-              className={styles.rivalryName}
-              style={{ color: result.ownerAColor }}
-            >
+            <div className={styles.rivalryName} style={{ color: result.ownerAColor }}>
               {result.ownerADisplayName}
             </div>
-            <div className={`${styles.rivalryWins} ${aColor}`}>
-              {result.ownerAWins}
-            </div>
+            <div className={`${styles.rivalryWins} ${aColor}`}>{result.ownerAWins}</div>
           </div>
           <div className={styles.rivalryVs}>VS</div>
           <div className={styles.rivalrySide}>
-            <div
-              className={styles.rivalryName}
-              style={{ color: result.ownerBColor }}
-            >
+            <div className={styles.rivalryName} style={{ color: result.ownerBColor }}>
               {result.ownerBDisplayName}
             </div>
-            <div className={`${styles.rivalryWins} ${bColor}`}>
-              {result.ownerBWins}
-            </div>
+            <div className={`${styles.rivalryWins} ${bColor}`}>{result.ownerBWins}</div>
           </div>
         </div>
         <div className={styles.rivalryFooter}>

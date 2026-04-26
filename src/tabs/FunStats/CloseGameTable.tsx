@@ -22,8 +22,7 @@ interface CloseGameTableProps {
 }
 
 export default function CloseGameTable({ rows, variant }: CloseGameTableProps) {
-  const cardTitle =
-    variant === 'clutch' ? 'Record in Close Games' : 'Record in Blowouts';
+  const cardTitle = variant === 'clutch' ? 'Record in Close Games' : 'Record in Blowouts';
   const hint =
     variant === 'clutch' ? 'Games decided by under 10 points' : 'Games decided by 30+ points';
   const gamesHeader = variant === 'clutch' ? 'Close Games' : 'Blowouts';

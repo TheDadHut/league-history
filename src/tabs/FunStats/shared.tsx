@@ -9,11 +9,7 @@
 // the existing import sites in the Fun Stats tab keep working without
 // churn.
 
-import {
-  TeamChip,
-  TeamChipCompact,
-  type OwnerColorStyle,
-} from '../../lib/components/TeamChip';
+import { TeamChip, TeamChipCompact, type OwnerColorStyle } from '../../lib/components/TeamChip';
 import styles from './FunStats.module.css';
 
 // Re-export so existing `from './shared'` imports keep working without

@@ -23,8 +23,7 @@ interface ConsistencyTableProps {
 }
 
 export default function ConsistencyTable({ rows, variant }: ConsistencyTableProps) {
-  const stdDevClass =
-    variant === 'consistent' ? styles.stdDevConsistent : styles.stdDevVolatile;
+  const stdDevClass = variant === 'consistent' ? styles.stdDevConsistent : styles.stdDevVolatile;
 
   const headlineHint =
     variant === 'consistent' ? 'No surprises, every week' : 'Boom-or-bust, feast or famine';
@@ -69,9 +68,7 @@ export default function ConsistencyTable({ rows, variant }: ConsistencyTableProp
                     <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
                   </td>
                   <td className={styles.num}>{row.avg.toFixed(2)}</td>
-                  <td className={`${styles.num} ${stdDevClass}`}>
-                    {row.stdDev.toFixed(2)}
-                  </td>
+                  <td className={`${styles.num} ${stdDevClass}`}>{row.stdDev.toFixed(2)}</td>
                   <td className={styles.num}>{row.games}</td>
                 </tr>
               ))

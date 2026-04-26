@@ -51,11 +51,7 @@ export default function Founders() {
           return (
             <div className={styles.grid}>
               {founders.map((f) => (
-                <article
-                  key={f.key}
-                  className={styles.card}
-                  style={{ borderTopColor: f.color }}
-                >
+                <article key={f.key} className={styles.card} style={{ borderTopColor: f.color }}>
                   <div className={styles.name}>{f.displayName}</div>
                   <div className={styles.team} style={{ color: f.color }}>
                     {f.teamName}

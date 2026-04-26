@@ -55,9 +55,7 @@ interface OwnerDebugRow {
 function useDebugOwners(): OwnerDebugRow[] | null {
   const data = useLeagueData();
   if (data.status === 'loading' || data.status === 'error') return null;
-  const owners: Owner[] = Object.values(data.ownerIndex).sort((a, b) =>
-    a.key.localeCompare(b.key),
-  );
+  const owners: Owner[] = Object.values(data.ownerIndex).sort((a, b) => a.key.localeCompare(b.key));
   return owners.map((o) => ({
     key: o.key,
     displayName: o.displayName,
@@ -137,9 +135,9 @@ function OverlayBody({ rows, onClose }: OverlayBodyProps) {
         </div>
         <div className={styles.note}>
           Keys are lowercased Sleeper display_names. &ldquo;Match Rule&rdquo; shows which
-          OWNER_COLORS rule (if any) matched by substring. If you see a color here that
-          looks too similar to another, the CSS variable is correct — check the actual hex
-          value shown. Press Ctrl+Shift+D to close.
+          OWNER_COLORS rule (if any) matched by substring. If you see a color here that looks too
+          similar to another, the CSS variable is correct — check the actual hex value shown. Press
+          Ctrl+Shift+D to close.
         </div>
       </div>
     </div>
@@ -165,12 +163,12 @@ export function DebugOverlay() {
     if (consoleAnnounced) return;
     if (!rows) return;
     consoleAnnounced = true;
-    // eslint-disable-next-line no-console -- intentional dev-discovery line.
+    // Intentional dev-discovery line; no-console isn't enabled in this project.
     console.log(
       '%c[GDL] Owner colors assigned. Press Ctrl+Shift+D to inspect.',
       'color:#ffcc00;font-weight:bold',
     );
-    // eslint-disable-next-line no-console -- mirrors the legacy console.table for parity.
+    // Mirrors the legacy console.table for parity.
     console.table(rows);
   }, [rows]);
 

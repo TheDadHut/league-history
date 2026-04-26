@@ -24,7 +24,7 @@ export default function DraftGradesTable({ rows }: DraftGradesTableProps) {
       <header className={styles.sectionHeader}>
         <span className={`${styles.sectionBar} ${styles.sectionBarGold}`} aria-hidden="true" />
         <h2 id="seasons-draft-grades-heading" className={styles.sectionTitle}>
-          📋 Draft Grades
+          <span aria-hidden="true">📋</span> Draft Grades
         </h2>
       </header>
 

@@ -114,7 +114,7 @@ function DraftValueTable({
       <header className={styles.sectionHeader}>
         <span className={`${styles.sectionBar} ${barClass}`} aria-hidden="true" />
         <h2 id={headingId} className={styles.sectionTitle}>
-          {headingPrefix} {heading}
+          <span aria-hidden="true">{headingPrefix}</span> {heading}
         </h2>
         <span className={styles.countPill}>{countLabel}</span>
       </header>

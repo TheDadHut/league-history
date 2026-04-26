@@ -36,12 +36,19 @@ function AwardCard({ award }: { award: SeasonAward }) {
   const tintCls = tintClass(award.tint);
   // Render the unicode marker (🏆 / 👑 / ⭐ / 🚽 / …) inline with the
   // label, with a single space — matches the legacy `🏆 Champion`
-  // rendering at line 3086 (the marker is part of the label string).
-  const labelText = award.marker ? `${award.marker} ${award.label}` : award.label;
+  // rendering at line 3086. Markers are decorative — wrap in
+  // `aria-hidden` so screen readers announce only the meaningful label.
 
   return (
     <div className={`${styles.award} ${tintCls}`}>
-      <span className={styles.awardLabel}>{labelText}</span>
+      <span className={styles.awardLabel}>
+        {award.marker ? (
+          <>
+            <span aria-hidden="true">{award.marker}</span>{' '}
+          </>
+        ) : null}
+        {award.label}
+      </span>
       {award.kind === 'team' ? (
         <TeamWinnerLine winnerLabel={award.winnerLabel} color={award.color} />
       ) : (

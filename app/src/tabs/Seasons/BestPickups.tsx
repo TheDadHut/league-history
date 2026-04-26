@@ -23,7 +23,7 @@ export default function BestPickups({ rows }: BestPickupsProps) {
       <header className={styles.sectionHeader}>
         <span className={`${styles.sectionBar} ${styles.sectionBarWaiver}`} aria-hidden="true" />
         <h2 id="seasons-best-pickups-heading" className={styles.sectionTitle}>
-          🎯 Best Pickups
+          <span aria-hidden="true">🎯</span> Best Pickups
         </h2>
         <span className={styles.countPill}>TOP 10</span>
       </header>

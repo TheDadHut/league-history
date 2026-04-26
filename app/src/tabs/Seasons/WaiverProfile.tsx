@@ -31,7 +31,7 @@ export default function WaiverProfile({ rows }: WaiverProfileProps) {
       <header className={styles.sectionHeader}>
         <span className={`${styles.sectionBar} ${styles.sectionBarWaiver}`} aria-hidden="true" />
         <h2 id="seasons-waiver-profile-heading" className={styles.sectionTitle}>
-          📻 Waiver Wire Profile
+          <span aria-hidden="true">📻</span> Waiver Wire Profile
         </h2>
       </header>
 

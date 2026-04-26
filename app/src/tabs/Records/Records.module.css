@@ -196,41 +196,9 @@
 }
 
 /* -------------------------------------------------------------------
- * Team chip — colored dot + team name in owner color + optional owner sub.
- *
- * `--owner-color` is set per-row by the React layer so the dot and the
- * team-name color stay in sync without sprinkling inline styles across
- * every cell.
+ * (Team chip styles lifted to `app/src/lib/components/TeamChip.module.css`
+ * — every tab that surfaces an owner row reads from there now.)
  * ------------------------------------------------------------------- */
-
-.teamChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-}
-
-.teamDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
-  background: var(--owner-color);
-}
-
-.teamName {
-  color: var(--owner-color);
-}
-
-.teamOwner {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-family: 'Oswald', sans-serif;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-left: 6px;
-}
 
 /* -------------------------------------------------------------------
  * Mobile parity (matches the legacy `@media (max-width: 640px)` rules
@@ -244,11 +212,8 @@
     font-size: 13px;
   }
 
-  /* Hide the secondary owner sub-line on phones (legacy mirror). The
-   * team name and color dot stay; the chip stays compact. */
-  .teamOwner {
-    display: none;
-  }
+  /* (The team-chip mobile rule moved with the chip styles to
+   * `app/src/lib/components/TeamChip.module.css`.) */
 
   /* The position cell is already tiny; let it wrap if a multi-letter
    * abbreviation lands next to a long player name. */

@@ -52,7 +52,7 @@
   background: var(--accent-red);
 }
 .barGreen {
-  background: #4ade80;
+  background: var(--color-win);
 }
 .barBlue {
   background: var(--accent-blue);
@@ -228,11 +228,11 @@
 /* Margin-table headline scores. Legacy uses inline styles to color
  * winner scores green and loser scores red. */
 .scoreWin {
-  color: #4ade80;
+  color: var(--color-win);
   font-weight: 700;
 }
 .scoreLose {
-  color: #f87171;
+  color: var(--color-loss);
 }
 
 /* Hard Luck headline points (the loser's score is the focus). Matches
@@ -252,7 +252,7 @@
 /* Standard deviation cell coloring for the consistency / volatility
  * tables. Matches the legacy inline styles at lines 2246, 2252. */
 .stdDevConsistent {
-  color: #4ade80;
+  color: var(--color-win);
   font-weight: 700;
 }
 .stdDevVolatile {
@@ -263,11 +263,11 @@
 /* Win/loss inline color used inside W/L cells (legacy `<span class="wins">`
  * / `<span class="losses">`). */
 .wins {
-  color: #4ade80;
+  color: var(--color-win);
   font-weight: 700;
 }
 .losses {
-  color: #f87171;
+  color: var(--color-loss);
   font-weight: 700;
 }
 
@@ -332,38 +332,9 @@
 }
 
 /* -------------------------------------------------------------------
- * Team chip — colored dot + team name in owner color + optional
- * owner sub-name. `--owner-color` is set per-row by the React layer.
+ * (Team chip styles lifted to `app/src/lib/components/TeamChip.module.css`
+ * — every tab that surfaces an owner row reads from there now.)
  * ------------------------------------------------------------------- */
-
-.teamChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-}
-
-.teamDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
-  background: var(--owner-color);
-}
-
-.teamName {
-  color: var(--owner-color);
-}
-
-.teamOwner {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-family: 'Oswald', sans-serif;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-left: 6px;
-}
 
 /* -------------------------------------------------------------------
  * Rivalry card
@@ -400,10 +371,10 @@
 }
 
 .winsBig {
-  color: #4ade80;
+  color: var(--color-win);
 }
 .lossesBig {
-  color: #f87171;
+  color: var(--color-loss);
 }
 .tiedBig {
   color: var(--text-dim);
@@ -439,11 +410,8 @@
     font-size: 13px;
   }
 
-  /* Hide the secondary owner sub-line on phones (legacy mirror). The
-   * team name and color dot stay; the chip stays compact. */
-  .teamOwner {
-    display: none;
-  }
+  /* (The team-chip mobile rule moved with the chip styles to
+   * `app/src/lib/components/TeamChip.module.css`.) */
 
   /* Narrow column needs smaller position abbreviation styling. */
   .position {

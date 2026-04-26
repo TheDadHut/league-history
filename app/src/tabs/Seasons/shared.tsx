@@ -2,54 +2,30 @@
 // Shared components / helpers — Seasons tab
 // ===================================================================
 //
-// Lightweight bits used by more than one Seasons sub-component
-// (TeamChip, GradePill, the typed `--owner-color` style alias). Kept
-// out of `Seasons.tsx` to avoid forcing every reader to scroll past
-// them on the way to the top-level composition.
+// Tab-local helpers: GradePill / GradeCell (Seasons-specific letter
+// grades) and rankClass (gold/silver/bronze tinting for the top three
+// rows). The TeamChip + TeamChipCompact + OwnerColorStyle exports were
+// lifted to `app/src/lib/components/TeamChip` once the third tab to
+// consume them landed; we re-export from this module so the existing
+// import sites in the Seasons tab keep working without churn.
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import {
+  TeamChip,
+  TeamChipCompact,
+  type OwnerColorStyle,
+} from '../../lib/components/TeamChip';
 import type { GradeLetter } from '../../lib/stats/seasons';
 import styles from './Seasons.module.css';
 
-/**
- * CSS custom property used to inject a per-row owner color into team
- * chips and similar elements. Strict TypeScript requires the `--*`
- * form to be declared explicitly; we attach it via a typed alias.
- */
-export type OwnerColorStyle = CSSProperties & { '--owner-color': string };
-
-interface TeamChipProps {
-  name: string;
-  /** Owner display name shown in the dim sub-line. Omit for the compact variant. */
-  owner?: string;
-  color: string;
-}
-
-/** Full team chip — color dot + team name + dim owner sub-name. */
-export function TeamChip({ name, owner, color }: TeamChipProps) {
-  const style: OwnerColorStyle = { '--owner-color': color };
-  return (
-    <span className={styles.teamChip} style={style}>
-      <span className={styles.teamDot} aria-hidden="true" />
-      <span className={styles.teamName}>{name}</span>
-      {owner ? <span className={styles.teamOwner}>{owner}</span> : null}
-    </span>
-  );
-}
-
-/** Compact team chip — color dot + team name only. */
-export function TeamChipCompact({ name, color }: { name: string; color: string }) {
-  const style: OwnerColorStyle = { '--owner-color': color };
-  return (
-    <span className={styles.teamChip} style={style}>
-      <span className={styles.teamDot} aria-hidden="true" />
-      <span className={styles.teamName}>{name}</span>
-    </span>
-  );
-}
+// Re-export so existing `from './shared'` imports keep working without
+// touching every consumer. New code should reach the shared module
+// directly.
+export { TeamChip, TeamChipCompact };
+export type { OwnerColorStyle };
 
 /** Gold/silver/bronze tinting for the top three rows; default for the rest. */
-// eslint-disable-next-line react-refresh/only-export-components -- helper colocated with the chip + grade-pill components above; splitting into its own file would scatter the directory for a one-line utility.
+// eslint-disable-next-line react-refresh/only-export-components -- helper colocated with the grade-pill components below; splitting into its own file would scatter the directory for a one-line utility.
 export function rankClass(idx: number): string {
   if (idx === 0) return `${styles.rank} ${styles.rank1}`;
   if (idx === 1) return `${styles.rank} ${styles.rank2}`;

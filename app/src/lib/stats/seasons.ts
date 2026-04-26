@@ -373,7 +373,34 @@ export function buildPlayerSeasonStats(league: SeasonDetails): PlayerSeasonStats
     if (!week || week.length === 0) return;
     const isPlayoff = weekNum >= playoffStart;
 
+    // Skip 0-0 matchup pairs the same way `buildAllMatchups` does in
+    // `stats/util.ts`: pair rows by `matchup_id`, drop the pair when
+    // both sides scored zero (Sleeper occasionally returns these for
+    // unplayed weeks; for in-progress seasons future weeks have rows
+    // pre-fetched but not yet played). Matches the legacy `buildPlayerStats`
+    // behavior, which walked `state.allMatchups` after this same filter
+    // had already been applied at line 866 of `index.html`.
+    const matchupGroups = new Map<number, Matchup[]>();
+    const ungrouped: Matchup[] = [];
     for (const m of week) {
+      if (m.matchup_id == null) {
+        ungrouped.push(m);
+        continue;
+      }
+      const list = matchupGroups.get(m.matchup_id) ?? [];
+      list.push(m);
+      matchupGroups.set(m.matchup_id, list);
+    }
+    const liveRows: Matchup[] = [...ungrouped];
+    for (const pair of matchupGroups.values()) {
+      if (pair.length === 2) {
+        const [a, b] = pair;
+        if ((a.points || 0) === 0 && (b.points || 0) === 0) continue;
+      }
+      liveRows.push(...pair);
+    }
+
+    for (const m of liveRows) {
       const oKey = rosterToOwner.get(m.roster_id);
       if (!oKey) continue;
 
@@ -1317,7 +1344,10 @@ export function selectWaiverProfile(
   ownerIndex: OwnerIndex,
   players: PlayerIndex,
 ): WaiverProfileData {
-  if (!league.transactions || league.transactions.length === 0) {
+  // `league.transactions` is `Transaction[][]` (one array per week);
+  // its `.length` is always the number of weeks fetched, never zero in
+  // practice. Guard on whether *any* week has transactions.
+  if (!league.transactions || league.transactions.every((w) => w.length === 0)) {
     return { rows: [], bestPickups: [] };
   }
 

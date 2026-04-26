@@ -119,13 +119,13 @@ interface LuckRatingSectionProps {
 function LuckRatingSection({ rows }: LuckRatingSectionProps) {
   return (
     <section className={styles.section} aria-labelledby="luck-rating-heading">
-      <header className={`${styles.sectionHeader} ${styles.sectionHeaderFirst}`}>
+      <header className={styles.sectionHeader}>
         <span
           className={`${styles.sectionBar} ${styles.barGold}`}
           aria-hidden="true"
         />
         <h2 id="luck-rating-heading" className={styles.sectionTitleSm}>
-          🍀 Luck Rating
+          <span aria-hidden="true">🍀</span> Luck Rating
         </h2>
       </header>
 
@@ -133,7 +133,7 @@ function LuckRatingSection({ rows }: LuckRatingSectionProps) {
         <div className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Actual Record vs Would-Be Record</h3>
           <span className={styles.hint}>
-            What your record WOULD be if you played the league median each week
+            What your record would be if you played every opponent each week (all-play metric)
           </span>
         </div>
         <div className={styles.tableScroll}>
@@ -216,7 +216,7 @@ function CurrentStreaksSection({ rows }: CurrentStreaksSectionProps) {
           aria-hidden="true"
         />
         <h2 id="current-streaks-heading" className={styles.sectionTitleSm}>
-          🔥 Current Streaks
+          <span aria-hidden="true">🔥</span> Current Streaks
         </h2>
       </header>
 
@@ -304,13 +304,13 @@ function AllTimeStreakSection({
   emptyText,
 }: AllTimeStreakSectionProps) {
   const slug = slugify(title);
-  const heading = `${valueSuffix === 'W' ? '📈' : '📉'} ${title}`;
+  const emoji = valueSuffix === 'W' ? '📈' : '📉';
   return (
     <section className={styles.section} aria-labelledby={slug}>
       <header className={styles.sectionHeader}>
         <span className={`${styles.sectionBar} ${barClass}`} aria-hidden="true" />
         <h2 id={slug} className={styles.sectionTitleSm}>
-          {heading}
+          <span aria-hidden="true">{emoji}</span> {title}
         </h2>
         <span className={styles.countPill}>{countLabel}</span>
       </header>

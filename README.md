@@ -19,7 +19,9 @@ Live: <https://thedadhut.github.io/league-history/>
 - **GitHub Pages** — static hosting matches the no-backend constraint;
   deploys from `main` via `.github/workflows/deploy.yml`.
 - **Python `tools/`** — when the right tool isn't the browser. Currently a
-  single weekly-recap generator that pipes markdown to stdout.
+  weekly-recap generator and a webhook poster, run on a Tuesday-morning cron
+  that opens a PR with the recap markdown and posts the same content to a
+  Discord/Slack webhook.
 
 ## Architecture at a glance
 
@@ -31,7 +33,11 @@ Live: <https://thedadhut.github.io/league-history/>
   React context that every tab consumes. Player DB (~5MB) is cached in
   `sessionStorage` to keep refresh cheap.
 - **Python sidecar (`tools/`)** — offline / scheduled work that doesn't
-  belong in the browser.
+  belong in the browser. `weekly_recap.py` walks the Sleeper API to render
+  a markdown weekly recap; `post_recap.py` chunks the recap to fit
+  Discord/Slack webhook caps. Wired together by `weekly_recap.yml`, which
+  runs Tuesdays at 14:00 UTC, opens a PR with the recap under
+  `recaps/<season>/week-NN.md`, and posts the content to a webhook.
 
 ## What's in the app
 
@@ -78,6 +84,12 @@ Python recap:
 cd tools
 pip install -r requirements.txt
 python3 weekly_recap.py --week 14 --season 2024
+
+# Post a saved recap to a webhook (chunks for Discord/Slack caps):
+python3 post_recap.py \
+  --path ../recaps/2024/week-14.md \
+  --webhook-url "$RECAP_WEBHOOK_URL" \
+  --webhook-format discord
 ```
 
 Use Node 20 (see `.nvmrc`).
@@ -94,6 +106,13 @@ Everything app-side is in `src/config.ts`:
 The Python tool also has `CURRENT_LEAGUE_ID` hard-coded at the top of
 `tools/weekly_recap.py`. Bump both together.
 
+The scheduled weekly recap workflow reads two repo-level settings:
+
+- `RECAP_WEBHOOK_URL` (secret) — the Discord/Slack webhook target. When
+  unset, the workflow generates the recap PR and skips the post step.
+- `RECAP_WEBHOOK_FORMAT` (variable, `discord` or `slack`) — selects the
+  payload shape and per-message cap. Defaults to `discord` when unset.
+
 ## CI / deploy
 
 - Build, typecheck, lint, format-check, and tests run on every PR
@@ -102,11 +121,15 @@ The Python tool also has `CURRENT_LEAGUE_ID` hard-coded at the top of
   (`.github/workflows/validate-highlights.yml`).
 - Push to `main` that touches app code triggers
   `.github/workflows/deploy.yml` → GitHub Pages.
+- `.github/workflows/weekly_recap.yml` runs Tuesdays at 14:00 UTC, opens
+  (or updates) a PR with the rendered recap markdown, and posts the same
+  content to the configured webhook. Off-season runs exit cleanly with no
+  PR and no post.
 - Dependabot watches npm and GitHub Actions.
 
 ## Future ideas
 
-The Python sidecar is the obvious lever: scheduled weekly-recap posts to
-Slack/Discord, a draft-night helper that pulls live ADPs, an offseason
-player-projection diff. The browser app is where the league actually
-spends its time; everything else is sugar.
+The Python sidecar is the obvious lever: a draft-night helper that pulls
+live ADPs, an offseason player-projection diff, a year-end awards generator
+that rolls up the same selectors the React app already uses. The browser
+app is where the league actually spends its time; everything else is sugar.

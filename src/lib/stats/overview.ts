@@ -458,7 +458,7 @@ function traderSubLine(
 /**
  * Returns the text items the red broadcast ticker scrolls across the
  * top of the page, in display order. The first three mirror legacy
- * `renderTicker()` (`index.html` lines 1872-1898); the latter three
+ * `renderTicker()` (`index.html` lines 1872-1898); the latter four
  * extend the bar with a "trophy → record → live" cadence so adjacent
  * items don't repeat the same shape.
  *
@@ -470,20 +470,23 @@ function traderSubLine(
  *      sides of every regular-season pair are considered.
  *   3. `ALL-TIME WINS LEADER: <DISPLAY> — <WINS>` — owner with the
  *      most all-time regular-season wins.
- *   4. `🚽 <SEASON> SACKO: <DISPLAY>` — most recent completed season's
- *      toilet-bowl (consolation-bracket) winner. Walks `seasons`
- *      backwards via `selectToiletBowlWinner` since that selector is
- *      single-season; skipped when no completed season has surfaced
- *      a losers-bracket champion.
+ *   4. `🚽 <SEASON> TOILET BOWL: <DISPLAY>` — most recent completed
+ *      season's toilet-bowl (consolation-bracket) winner. Walks
+ *      `seasons` backwards via `selectToiletBowlWinner` since that
+ *      selector is single-season; skipped when no completed season has
+ *      surfaced a losers-bracket champion.
  *   5. `MOST RINGS: <DISPLAY> — <N>x` — owner with the most career
  *      championships, derived from `selectChampions`. Ties resolve
  *      alphabetically by display name (deterministic). Skipped when
  *      no championships have been crowned yet.
- *   6. `ON A HEATER: <DISPLAY> — <N>-GAME W STREAK` /
- *      `STUCK IN THE MUD: <DISPLAY> — <N>-GAME L STREAK` — longest
- *      active W or L streak (≥ 2 games). Tie-break prefers W over L,
- *      then alphabetical by display name. Tie streaks and 1-game
- *      streaks aren't interesting and are dropped.
+ *   6. `ON A HEATER: <DISPLAY> — <N>-GAME W STREAK` — longest active
+ *      W streak (≥ 2 games). Ties resolve alphabetically by display
+ *      name. Skipped when no qualifying W streak exists.
+ *   7. `STUCK IN THE MUD: <DISPLAY> — <N>-GAME L STREAK` — longest
+ *      active L streak (≥ 2 games). Ties resolve alphabetically by
+ *      display name. Skipped when no qualifying L streak exists.
+ *      Both 6 and 7 can render independently — they're separate
+ *      items, not a single either/or slot.
  *
  * Items whose data is unavailable are dropped instead of being
  * emitted with placeholder text — the consumer concatenates this
@@ -541,7 +544,7 @@ export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerInd
     );
   }
 
-  // 4. Most-recent toilet-bowl (sacko) winner. `selectToiletBowlWinner`
+  // 4. Most-recent toilet-bowl winner. `selectToiletBowlWinner`
   //    is single-season, so walk `seasons` from newest backwards
   //    until one resolves — `seasons` is chronological (oldest first)
   //    per `walkPreviousLeagues`. Skipped if no completed season has
@@ -550,9 +553,9 @@ export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerInd
   for (let i = seasons.length - 1; i >= 0; i--) {
     const season = seasons[i];
     if (!season) continue;
-    const sacko = selectToiletBowlWinner(season, ownerIndex);
-    if (sacko) {
-      items.push(`🚽 ${season.season} SACKO: ${sacko.displayName.toUpperCase()}`);
+    const loser = selectToiletBowlWinner(season, ownerIndex);
+    if (loser) {
+      items.push(`🚽 ${season.season} TOILET BOWL: ${loser.displayName.toUpperCase()}`);
       break;
     }
   }
@@ -580,31 +583,37 @@ export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerInd
     }
   }
 
-  // 6. Active streak leader. `selectCurrentStreaks` returns one row per
-  //    owner with their current run; we pick the longest W or L (≥ 2)
-  //    with W preferred over L on ties, then alphabetical by display
-  //    name. Tie-result streaks (`'T'`) aren't surfaced — they don't
-  //    fit either headline phrasing.
-  const streaks = selectCurrentStreaks(seasons, ownerIndex).filter(
-    (s) => (s.streakType === 'W' || s.streakType === 'L') && s.streak >= 2,
-  );
-  if (streaks.length > 0) {
-    const sorted = [...streaks].sort((a, b) => {
+  // 6 & 7. Active streak leaders, split by type. `selectCurrentStreaks`
+  //    returns one row per owner with their current run; we surface
+  //    the longest W (≥ 2) and the longest L (≥ 2) as **independent**
+  //    items so both can render together — positive vibes lead, so
+  //    HEATER is pushed before STUCK IN THE MUD. Within each category,
+  //    ties resolve alphabetically by display name (deterministic).
+  //    Tie-result streaks (`'T'`) aren't surfaced — they don't fit
+  //    either headline phrasing. Either item drops cleanly when no
+  //    qualifying streak of that type exists.
+  const streaks = selectCurrentStreaks(seasons, ownerIndex);
+  const longestW = [...streaks]
+    .filter((s) => s.streakType === 'W' && s.streak >= 2)
+    .sort((a, b) => {
       if (b.streak !== a.streak) return b.streak - a.streak;
-      // W preferred over L on equal length.
-      if (a.streakType !== b.streakType) return a.streakType === 'W' ? -1 : 1;
       return a.displayName.localeCompare(b.displayName);
-    });
-    const top = sorted[0];
-    if (top) {
-      if (top.streakType === 'W') {
-        items.push(`ON A HEATER: ${top.displayName.toUpperCase()} — ${top.streak}-GAME W STREAK`);
-      } else {
-        items.push(
-          `STUCK IN THE MUD: ${top.displayName.toUpperCase()} — ${top.streak}-GAME L STREAK`,
-        );
-      }
-    }
+    })[0];
+  const longestL = [...streaks]
+    .filter((s) => s.streakType === 'L' && s.streak >= 2)
+    .sort((a, b) => {
+      if (b.streak !== a.streak) return b.streak - a.streak;
+      return a.displayName.localeCompare(b.displayName);
+    })[0];
+  if (longestW) {
+    items.push(
+      `ON A HEATER: ${longestW.displayName.toUpperCase()} — ${longestW.streak}-GAME W STREAK`,
+    );
+  }
+  if (longestL) {
+    items.push(
+      `STUCK IN THE MUD: ${longestL.displayName.toUpperCase()} — ${longestL.streak}-GAME L STREAK`,
+    );
   }
 
   return items;

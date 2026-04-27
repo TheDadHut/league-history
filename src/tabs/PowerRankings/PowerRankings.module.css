@@ -1,0 +1,513 @@
+/* Power Rankings tab — visual parity with the rest of the app:
+ *   - section-header / section-bar / count-pill mirror Luck/FunStats.
+ *   - .card / .card-header borrow the same chrome.
+ *   - .table / .table-scroll match the Luck table.
+ *   - The trajectory chart and component-breakdown bars are net-new;
+ *     they use the same color tokens so visuals stay coherent.
+ */
+
+/* -------------------------------------------------------------------
+ * Section frame (heading + bar + pill)
+ * ------------------------------------------------------------------- */
+
+.section {
+  margin: 36px 0 16px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sectionBar {
+  width: 4px;
+  height: 28px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.barAccent {
+  background: var(--accent);
+}
+.barGold {
+  background: var(--gold);
+}
+.barGreen {
+  background: var(--color-win);
+}
+
+.sectionTitleSm {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.countPill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--border);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------------
+ * Loading + error placeholders
+ * ------------------------------------------------------------------- */
+
+.status {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--accent-red);
+}
+
+/* -------------------------------------------------------------------
+ * Card chrome
+ * ------------------------------------------------------------------- */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* -------------------------------------------------------------------
+ * Week picker
+ * ------------------------------------------------------------------- */
+
+.weekPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.weekPill {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.weekPill:hover {
+  color: var(--accent);
+  border-color: var(--border-bright);
+}
+
+.weekPillActive {
+  background: var(--accent);
+  color: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.weekPillActive:hover {
+  color: var(--bg-card);
+}
+
+/* -------------------------------------------------------------------
+ * Rankings table
+ * ------------------------------------------------------------------- */
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  min-width: 540px;
+}
+
+.table thead th {
+  background: #000;
+  color: var(--text-dim);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody td {
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+/* The row itself is no longer the click target — that's the
+ * `.expandButton` inside the rank cell. Keep the hover tint so the
+ * user gets row-level feedback when mousing over the button (and use
+ * `:focus-within` so keyboard focus lights the row up the same way). */
+.rowTappable:hover,
+.rowTappable:focus-within {
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.rowOpen {
+  background: rgba(255, 204, 0, 0.06);
+}
+
+/* Expand button — wraps the rank number and a chevron in the leftmost
+ * cell. This is the actual click / Enter / Space target so screen
+ * readers and keyboard users can toggle the breakdown row. */
+.expandButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.expandButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.rankNumber {
+  font: inherit;
+  color: inherit;
+}
+
+.expandChevron {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.expandChevronOpen {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+.table thead th.num,
+.table tbody td.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.scoreBig {
+  font-size: 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.numWin {
+  color: var(--color-win);
+  font-weight: 700;
+}
+.numLoss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+.numNeutral {
+  color: var(--text-dim);
+}
+
+.recordWin {
+  color: var(--color-win);
+  font-weight: 700;
+}
+.recordLoss {
+  color: var(--color-loss);
+  font-weight: 700;
+}
+.recordDash {
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------------
+ * Component breakdown row (expanded under a tapped row)
+ * ------------------------------------------------------------------- */
+
+.breakdownRow {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Selector is chained through `.table tbody` so it outweighs the
+ * generic `.table tbody td { padding: 11px 14px }` rule above without
+ * needing `!important`. */
+.table tbody td.breakdownCell {
+  padding: 0;
+}
+
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.barLabel {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.barHint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.barTrack {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #ffe066);
+}
+
+.barFooter {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.barWeight {
+  color: var(--text-muted);
+}
+
+.barContribution {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .breakdown {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* -------------------------------------------------------------------
+ * Rank pill
+ * ------------------------------------------------------------------- */
+
+.rank {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 36px;
+  font-size: 16px;
+}
+
+.rank1 {
+  color: var(--gold);
+}
+.rank2 {
+  color: var(--silver);
+}
+.rank3 {
+  color: var(--bronze);
+}
+
+/* -------------------------------------------------------------------
+ * Trajectory chart
+ * ------------------------------------------------------------------- */
+
+.chartWrap {
+  padding: 12px 8px 8px;
+  /* Recharts injects an absolute-positioned wrapper inside
+   * `ResponsiveContainer`; this padding keeps lines off the card edge. */
+}
+
+.chartCaption {
+  padding: 0 18px 14px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.tooltip {
+  background: rgba(15, 20, 35, 0.95);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  min-width: 180px;
+  max-width: 240px;
+}
+
+.tooltipHeader {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.tooltipList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tooltipName {
+  flex: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipRank {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------------
+ * Mobile parity
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .table tbody td,
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .scoreBig {
+    font-size: 14px;
+  }
+
+  .breakdown {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .weekPill {
+    padding: 5px 10px;
+  }
+
+  .chartWrap {
+    padding: 8px 4px;
+  }
+}

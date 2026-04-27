@@ -10,11 +10,15 @@
 //
 // Intentionally narrow:
 //
-//   - `FlatMatchup`            — the lean, score-only view that
-//                                Overview, H2H, and Seasons all consume.
-//   - `buildRosterToOwnerKey`  — `roster_id` → owner key for one season.
-//   - `buildAllMatchups`       — flattens every season's
-//                                `weeklyMatchups` into a `FlatMatchup[]`.
+//   - `FlatMatchup`              — the lean, score-only view that
+//                                  Overview, H2H, and Seasons all consume.
+//   - `buildRosterToOwnerKey`    — `roster_id` → owner key for one season.
+//   - `buildAllMatchups`         — flattens every season's
+//                                  `weeklyMatchups` into a `FlatMatchup[]`.
+//   - `buildAllPlayWeekBuckets`  — groups regular-season matchups by
+//                                  `(season, week)` for the all-play /
+//                                  expected-wins-by-rank metric. Shared
+//                                  between Luck Rating and Power Rankings.
 //
 // The Records tab keeps its own `buildAllMatchupsWithStarters` (in
 // `stats/records.ts`) because it needs the starter arrays attached;
@@ -110,4 +114,74 @@ export function buildAllMatchups(seasons: SeasonDetails[]): FlatMatchup[] {
     });
   }
   return all;
+}
+
+// ===================================================================
+// All-play / expected-wins-by-rank week buckets
+// ===================================================================
+
+/** One side of a regular-season matchup as it lives inside an all-play bucket. */
+export interface AllPlayEntry {
+  ownerKey: string;
+  pts: number;
+  /** True if this owner won their head-to-head matchup that week. */
+  actualWin: boolean;
+  /** True if the head-to-head matchup ended in a tie. */
+  actualTie: boolean;
+}
+
+/** Output of `buildAllPlayWeekBuckets` — one entry per (season, week). */
+export interface AllPlayWeekBucket {
+  season: string;
+  week: number;
+  entries: AllPlayEntry[];
+}
+
+/**
+ * Groups regular-season matchups into per-`(season, week)` buckets,
+ * with both sides of every matchup pushed into the same bucket. This
+ * is exactly the shape the all-play / expected-wins-by-rank metric
+ * needs — for each team in a bucket of size `n`, the "expected wins"
+ * for that week is `(beats + 0.5 * ties) / (n - 1)`.
+ *
+ * Lifted out of `selectLuckRatings` once Power Rankings landed as the
+ * second consumer. The original behavior (regular-season-only, drop
+ * single-team weeks at the call site by checking `n < 2`) is
+ * preserved verbatim — callers are expected to apply the singleton
+ * guard themselves so this helper stays format-agnostic.
+ *
+ * Optional `throughWeek` ceiling restricts the buckets to weeks
+ * `<= throughWeek` within each season, used by Power Rankings to
+ * compute mid-season snapshots without duplicating the matchup walk.
+ */
+export function buildAllPlayWeekBuckets(
+  seasons: SeasonDetails[],
+  options: { throughWeek?: number } = {},
+): AllPlayWeekBucket[] {
+  const matchups = buildAllMatchups(seasons);
+  const buckets = new Map<string, AllPlayWeekBucket>();
+  for (const m of matchups) {
+    if (m.isPlayoff) continue;
+    if (options.throughWeek != null && m.week > options.throughWeek) continue;
+    const tie = m.scoreA === m.scoreB;
+    const key = `${m.season}|${m.week}`;
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { season: m.season, week: m.week, entries: [] };
+      buckets.set(key, bucket);
+    }
+    bucket.entries.push({
+      ownerKey: m.ownerAKey,
+      pts: m.scoreA,
+      actualWin: m.scoreA > m.scoreB,
+      actualTie: tie,
+    });
+    bucket.entries.push({
+      ownerKey: m.ownerBKey,
+      pts: m.scoreB,
+      actualWin: m.scoreB > m.scoreA,
+      actualTie: tie,
+    });
+  }
+  return Array.from(buckets.values());
 }

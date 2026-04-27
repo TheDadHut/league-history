@@ -54,7 +54,10 @@ script in this PR).
 
 ### What it outputs
 
-- Standings (W-L-T, PF, PA) sorted by wins then PF
+- Standings (W-L-T, PF, PA) sorted by wins then PF, rendered as a fenced
+  code block with width-aligned columns. Markdown tables don't render in
+  Discord webhooks (raw `|` characters show through); a code block gives
+  the same visual on Discord, Slack, and GitHub.
 - All games this week (one line per game, sorted by margin descending)
 - Biggest blowout of the week
 - Closest game of the week
@@ -90,8 +93,7 @@ chunking the content to fit each platform's per-message cap.
 python3 tools/post_recap.py \
   --path recaps/2024/week-17.md \
   --webhook-url 'https://discord.com/api/webhooks/...' \
-  --webhook-format discord \
-  --link 'https://github.com/.../pull/42'
+  --webhook-format discord
 ```
 
 ### Flags
@@ -101,7 +103,10 @@ python3 tools/post_recap.py \
 - `--webhook-format {discord,slack}` — payload shape and per-message cap.
   Required.
 - `--link URL` — optional. Appended to the final chunk only as a single
-  `Full recap: <url>` line.
+  `Full recap: <url>` line. **Kept for backward compatibility — the
+  scheduled workflow no longer passes it.** The recap PR auto-merges on
+  its own branch and the link added noise to the channel without much
+  value.
 
 ### Chunking
 
@@ -116,8 +121,11 @@ python3 tools/post_recap.py \
 ### Discord vs. Slack rendering caveat
 
 The recap is GitHub-flavored markdown. Discord renders `**bold**` and
-markdown tables reasonably; Slack `mrkdwn` does not — Slack uses
-`*single-asterisk*` for bold and ignores tables entirely, so a recap posted
-to a Slack webhook will display the raw `**` and `|` characters. If that
-matters, use a Discord webhook or render a Slack-flavored variant on the
-read side. The poster intentionally does not transform the markdown.
+fenced code blocks (the standings render as monospace columns there);
+Slack `mrkdwn` does not — Slack uses `*single-asterisk*` for bold, so a
+recap posted to a Slack webhook will display the raw `**` characters
+around bold text. Code blocks render as monospace on Slack as well, which
+is why the standings section uses a code block rather than a markdown
+table. The poster intentionally does not transform the markdown — if
+Slack-perfect rendering matters, render a Slack-flavored variant on the
+read side.

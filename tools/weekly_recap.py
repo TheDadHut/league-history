@@ -290,16 +290,49 @@ def render_header(season: str, week: int, league: League) -> list[str]:
 
 
 def render_standings(standings: list[dict[str, Any]]) -> list[str]:
+    # Rendered as a fenced code block rather than a markdown table. Discord
+    # webhooks don't render markdown tables (they show raw `|` characters);
+    # a code block + width-aligned columns gives the same visual on Discord
+    # and stays readable on GitHub. Slack also renders code blocks as
+    # monospace, so this works there too.
     lines: list[str] = []
     lines.append("### Standings")
     lines.append("")
-    lines.append("| # | Team | W-L-T | PF | PA |")
-    lines.append("| - | ---- | ----- | -- | -- |")
+    if not standings:
+        lines.append("_No data._")
+        return lines
+
+    rows = []
     for i, row in enumerate(standings, 1):
-        record = f"{row['w']}-{row['l']}-{row['t']}"
-        lines.append(
-            f"| {i} | {row['team']} | {record} | {fmt_score(row['pf'])} | {fmt_score(row['pa'])} |"
+        rows.append(
+            {
+                "rank": str(i),
+                "team": str(row["team"]),
+                "wlt": f"{row['w']}-{row['l']}-{row['t']}",
+                "pf": fmt_score(row["pf"]),
+                "pa": fmt_score(row["pa"]),
+            }
         )
+
+    headers = {"rank": "#", "team": "Team", "wlt": "W-L-T", "pf": "PF", "pa": "PA"}
+    widths = {
+        key: max(len(headers[key]), *(len(r[key]) for r in rows)) for key in headers
+    }
+
+    def fmt(r: dict[str, str]) -> str:
+        return (
+            f"{r['rank']:>{widths['rank']}}  "
+            f"{r['team']:<{widths['team']}}  "
+            f"{r['wlt']:<{widths['wlt']}}  "
+            f"{r['pf']:>{widths['pf']}}  "
+            f"{r['pa']:>{widths['pa']}}"
+        )
+
+    lines.append("```")
+    lines.append(fmt(headers))
+    for r in rows:
+        lines.append(fmt(r))
+    lines.append("```")
     lines.append("")
     return lines
 

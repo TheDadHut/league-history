@@ -40,7 +40,7 @@
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
 import { latestTeamName } from '../owners';
-import { buildAllMatchups } from './util';
+import { buildAllMatchups, buildAllPlayWeekBuckets } from './util';
 
 // ===================================================================
 // Luck Rating
@@ -75,22 +75,11 @@ export interface LuckRating {
  * (index.html lines 2492-2545).
  */
 export function selectLuckRatings(seasons: SeasonDetails[], ownerIndex: OwnerIndex): LuckRating[] {
-  // Group every owner's score for each (season, week) bucket. The
-  // legacy code keeps both sides of every matchup in the same bucket,
-  // which is exactly the all-play denominator we need below.
-  const matchups = buildAllMatchups(seasons);
-  const buckets = new Map<string, Array<{ ownerKey: string; pts: number; actualWin: boolean }>>();
-  for (const m of matchups) {
-    if (m.isPlayoff) continue;
-    const wk = `${m.season}|${m.week}`;
-    let entries = buckets.get(wk);
-    if (!entries) {
-      entries = [];
-      buckets.set(wk, entries);
-    }
-    entries.push({ ownerKey: m.ownerAKey, pts: m.scoreA, actualWin: m.scoreA > m.scoreB });
-    entries.push({ ownerKey: m.ownerBKey, pts: m.scoreB, actualWin: m.scoreB > m.scoreA });
-  }
+  // The all-play bucketing — both sides of every regular-season
+  // matchup pushed into a `(season, week)` bucket — was lifted into
+  // `buildAllPlayWeekBuckets` once Power Rankings became the second
+  // consumer of the same shape. The accumulation below is unchanged.
+  const buckets = buildAllPlayWeekBuckets(seasons);
 
   // Initialize stats for every owner so an owner with zero games still
   // shows up — the post-filter below drops them, but it keeps the loop
@@ -100,7 +89,8 @@ export function selectLuckRatings(seasons: SeasonDetails[], ownerIndex: OwnerInd
     stats.set(key, { actualWins: 0, expectedWins: 0, games: 0 });
   }
 
-  for (const teams of buckets.values()) {
+  for (const bucket of buckets) {
+    const teams = bucket.entries;
     const n = teams.length;
     if (n < 2) continue; // Singleton week (commish edit) — skip, denominator would be 0.
     for (const t of teams) {

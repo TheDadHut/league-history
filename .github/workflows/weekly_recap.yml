@@ -119,5 +119,4 @@ jobs:
           python3 tools/post_recap.py \
             --path "${{ steps.generate.outputs.recap_temp }}" \
             --webhook-url "$RECAP_WEBHOOK_URL" \
-            --webhook-format "${RECAP_WEBHOOK_FORMAT:-discord}" \
-            --link "${{ steps.pr.outputs.pull-request-url }}"
+            --webhook-format "${RECAP_WEBHOOK_FORMAT:-discord}"

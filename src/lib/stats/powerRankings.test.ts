@@ -309,6 +309,44 @@ describe('selectPowerRankings', () => {
     }
   });
 
+  test('streak component caps raw at length 8', () => {
+    // 12-week regular season, two teams. Alpha wins every game → 12-game
+    // W streak; bravo loses every game → 12-game L streak. The selector
+    // surfaces the uncapped length on `streakLength` but caps the raw
+    // formula input at 8 (`STREAK_LENGTH_CAP`), so:
+    //   alpha.components.streak.raw  == +8
+    //   bravo.components.streak.raw  == -8
+    // ...even though both `streakLength` values are 12.
+    const { users, rosters, ownerIndex } = makeOwners([
+      { ownerKey: 'alpha', rosterId: 1 },
+      { ownerKey: 'bravo', rosterId: 2 },
+    ]);
+    const weeks = [];
+    for (let i = 0; i < 12; i++) {
+      weeks.push(
+        makeWeek([
+          [
+            { rosterId: 1, points: 100 },
+            { rosterId: 2, points: 80 },
+          ],
+        ]),
+      );
+    }
+    const seasons: SeasonDetails[] = [makeSeason('2024', users, rosters, weeks)];
+    const result = selectPowerRankings(seasons, ownerIndex, 12);
+
+    const alpha = result.rankings.find((r) => r.ownerKey === 'alpha');
+    const bravo = result.rankings.find((r) => r.ownerKey === 'bravo');
+
+    // Uncapped streak length is reported truthfully on the row.
+    expect(alpha?.streakLength).toBe(12);
+    expect(bravo?.streakLength).toBe(12);
+
+    // ...but the raw streak component value clamps the length at 8.
+    expect(alpha?.components.streak.raw).toBe(8);
+    expect(bravo?.components.streak.raw).toBe(-8);
+  });
+
   test('playoff weeks excluded from the formula', () => {
     const { users, rosters, ownerIndex } = makeOwners([
       { ownerKey: 'alpha', rosterId: 1 },

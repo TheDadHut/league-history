@@ -313,12 +313,24 @@ function RankingRow({ row, idx, isOpen, onToggle }: RankingRowProps) {
 
   return (
     <>
-      <tr
-        className={`${styles.rowTappable}${isOpen ? ` ${styles.rowOpen}` : ''}`}
-        onClick={onToggle}
-        aria-expanded={isOpen}
-      >
-        <td className={rankClass(idx)}>{idx + 1}</td>
+      <tr className={`${styles.rowTappable}${isOpen ? ` ${styles.rowOpen}` : ''}`}>
+        <td className={rankClass(idx)}>
+          <button
+            type="button"
+            className={styles.expandButton}
+            onClick={onToggle}
+            aria-expanded={isOpen}
+            aria-label={`${isOpen ? 'Collapse' : 'Expand'} component breakdown for ${row.displayName}`}
+          >
+            <span className={styles.rankNumber}>{idx + 1}</span>
+            <span
+              className={`${styles.expandChevron}${isOpen ? ` ${styles.expandChevronOpen}` : ''}`}
+              aria-hidden="true"
+            >
+              ▸
+            </span>
+          </button>
+        </td>
         <td>
           <TeamChip name={row.teamName} owner={row.displayName} color={row.color} />
         </td>

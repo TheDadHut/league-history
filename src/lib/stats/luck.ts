@@ -105,6 +105,9 @@ export function selectLuckRatings(seasons: SeasonDetails[], ownerIndex: OwnerInd
       const s = stats.get(t.ownerKey);
       if (!s) continue; // Owner not in the index — defensive, shouldn't happen.
       s.expectedWins += expected;
+      // Ties count as 0 actual wins here (legacy parity with the original
+      // Luck table). Power Rankings uses the alternate "ties = 0.5 wins"
+      // convention via `selectPowerRankings`; that's intentional, not a bug.
       if (t.actualWin) s.actualWins += 1;
       s.games += 1;
     }

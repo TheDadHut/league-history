@@ -182,6 +182,13 @@
   text-align: center;
 }
 
+/* `min-width: 0` lets the grid item shrink below its content's intrinsic
+ * width — without it, long team names like "I LET HIM OFF THE HOOK" force
+ * the grid wider than the card on narrow viewports. */
+.side {
+  min-width: 0;
+}
+
 /* `.side` is the wrapping flex column for one team's wins + name.
  * `--owner-color` is injected on it via inline `style` from the React
  * layer; `.sideName` (a descendant) consumes it via CSS variable
@@ -195,6 +202,8 @@
   text-transform: uppercase;
   margin-top: 8px;
   color: var(--owner-color);
+  /* Long team names should wrap rather than overflow the grid cell. */
+  overflow-wrap: anywhere;
 }
 
 .winsBig {
@@ -303,6 +312,18 @@
 
   .winsBig {
     font-size: 44px;
+  }
+
+  .sideName {
+    font-size: 16px;
+  }
+
+  .vs {
+    gap: 12px;
+  }
+
+  .result {
+    padding: 16px;
   }
 
   .gameRow {

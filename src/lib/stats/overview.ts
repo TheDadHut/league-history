@@ -24,7 +24,9 @@
 
 import type { OwnerIndex, SeasonDetails } from '../owners';
 import type { PlayerIndex } from '../leagueData';
+import { selectCurrentStreaks } from './luck';
 import { selectPlayerSeasonHighs, selectPlayerSingleWeekHighs } from './records';
+import { selectToiletBowlWinner } from './seasons';
 import type { TradeStatsByOwner } from './trades';
 import { buildAllMatchups, buildRosterToOwnerKey } from './util';
 
@@ -454,9 +456,11 @@ function traderSubLine(
 // ===================================================================
 
 /**
- * Returns the three text items the red broadcast ticker scrolls
- * across the top of the page, in display order. Mirrors
- * `renderTicker()` (legacy `index.html` lines 1872-1898):
+ * Returns the text items the red broadcast ticker scrolls across the
+ * top of the page, in display order. The first three mirror legacy
+ * `renderTicker()` (`index.html` lines 1872-1898); the latter three
+ * extend the bar with a "trophy → record → live" cadence so adjacent
+ * items don't repeat the same shape.
  *
  *   1. `🏆 <SEASON> CHAMPION: <TEAM> (<DISPLAY>)` — most recent
  *      completed season's champion. Skipped when no season has
@@ -466,11 +470,25 @@ function traderSubLine(
  *      sides of every regular-season pair are considered.
  *   3. `ALL-TIME WINS LEADER: <DISPLAY> — <WINS>` — owner with the
  *      most all-time regular-season wins.
+ *   4. `🚽 <SEASON> SACKO: <DISPLAY>` — most recent completed season's
+ *      toilet-bowl (consolation-bracket) winner. Walks `seasons`
+ *      backwards via `selectToiletBowlWinner` since that selector is
+ *      single-season; skipped when no completed season has surfaced
+ *      a losers-bracket champion.
+ *   5. `MOST RINGS: <DISPLAY> — <N>x` — owner with the most career
+ *      championships, derived from `selectChampions`. Ties resolve
+ *      alphabetically by display name (deterministic). Skipped when
+ *      no championships have been crowned yet.
+ *   6. `ON A HEATER: <DISPLAY> — <N>-GAME W STREAK` /
+ *      `STUCK IN THE MUD: <DISPLAY> — <N>-GAME L STREAK` — longest
+ *      active W or L streak (≥ 2 games). Tie-break prefers W over L,
+ *      then alphabetical by display name. Tie streaks and 1-game
+ *      streaks aren't interesting and are dropped.
  *
- * Items whose data is unavailable (no champion yet, no matchups, no
- * standings) are dropped instead of being emitted with placeholder
- * text — the consumer concatenates this array twice for a seamless
- * scroll loop, and an empty string would create a visible gap.
+ * Items whose data is unavailable are dropped instead of being
+ * emitted with placeholder text — the consumer concatenates this
+ * array twice for a seamless scroll loop, and an empty string would
+ * create a visible gap.
  */
 export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerIndex): string[] {
   const items: string[] = [];
@@ -521,6 +539,72 @@ export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerInd
     items.push(
       `ALL-TIME WINS LEADER: ${winsLeader.displayName.toUpperCase()} — ${winsLeader.wins}`,
     );
+  }
+
+  // 4. Most-recent toilet-bowl (sacko) winner. `selectToiletBowlWinner`
+  //    is single-season, so walk `seasons` from newest backwards
+  //    until one resolves — `seasons` is chronological (oldest first)
+  //    per `walkPreviousLeagues`. Skipped if no completed season has
+  //    a losers-bracket champion (rare; would mean missing bracket
+  //    data).
+  for (let i = seasons.length - 1; i >= 0; i--) {
+    const season = seasons[i];
+    if (!season) continue;
+    const sacko = selectToiletBowlWinner(season, ownerIndex);
+    if (sacko) {
+      items.push(`🚽 ${season.season} SACKO: ${sacko.displayName.toUpperCase()}`);
+      break;
+    }
+  }
+
+  // 5. Most rings (career championship count). Group `selectChampions`
+  //    by `ownerKey`, take the max count. Ties resolve alphabetically
+  //    by display name so the bar is deterministic even when two
+  //    owners are tied at the top.
+  if (champions.length > 0) {
+    const ringsByOwner = new Map<string, { displayName: string; count: number }>();
+    for (const c of champions) {
+      const existing = ringsByOwner.get(c.ownerKey);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        ringsByOwner.set(c.ownerKey, { displayName: c.displayName, count: 1 });
+      }
+    }
+    const ringLeader = [...ringsByOwner.values()].sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.displayName.localeCompare(b.displayName);
+    })[0];
+    if (ringLeader && ringLeader.count > 0) {
+      items.push(`MOST RINGS: ${ringLeader.displayName.toUpperCase()} — ${ringLeader.count}x`);
+    }
+  }
+
+  // 6. Active streak leader. `selectCurrentStreaks` returns one row per
+  //    owner with their current run; we pick the longest W or L (≥ 2)
+  //    with W preferred over L on ties, then alphabetical by display
+  //    name. Tie-result streaks (`'T'`) aren't surfaced — they don't
+  //    fit either headline phrasing.
+  const streaks = selectCurrentStreaks(seasons, ownerIndex).filter(
+    (s) => (s.streakType === 'W' || s.streakType === 'L') && s.streak >= 2,
+  );
+  if (streaks.length > 0) {
+    const sorted = [...streaks].sort((a, b) => {
+      if (b.streak !== a.streak) return b.streak - a.streak;
+      // W preferred over L on equal length.
+      if (a.streakType !== b.streakType) return a.streakType === 'W' ? -1 : 1;
+      return a.displayName.localeCompare(b.displayName);
+    });
+    const top = sorted[0];
+    if (top) {
+      if (top.streakType === 'W') {
+        items.push(`ON A HEATER: ${top.displayName.toUpperCase()} — ${top.streak}-GAME W STREAK`);
+      } else {
+        items.push(
+          `STUCK IN THE MUD: ${top.displayName.toUpperCase()} — ${top.streak}-GAME L STREAK`,
+        );
+      }
+    }
   }
 
   return items;

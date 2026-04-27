@@ -1,0 +1,49 @@
+/* ===================================================================
+ * Broadcast ticker bar
+ * ===================================================================
+ *
+ * Mirrors the legacy `.broadcast-bar` / `.ticker` styles
+ * (index.html lines 71-83) — a red full-width bar pinned above the
+ * header with an infinitely-scrolling marquee of three headline
+ * items. Keyframes live inside the CSS Module so the animation name
+ * gets the same hash scope as the class that consumes it.
+ */
+
+.broadcastBar {
+  background: var(--accent-red);
+  color: #fff;
+  padding: 6px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #000;
+}
+
+.ticker {
+  display: inline-block;
+  animation: scroll 55s linear infinite;
+  /* The marquee starts off-screen-right by padding-left: 100% so the
+   * first item enters from the edge instead of popping in mid-bar. */
+  padding-left: 100%;
+}
+
+.ticker span {
+  margin: 0 30px;
+}
+
+.dot {
+  color: var(--accent);
+}
+
+@keyframes scroll {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-100%, 0);
+  }
+}

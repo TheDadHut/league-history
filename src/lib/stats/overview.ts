@@ -448,3 +448,80 @@ function traderSubLine(
   const tradeWord = stats.tradeCount === 1 ? 'trade' : 'trades';
   return `${recordStr}${wr} · ${stats.tradeCount} ${tradeWord}`;
 }
+
+// ===================================================================
+// Broadcast ticker
+// ===================================================================
+
+/**
+ * Returns the three text items the red broadcast ticker scrolls
+ * across the top of the page, in display order. Mirrors
+ * `renderTicker()` (legacy `index.html` lines 1872-1898):
+ *
+ *   1. `🏆 <SEASON> CHAMPION: <TEAM> (<DISPLAY>)` — most recent
+ *      completed season's champion. Skipped when no season has
+ *      finished yet (legacy guarded on `if (latest)`).
+ *   2. `HIGH SCORE: <DISPLAY> <PTS> · <SEASON> W<WEEK>` — single
+ *      highest team-week regular-season score across history. Both
+ *      sides of every regular-season pair are considered.
+ *   3. `ALL-TIME WINS LEADER: <DISPLAY> — <WINS>` — owner with the
+ *      most all-time regular-season wins.
+ *
+ * Items whose data is unavailable (no champion yet, no matchups, no
+ * standings) are dropped instead of being emitted with placeholder
+ * text — the consumer concatenates this array twice for a seamless
+ * scroll loop, and an empty string would create a visible gap.
+ */
+export function selectTickerItems(seasons: SeasonDetails[], ownerIndex: OwnerIndex): string[] {
+  const items: string[] = [];
+
+  // 1. Latest champion. `selectChampions` returns most-recent-first,
+  //    so the latest is index 0 — not the last element like in the
+  //    legacy `state.champions` chronological array.
+  const champions = selectChampions(seasons, ownerIndex);
+  const latest = champions[0];
+  if (latest) {
+    items.push(
+      `🏆 ${latest.season} CHAMPION: ${latest.teamName.toUpperCase()} (${latest.displayName.toUpperCase()})`,
+    );
+  }
+
+  // 2. Single-team high score across regular-season games.
+  interface TopSide {
+    key: string;
+    pts: number;
+    season: string;
+    week: number;
+  }
+  let top: TopSide | null = null;
+  for (const m of buildAllMatchups(seasons)) {
+    if (m.isPlayoff) continue;
+    if (!top || m.scoreA > top.pts) {
+      top = { key: m.ownerAKey, pts: m.scoreA, season: m.season, week: m.week };
+    }
+    if (!top || m.scoreB > top.pts) {
+      top = { key: m.ownerBKey, pts: m.scoreB, season: m.season, week: m.week };
+    }
+  }
+  if (top) {
+    const owner = ownerIndex[top.key];
+    if (owner) {
+      items.push(
+        `HIGH SCORE: ${owner.displayName.toUpperCase()} ${top.pts.toFixed(2)} · ${top.season} W${top.week}`,
+      );
+    }
+  }
+
+  // 3. All-time wins leader. Reuses `selectAllTimeStandings` so the
+  //    "what counts as a win" rule lives in exactly one place.
+  const winsLeader = [...selectAllTimeStandings(seasons, ownerIndex)].sort(
+    (a, b) => b.wins - a.wins,
+  )[0];
+  if (winsLeader && winsLeader.wins > 0) {
+    items.push(
+      `ALL-TIME WINS LEADER: ${winsLeader.displayName.toUpperCase()} — ${winsLeader.wins}`,
+    );
+  }
+
+  return items;
+}

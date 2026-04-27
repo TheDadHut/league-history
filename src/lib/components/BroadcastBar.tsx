@@ -34,10 +34,19 @@ export function BroadcastBar() {
   // `seasons-ready` is the earliest tier with both `seasons` and
   // `ownerIndex`. The hook still has to be called unconditionally,
   // so the empty-array fallback covers loading / error / core-ready.
+  // Narrow to the specific fields we read so the memo doesn't re-run
+  // when the provider transitions tier (e.g., `seasons-ready → ready`)
+  // and produces a fresh `state` object reference with the same data.
+  const seasons =
+    state.status === 'seasons-ready' || state.status === 'ready' ? state.seasons : null;
+  const ownerIndex =
+    state.status === 'core-ready' || state.status === 'seasons-ready' || state.status === 'ready'
+      ? state.ownerIndex
+      : null;
   const items = useMemo<string[]>(() => {
-    if (state.status !== 'seasons-ready' && state.status !== 'ready') return [];
-    return selectTickerItems(state.seasons, state.ownerIndex);
-  }, [state]);
+    if (!seasons || !ownerIndex) return [];
+    return selectTickerItems(seasons, ownerIndex);
+  }, [seasons, ownerIndex]);
 
   // When real data isn't ready yet (or the items list came back
   // empty), fall back to the legacy placeholder rather than rendering
@@ -54,7 +63,7 @@ export function BroadcastBar() {
   // spans (text + dot) so `.ticker span { margin: 0 30px }` applies
   // uniformly to both, matching the legacy spacing.
   return (
-    <div className={styles.broadcastBar}>
+    <div className={styles.broadcastBar} aria-hidden="true">
       <div className={styles.ticker}>
         {showPlaceholder ? (
           <span>{LOADING_PLACEHOLDER}</span>

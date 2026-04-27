@@ -25,7 +25,7 @@
 
 .ticker {
   display: inline-block;
-  animation: scroll 55s linear infinite;
+  animation: tickerScroll 55s linear infinite;
   /* The marquee starts off-screen-right by padding-left: 100% so the
    * first item enters from the edge instead of popping in mid-bar. */
   padding-left: 100%;
@@ -39,11 +39,17 @@
   color: var(--accent);
 }
 
-@keyframes scroll {
+@keyframes tickerScroll {
   0% {
-    transform: translate(0, 0);
+    transform: translateX(0);
   }
   100% {
-    transform: translate(-100%, 0);
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker {
+    animation: none;
   }
 }

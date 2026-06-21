@@ -33,7 +33,7 @@ jobs:
       RECAP_WEBHOOK_URL: ${{ secrets.RECAP_WEBHOOK_URL }}
       RECAP_WEBHOOK_FORMAT: ${{ vars.RECAP_WEBHOOK_FORMAT }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # peter-evans/create-pull-request needs full history to detect
           # whether the head branch already exists and rebase against it.

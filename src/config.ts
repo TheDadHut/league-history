@@ -7,7 +7,7 @@
 
 export const API_BASE = 'https://api.sleeper.app/v1';
 
-export const CURRENT_LEAGUE_ID = '1226697048753983488';
+export const CURRENT_LEAGUE_ID = '1389752262355595264';
 
 // Owner color preferences. Match by substring — if a Sleeper display_name CONTAINS any
 // of these keys (case-insensitive), that owner is preferred to get that color.

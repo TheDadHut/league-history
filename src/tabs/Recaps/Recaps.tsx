@@ -48,9 +48,8 @@ import {
   type PowerRankingRow,
   type PowerRankingsResult,
 } from '../../lib/stats/powerRankings';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { getRecap } from '../../lib/recaps';
+import { RecapMarkdown } from './RecapMarkdown';
 import styles from './Recaps.module.css';
 
 export default function Recaps() {
@@ -153,7 +152,11 @@ function RecapsReady({ seasons, ownerIndex }: RecapsReadyProps) {
         selectedWeek={safeWeek}
         onWeekChange={setSelectedWeek}
       />
-      <RecapSection season={currentResult.season} week={safeWeek} />
+      <RecapSection
+        season={currentResult.season}
+        week={safeWeek}
+        ownerIndex={ownerIndex}
+      />
       <RankingsTable result={currentResult} />
       <TrajectorySection
         snapshots={weeklySnapshots}
@@ -177,10 +180,30 @@ function RecapsReady({ seasons, ownerIndex }: RecapsReadyProps) {
 interface RecapSectionProps {
   season: string;
   week: number;
+  ownerIndex: OwnerIndex;
 }
 
-function RecapSection({ season, week }: RecapSectionProps) {
+function RecapSection({ season, week, ownerIndex }: RecapSectionProps) {
   const markdown = getRecap(season, week);
+
+  // Lowercase team-name → owner color. Teams rename year-over-year so the
+  // map is built across every season an owner has participated in; a
+  // string match on either side resolves. Memoized because the owner
+  // index is stable for the provider's lifetime but the renderer is
+  // re-invoked whenever the user clicks a different week.
+  const teamColors = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const owner of Object.values(ownerIndex)) {
+      for (const name of Object.values(owner.teamNamesBySeason)) {
+        if (!name) continue;
+        map.set(name.toLowerCase(), owner.color);
+      }
+      // Fall-through: match on display name too, in case a recap mentions
+      // the Sleeper handle instead of the per-season team name.
+      if (owner.displayName) map.set(owner.displayName.toLowerCase(), owner.color);
+    }
+    return map;
+  }, [ownerIndex]);
 
   return (
     <section className={styles.section} aria-labelledby="recap-heading">
@@ -193,7 +216,7 @@ function RecapSection({ season, week }: RecapSectionProps) {
       <div className={styles.card}>
         {markdown ? (
           <div className={styles.recapBody}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+            <RecapMarkdown markdown={markdown} teamColors={teamColors} />
           </div>
         ) : (
           <p className={styles.recapEmpty}>No recap published for week {week} yet.</p>

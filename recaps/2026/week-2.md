@@ -67,3 +67,12 @@ _Gaming Disability — through week 2_
 - **Thee Umazing Revenge** — 2-game W streak
 - **They call me big papa** — 2-game L streak
 - **deez** — 2-game W streak
+
+---
+
+### Trades
+
+- **FriendsMexicanDog** ↔ **They call me big papa**
+  - **FriendsMexicanDog** got: Cam Skattebo (RB NYG), Stefon Diggs (WR WAS), Garrett Wilson (WR NYJ)
+  - **They call me big papa** got: Amon-Ra St. Brown (WR DET)
+

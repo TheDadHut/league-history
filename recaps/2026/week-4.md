@@ -65,3 +65,12 @@ _Gaming Disability — through week 4_
 - **Cinnamon Crunchers** — 3-game W streak
 - **The Salty Sailors** — 2-game L streak
 - **Who’s your daddy** — 2-game W streak
+
+---
+
+### Trades
+
+- **They call me big papa** ↔ **deez**
+  - **They call me big papa** got: Omarion Hampton (RB LAC), Christian Watson (WR GB)
+  - **deez** got: Amon-Ra St. Brown (WR DET)
+

@@ -3,7 +3,7 @@
 
 Pulls one week of league data from the public Sleeper API and emits a
 markdown recap to stdout: standings, biggest blowout, closest game,
-highest and lowest scorers.
+highest and lowest scorers, and any completed trades.
 
 Usage
 -----
@@ -76,6 +76,26 @@ class NflState(TypedDict, total=False):
     season_type: str
 
 
+# Transaction shape — enough fields to render a trade.
+#
+# `adds` maps player_id → destination roster_id (where that player ended up).
+# `drops` maps player_id → origin roster_id (where that player came from).
+# For a 2-team trade both maps carry the full player set from both sides.
+# `draft_picks` are objects with `{round, season, roster_id (original owner),
+# owner_id (destination roster_id)}`. `waiver_budget` entries are
+# `{amount, sender, receiver}` roster_id pairs.
+class Transaction(TypedDict, total=False):
+    transaction_id: str
+    type: str
+    status: str
+    leg: int
+    roster_ids: list[int]
+    adds: dict[str, int] | None
+    drops: dict[str, int] | None
+    draft_picks: list[dict[str, Any]]
+    waiver_budget: list[dict[str, Any]]
+
+
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------
@@ -103,8 +123,41 @@ def get_matchups(league_id: str, week: int) -> list[Matchup]:
     return _get(f"{API_BASE}/league/{league_id}/matchups/{week}")
 
 
+def get_transactions(league_id: str, week: int) -> list[Transaction]:
+    return _get(f"{API_BASE}/league/{league_id}/transactions/{week}")
+
+
 def get_nfl_state() -> NflState:
     return _get(f"{API_BASE}/state/nfl")
+
+
+# `/players/nfl` is ~5MB — fetched at most once per invocation, and only
+# when there's actually a trade to resolve names for.
+def get_players() -> dict[str, dict[str, Any]]:
+    return _get(f"{API_BASE}/players/nfl")
+
+
+def player_display_name(player_id: str, players: dict[str, dict[str, Any]]) -> str:
+    """Short human name for a player: e.g. 'Christian McCaffrey (RB SF)'.
+
+    Falls back to the raw id when the player isn't in the DB (defensive —
+    the Sleeper players endpoint occasionally lags behind rookie IDs that
+    appear in transactions). Defensive-team entries use the id itself as
+    the name (Sleeper uses e.g. 'DAL' for the Cowboys D/ST).
+    """
+    p = players.get(player_id)
+    if not p:
+        # Defensive teams come across as their NFL abbreviation (DAL, SF, etc.)
+        # with no entry in /players/nfl. Render them as "<ABBR> D/ST".
+        if player_id.isalpha() and player_id.isupper() and len(player_id) <= 4:
+            return f"{player_id} D/ST"
+        return player_id
+    name = p.get("full_name") or " ".join(
+        s for s in (p.get("first_name"), p.get("last_name")) if s
+    ) or player_id
+    pos = p.get("position") or "?"
+    team = p.get("team") or "FA"
+    return f"{name} ({pos} {team})"
 
 
 # ---------------------------------------------------------------------------
@@ -343,6 +396,91 @@ def _section_break(lines: list[str]) -> None:
     lines.append("")
 
 
+def render_trades(
+    trades: list[Transaction],
+    team_names: dict[int, str],
+    players: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Render one bullet per completed trade. Caller should only invoke
+    when ``trades`` is non-empty; this returns an empty list otherwise so
+    the section is unconditionally safe to extend.
+
+    Each trade enumerates every involved team and what that team *received*:
+    players, draft picks (`<season> <round-ordinal>`), and FAAB. Multi-team
+    trades (3+) are handled by grouping the adds/picks/FAAB by destination
+    roster — the same code path works for the common 2-team case.
+    """
+    if not trades:
+        return []
+
+    lines: list[str] = []
+    lines.append("### Trades")
+    lines.append("")
+
+    # Chronological within the week. `status_updated` is a Unix ms stamp.
+    sorted_trades = sorted(trades, key=lambda t: t.get("status_updated") or 0)
+
+    for trade in sorted_trades:
+        rosters = trade.get("roster_ids") or []
+        if not rosters:
+            continue
+
+        # Group everything by *destination* roster — what each team got.
+        got_players: dict[int, list[str]] = {rid: [] for rid in rosters}
+        got_picks: dict[int, list[str]] = {rid: [] for rid in rosters}
+        got_faab: dict[int, list[str]] = {rid: [] for rid in rosters}
+
+        for pid, dest_rid in (trade.get("adds") or {}).items():
+            got_players.setdefault(dest_rid, []).append(player_display_name(pid, players))
+
+        for pick in trade.get("draft_picks") or []:
+            dest_rid = pick.get("owner_id")
+            season_s = pick.get("season") or "?"
+            rnd = pick.get("round")
+            got_picks.setdefault(dest_rid, []).append(
+                f"{season_s} {_round_ordinal(rnd)}"
+            )
+
+        for faab in trade.get("waiver_budget") or []:
+            dest_rid = faab.get("receiver")
+            amt = faab.get("amount")
+            if dest_rid is None or amt is None:
+                continue
+            got_faab.setdefault(dest_rid, []).append(f"{amt} FAAB")
+
+        # One header line naming all involved teams in a '↔' chain.
+        team_label_order = sorted(
+            set(rosters) | set(got_players) | set(got_picks) | set(got_faab)
+        )
+        names = [team_names.get(r, f"Roster {r}") for r in team_label_order]
+        lines.append("- " + " ↔ ".join(f"**{n}**" for n in names))
+
+        # One sub-bullet per team with what it received, in the same order.
+        for r in team_label_order:
+            received = got_players.get(r, []) + got_picks.get(r, []) + got_faab.get(r, [])
+            tn = team_names.get(r, f"Roster {r}")
+            if not received:
+                lines.append(f"  - **{tn}** sent its share, got nothing")
+                continue
+            lines.append(f"  - **{tn}** got: {', '.join(received)}")
+
+    lines.append("")
+    return lines
+
+
+def _round_ordinal(rnd: Any) -> str:
+    """1 → '1st', 2 → '2nd', 3 → '3rd', else 'Nth' / fallback."""
+    try:
+        n = int(rnd)
+    except (TypeError, ValueError):
+        return str(rnd) if rnd is not None else "?"
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def render_recap(
     season: str,
     week: int,
@@ -351,6 +489,8 @@ def render_recap(
     team_names: dict[int, str],
     standings: list[dict[str, Any]],
     streaks: list[dict[str, Any]],
+    trades: list[Transaction],
+    players: dict[str, dict[str, Any]],
 ) -> str:
     lines: list[str] = []
     lines.extend(render_header(season, week, league))
@@ -443,6 +583,10 @@ def render_recap(
                 f"- **{row['team']}** — {row['length']}-game {row['kind']} streak"
             )
         lines.append("")
+
+    if trades:
+        _section_break(lines)
+        lines.extend(render_trades(trades, team_names, players))
 
     return "\n".join(lines)
 
@@ -576,8 +720,35 @@ def main() -> int:
     standings, history = compute_standings_and_history(league_id, week, team_names)
     streaks = compute_active_streaks(history, team_names)
 
+    # Trades for the week — filter to completed trades only. `/players/nfl`
+    # is ~5MB, so only fetch it when there's at least one trade to render.
+    try:
+        week_txs = get_transactions(league_id, week)
+    except requests.HTTPError:
+        week_txs = []
+    trades: list[Transaction] = [
+        t for t in week_txs if t.get("type") == "trade" and t.get("status") == "complete"
+    ]
+    players: dict[str, dict[str, Any]] = {}
+    if trades:
+        try:
+            players = get_players()
+        except requests.HTTPError as err:
+            print(
+                f"Failed to fetch player DB for trade names (continuing with IDs): {err}",
+                file=sys.stderr,
+            )
+
     full_recap = render_recap(
-        resolved_season, week, league, matchups, team_names, standings, streaks
+        resolved_season,
+        week,
+        league,
+        matchups,
+        team_names,
+        standings,
+        streaks,
+        trades,
+        players,
     )
 
     if auto_dir:

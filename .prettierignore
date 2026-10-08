@@ -5,6 +5,11 @@ dist-ssr
 # Hand-curated league content — leave its formatting alone.
 public/highlights.json
 
+# Machine-generated weekly recaps. The Python script owns the format;
+# running prettier on them creates unnecessary churn when a future
+# scheduled run writes a new one.
+recaps/
+
 # Lockfiles
 package-lock.json
 

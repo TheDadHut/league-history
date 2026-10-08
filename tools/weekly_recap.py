@@ -34,7 +34,7 @@ import requests
 # Bump this every offseason alongside src/config.ts (line 10). The two values
 # must stay in sync — there's no shared source of truth on purpose, since this
 # tool is intentionally standalone.
-CURRENT_LEAGUE_ID = "1226697048753983488"
+CURRENT_LEAGUE_ID = "1389752262355595264"
 
 API_BASE = "https://api.sleeper.app/v1"
 

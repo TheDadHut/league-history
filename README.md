@@ -1,5 +1,11 @@
 # Gaming Disability League · History
 
+[![CI](https://github.com/TheDadHut/league-history/actions/workflows/ci.yml/badge.svg)](https://github.com/TheDadHut/league-history/actions/workflows/ci.yml)
+[![Deploy](https://github.com/TheDadHut/league-history/actions/workflows/deploy.yml/badge.svg)](https://github.com/TheDadHut/league-history/actions/workflows/deploy.yml)
+[![Weekly recap](https://github.com/TheDadHut/league-history/actions/workflows/weekly_recap.yml/badge.svg)](https://github.com/TheDadHut/league-history/actions/workflows/weekly_recap.yml)
+[![Highlights JSON](https://github.com/TheDadHut/league-history/actions/workflows/validate-highlights.yml/badge.svg)](https://github.com/TheDadHut/league-history/actions/workflows/validate-highlights.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?logo=dependabot&logoColor=white)](./.github/dependabot.yml)
+
 Fantasy football history site for the **Gaming Disability League** (GDL).
 Live data on every page load from the [Sleeper API](https://docs.sleeper.com/);
 no backend, no DB, no auth.

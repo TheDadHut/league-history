@@ -13,7 +13,7 @@ const HeadToHead = lazy(() => import('./tabs/HeadToHead/HeadToHead'));
 const Seasons = lazy(() => import('./tabs/Seasons/Seasons'));
 const FunStats = lazy(() => import('./tabs/FunStats/FunStats'));
 const Luck = lazy(() => import('./tabs/Luck/Luck'));
-const PowerRankings = lazy(() => import('./tabs/PowerRankings/PowerRankings'));
+const Recaps = lazy(() => import('./tabs/Recaps/Recaps'));
 const Trades = lazy(() => import('./tabs/Trades/Trades'));
 const Owners = lazy(() => import('./tabs/Owners/Owners'));
 const Founders = lazy(() => import('./tabs/Founders/Founders'));
@@ -26,9 +26,11 @@ interface TabDef {
 }
 
 // Order matches the legacy nav (index.html lines 332-343), with the
-// new Power Rankings tab inserted between Luck & Streaks and Trades:
-// it shares the all-play foundation with Luck and reads as the natural
-// continuation of that section.
+// Recaps tab inserted between Luck & Streaks and Trades. Recaps
+// surfaces the weekly markdown recap for the selected week on top of
+// the power-rankings table + trajectory chart, so it shares the
+// all-play foundation with Luck and reads as the natural continuation
+// of that section.
 const TABS: readonly TabDef[] = [
   { path: 'overview', label: 'Overview' },
   { path: 'records', label: 'Records' },
@@ -36,7 +38,7 @@ const TABS: readonly TabDef[] = [
   { path: 'seasons', label: 'Seasons' },
   { path: 'fun-stats', label: 'Fun Stats' },
   { path: 'luck', label: 'Luck & Streaks' },
-  { path: 'power-rankings', label: 'Power Rankings' },
+  { path: 'recaps', label: 'Recaps' },
   { path: 'trades', label: 'Trades' },
   { path: 'owners', label: 'Owner Stats' },
   { path: 'founders', label: 'Founders' },
@@ -89,7 +91,7 @@ function App() {
               <Route path="/seasons" element={<Seasons />} />
               <Route path="/fun-stats" element={<FunStats />} />
               <Route path="/luck" element={<Luck />} />
-              <Route path="/power-rankings" element={<PowerRankings />} />
+              <Route path="/recaps" element={<Recaps />} />
               <Route path="/trades" element={<Trades />} />
               <Route path="/owners" element={<Owners />} />
               <Route path="/founders" element={<Founders />} />

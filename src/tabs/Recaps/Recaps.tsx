@@ -48,12 +48,16 @@ import {
   type PowerRankingRow,
   type PowerRankingsResult,
 } from '../../lib/stats/powerRankings';
-import styles from './PowerRankings.module.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { getRecap } from '../../lib/recaps';
+import styles from './Recaps.module.css';
 
-export default function PowerRankings() {
+export default function Recaps() {
   const state = useLeagueData();
 
-  // Power Rankings reads only seasons + ownerIndex — no player DB.
+  // Recaps renders the committed weekly markdown and the per-week power
+  // rankings. Both read only seasons + ownerIndex — no player DB.
   if (state.status === 'loading' || state.status === 'core-ready') {
     return (
       <section className={styles.section} aria-busy="true">
@@ -72,7 +76,7 @@ export default function PowerRankings() {
     );
   }
 
-  return <PowerRankingsReady seasons={state.seasons} ownerIndex={state.ownerIndex} />;
+  return <RecapsReady seasons={state.seasons} ownerIndex={state.ownerIndex} />;
 }
 
 // -------------------------------------------------------------------
@@ -80,12 +84,12 @@ export default function PowerRankings() {
 // finishes loading.
 // -------------------------------------------------------------------
 
-interface PowerRankingsReadyProps {
+interface RecapsReadyProps {
   seasons: SeasonDetails[];
   ownerIndex: OwnerIndex;
 }
 
-function PowerRankingsReady({ seasons, ownerIndex }: PowerRankingsReadyProps) {
+function RecapsReady({ seasons, ownerIndex }: RecapsReadyProps) {
   // Resolve the rated season + final played week once. The `season`
   // string here is the same string the snapshots will report back —
   // any mismatch would mean the resolver and the per-week selector
@@ -131,7 +135,7 @@ function PowerRankingsReady({ seasons, ownerIndex }: PowerRankingsReadyProps) {
       <section className={styles.section}>
         <header className={styles.sectionHeader}>
           <span className={`${styles.sectionBar} ${styles.barGold}`} aria-hidden="true" />
-          <h2 className={styles.sectionTitleSm}>Power Rankings</h2>
+          <h2 className={styles.sectionTitleSm}>Recaps</h2>
         </header>
         <div className={styles.card}>
           <p className={styles.status}>No regular-season games have been played yet.</p>
@@ -149,6 +153,7 @@ function PowerRankingsReady({ seasons, ownerIndex }: PowerRankingsReadyProps) {
         selectedWeek={safeWeek}
         onWeekChange={setSelectedWeek}
       />
+      <RecapSection season={currentResult.season} week={safeWeek} />
       <RankingsTable result={currentResult} />
       <TrajectorySection
         snapshots={weeklySnapshots}
@@ -156,6 +161,45 @@ function PowerRankingsReady({ seasons, ownerIndex }: PowerRankingsReadyProps) {
         selectedWeek={safeWeek}
       />
     </>
+  );
+}
+
+// -------------------------------------------------------------------
+// Section 1b — Weekly recap markdown (above the rankings)
+// -------------------------------------------------------------------
+//
+// Renders whichever `recaps/<season>/week-<NN>.md` file is committed
+// for the selected week, falling back to a muted placeholder when
+// none exists yet (current in-progress week, or old weeks never
+// recapped). Markdown is bundled at build time via `src/lib/recaps.ts`
+// — no runtime fetch.
+
+interface RecapSectionProps {
+  season: string;
+  week: number;
+}
+
+function RecapSection({ season, week }: RecapSectionProps) {
+  const markdown = getRecap(season, week);
+
+  return (
+    <section className={styles.section} aria-labelledby="recap-heading">
+      <header className={styles.sectionHeader}>
+        <span className={`${styles.sectionBar} ${styles.barAccent}`} aria-hidden="true" />
+        <h2 id="recap-heading" className={styles.sectionTitleSm}>
+          Weekly Recap
+        </h2>
+      </header>
+      <div className={styles.card}>
+        {markdown ? (
+          <div className={styles.recapBody}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className={styles.recapEmpty}>No recap published for week {week} yet.</p>
+        )}
+      </div>
+    </section>
   );
 }
 

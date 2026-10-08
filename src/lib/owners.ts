@@ -20,7 +20,7 @@
 // Once the palette runs dry the legacy code wraps around and reuses
 // fallbacks; this implementation matches that behavior verbatim.
 
-import { FALLBACK_PALETTE, OWNER_COLORS } from '../config';
+import { FALLBACK_PALETTE, OWNER_ALIASES, OWNER_COLORS } from '../config';
 import type {
   BracketMatch,
   DraftPick,
@@ -47,9 +47,18 @@ export interface Owner {
 /** Stable index of every owner across the league's full history, keyed by `Owner.key`. */
 export type OwnerIndex = Record<string, Owner>;
 
-/** Lower-cased display_name (or username), trimmed. Empty string if the user has neither. */
+/**
+ * Lower-cased display_name (or username), trimmed. Empty string if the user
+ * has neither.
+ *
+ * Also applies `OWNER_ALIASES` so that when the same person has used more
+ * than one Sleeper account across seasons, both resolve to a single canonical
+ * key. One-hop lookup only — multi-hop chains are intentionally not
+ * supported (see the config comment).
+ */
 export function ownerKey(user: Pick<User, 'display_name' | 'username'>): string {
-  return (user.display_name || user.username || '').toLowerCase().trim();
+  const raw = (user.display_name || user.username || '').toLowerCase().trim();
+  return OWNER_ALIASES[raw] ?? raw;
 }
 
 /** Team name for a user in a given season — Sleeper metadata first, display_name as fallback. */

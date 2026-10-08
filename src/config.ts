@@ -29,6 +29,26 @@ export const OWNER_COLORS: Record<string, string> = {
   nick: 'var(--c-nick)',
 };
 
+// Same-person account merges. When an owner replaces their Sleeper account
+// (lost login, new handle, etc.) their new display_name produces a new owner
+// in the index unless we tell the key resolver otherwise. Map the OLD
+// (lower-cased) handle to the CANONICAL (lower-cased) handle you want to
+// collapse it onto; `ownerKey()` applies this before returning.
+//
+// The canonical handle wins — its display name is what shows up site-wide,
+// and all seasons the person participated in collapse into one owner row in
+// All-Time Standings, H2H, Owner Stats, etc. Keep aliases pointing one hop
+// deep (A → B, not A → B → C); multi-hop resolution is not supported.
+//
+// Add an entry when the SAME person appears under a different Sleeper account
+// across seasons. Do NOT use this to merge different owners who share a slot
+// (that's a roster/franchise concept, not an identity one).
+export const OWNER_ALIASES: Record<string, string> = {
+  // Michael lost access to BigBickBaniel after 2025 and came back as
+  // FriendsMexicanDog for 2026, same roster slot (3). Same person.
+  bigbickbaniel: 'friendsmexicandog',
+};
+
 // Palette used to fill in colors for any owners not matched above.
 // Every owner is guaranteed a unique entry until this palette runs out (12 colors).
 export const FALLBACK_PALETTE: readonly string[] = [

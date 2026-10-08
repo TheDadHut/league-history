@@ -77,12 +77,8 @@
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.app-tabs-inner::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .app-tab {
